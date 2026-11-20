@@ -1502,7 +1502,12 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     private static StandardSpaceReconciler.Result reconciled(String... pending) {
-        return new StandardSpaceReconciler.Result(Set.of(pending), 0, 0, 0);
+        return new StandardSpaceReconciler.Result(Set.of(pending), 0, 0, 0, true);
+    }
+
+    /** A pass that never compared the two sides: it knows of no failure, not that there is none. */
+    private static StandardSpaceReconciler.Result abstained() {
+        return StandardSpaceReconciler.Result.abstained();
     }
 
     /**
@@ -1600,6 +1605,31 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
             this.synchronizer.onSyncComplete(false);
 
             Assert.assertEquals(2, appender.count(Level.ERROR));
+        }
+    }
+
+    /**
+     * A pass that abstained must not clear the memory of what was already reported.
+     *
+     * <p>Abstaining means the two sides were never compared, so the pass knows of no failure rather
+     * than knowing there is none. Reading it as a success makes an intermittent read re-report the
+     * same resources, and ask for another immediate retry, every time it recovers.
+     */
+    public void testOnSyncComplete_abstainingDoesNotForgetWhatWasAlreadyReported() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.synchronizer.setStandardSpaceReconciler(
+                new RecordingReconciler(
+                        List.of(reconciled("rule-stuck"), abstained(), reconciled("rule-stuck")), null));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerRulesetService.class)) {
+            this.synchronizer.onSyncComplete(false);
+            this.synchronizer.onSyncComplete(false);
+            this.synchronizer.onSyncComplete(false);
+
+            Assert.assertEquals(
+                    "the same failure after an abstention is still the same failure",
+                    1,
+                    appender.count(Level.ERROR));
         }
     }
 

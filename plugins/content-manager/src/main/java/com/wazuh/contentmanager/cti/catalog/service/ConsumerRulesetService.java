@@ -331,8 +331,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
 
         // After the upserts, so a resource that is both pushed and reconciled is replaced rather
-        // than missing in between. On every pass, not only after a swap: the bookkeeping this
-        // replaces hung off shadowSwapPerformed, which an incremental deletion never sets.
+        // than missing in between. On every pass, not only after a swap: an incremental deletion
+        // performs no swap and leaves the same resources behind.
         this.reconcileStandardSpace();
 
         if (contentWorkDue) {
@@ -899,7 +899,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         Set<String> pending = result.pending();
         if (pending.isEmpty()) {
-            this.reportedReconcileFailures = Collections.emptySet();
+            if (result.compared()) {
+                this.reportedReconcileFailures = Collections.emptySet();
+            }
+            // A pass that abstained compared nothing, so it knows of no failure either way. Keeping
+            // what was already reported is what stops an intermittent read from re-reporting the
+            // same resources, and asking for an immediate retry, on every other pass.
             return;
         }
         if (pending.equals(this.reportedReconcileFailures)) {

@@ -112,6 +112,15 @@ class StandardSpaceReconciler {
      */
     private static final long IN_FLIGHT_CAP_SECONDS = 300;
 
+    /**
+     * How long one kind of deletion is waited for, and then how long the ones that outlived that wait
+     * are given. Fields rather than constants so a test does not have to sit out the production
+     * minutes: the shortest the setting allows is already two of them, and the cap is five more.
+     */
+    private long deleteTimeoutSeconds = -1;
+
+    private long inFlightCapSeconds = IN_FLIGHT_CAP_SECONDS;
+
     private final Client client;
     private final SecurityAnalyticsService securityAnalyticsService;
 
@@ -199,13 +208,27 @@ class StandardSpaceReconciler {
      * @param deletedIntegrations how many integrations were deleted.
      */
     record Result(
-            Set<String> pending, int deletedDetectors, int deletedRules, int deletedIntegrations) {
+            Set<String> pending,
+            int deletedDetectors,
+            int deletedRules,
+            int deletedIntegrations,
+            boolean compared) {
 
-        private static final Result NOTHING = new Result(Collections.emptySet(), 0, 0, 0);
+        private static final Result NOTHING = new Result(Collections.emptySet(), 0, 0, 0, true);
+        private static final Result ABSTAINED = new Result(Collections.emptySet(), 0, 0, 0, false);
 
-        /** Nothing read, nothing deleted, nothing known to be pending. */
+        /** Both sides were read and compared, and there was nothing left over. */
         static Result nothing() {
             return NOTHING;
+        }
+
+        /**
+         * The two sides were never compared, so nothing is known either way. Told apart from {@link
+         * #nothing()} because a caller that remembers which resources it has already reported must not
+         * take this for "they are all gone now".
+         */
+        static Result abstained() {
+            return ABSTAINED;
         }
 
         boolean deletedAnything() {
@@ -227,24 +250,26 @@ class StandardSpaceReconciler {
             // Never read a failure as "the content is gone, delete everything". The cause goes in
             // because the message alone is often just "all shards failed".
             log.warn(Constants.W_LOG_SAP_RECONCILE_READ_FAILED, e.getMessage(), e);
-            return Result.nothing();
+            return Result.abstained();
         }
 
-        if (inventory.contentRules().isEmpty() && !inventory.sapRules().isEmpty()) {
-            // Standard rules do not all go at once in normal operation, and a half-restored
-            // index looks exactly the same from here. Deleting them would take every detector
-            // with them, because an integration whose rules are gone loses its own.
+        if (inventory.contentRules().isEmpty()) {
+            // Standard rules do not all go at once in normal operation, and a rules index that is
+            // only half restored looks exactly the same from here. What makes this worth abstaining
+            // over is the detectors rather than the rules: with no content rules, every integration
+            // reads as having lost all of its own, so every standard detector would be planned for
+            // deletion. That holds whatever Security Analytics turns out to be holding, which is why
+            // this does not look at its side at all.
             log.warn(Constants.W_LOG_SAP_RECONCILE_NO_CONTENT_RULES, inventory.sapRules().size());
-            return Result.nothing();
+            return Result.abstained();
         }
 
         if (inventory.contentIntegrations().isEmpty()) {
             // A cluster whose content has not loaded yet is indistinguishable from one whose content
             // was wiped, and the blast radius is the whole space, so the diff does not run. A wipe on
-            // purpose goes through StandardSpaceWiper, which clears both sides. An empty rule set
-            // with integrations present does run: the content is demonstrably there.
+            // purpose goes through StandardSpaceWiper, which clears both sides.
             log.debug(Constants.D_LOG_SAP_RECONCILE_NO_CONTENT);
-            return Result.nothing();
+            return Result.abstained();
         }
 
         Plan plan = plan(inventory);
@@ -276,11 +301,17 @@ class StandardSpaceReconciler {
      */
     Result apply(Plan plan) {
         Set<String> failed = new LinkedHashSet<>();
-        int detectors = this.deleteEach(plan.detectors(), "detectors", failed, this::deleteDetector);
-        int rules = this.deleteEach(plan.rules(), "rules", failed, this::deleteRule);
-        int integrations =
+        Phase detectors = this.deleteEach(plan.detectors(), "detectors", failed, this::deleteDetector);
+        if (detectors.inFlight()) {
+            return new Result(failed, detectors.deleted(), 0, 0, true);
+        }
+        Phase rules = this.deleteEach(plan.rules(), "rules", failed, this::deleteRule);
+        if (rules.inFlight()) {
+            return new Result(failed, detectors.deleted(), rules.deleted(), 0, true);
+        }
+        Phase integrations =
                 this.deleteEach(plan.integrations(), "integrations", failed, this::deleteIntegration);
-        return new Result(failed, detectors, rules, integrations);
+        return new Result(failed, detectors.deleted(), rules.deleted(), integrations.deleted(), true);
     }
 
     /**
@@ -375,6 +406,7 @@ class StandardSpaceReconciler {
     Inventory read() {
         Map<String, List<String>> contentIntegrations = new HashMap<>();
         AtomicInteger unreadable = new AtomicInteger();
+        AtomicInteger unreadableOnSap = new AtomicInteger();
         this.eachPage(
                 Constants.INDEX_INTEGRATIONS,
                 QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.STANDARD.toString()),
@@ -422,9 +454,11 @@ class StandardSpaceReconciler {
                 LOG_TYPE_DOCUMENT_ID,
                 hit -> {
                     String id = flatField(hit, LOG_TYPE_DOCUMENT_ID);
-                    if (id != null) {
-                        sapIntegrations.add(id);
+                    if (id == null) {
+                        unreadableOnSap.incrementAndGet();
+                        return;
                     }
+                    sapIntegrations.add(id);
                 });
 
         Set<String> sapRules = new LinkedHashSet<>();
@@ -435,9 +469,11 @@ class StandardSpaceReconciler {
                 RULE_DOCUMENT_ID,
                 hit -> {
                     String id = ruleDocumentId(hit);
-                    if (id != null) {
-                        sapRules.add(id);
+                    if (id == null) {
+                        unreadableOnSap.incrementAndGet();
+                        return;
                     }
+                    sapRules.add(id);
                 });
 
         Set<String> sapDetectors = new LinkedHashSet<>();
@@ -449,6 +485,14 @@ class StandardSpaceReconciler {
                         ScoreMode.None),
                 null,
                 hit -> sapDetectors.add(hit.getId()));
+
+        if (unreadableOnSap.get() > 0) {
+            // Unlike the content side, this does not abort: an id that cannot be read here is a
+            // resource left out of the diff, which only ever means deleting less. It is logged
+            // because there is no other sign of it, and because a resource that is left out on
+            // every pass stays in Security Analytics for good.
+            log.warn(Constants.W_LOG_SAP_RECONCILE_UNREADABLE_ON_SAP, unreadableOnSap.get());
+        }
 
         return new Inventory(
                 contentIntegrations, contentRules, sapIntegrations, sapRules, sapDetectors);
@@ -491,9 +535,10 @@ class StandardSpaceReconciler {
     /**
      * Reads every document a query matches on a Security Analytics index, in one search.
      *
-     * <p>Used where the index cannot be paged on, and for the detectors, whose only unique id lives
-     * inside a nested object. A result that does not fit one search is reported as a failure rather
-     * than used in part, as {@code DetectorLookupService.findDetectorsUsingRules} does.
+     * <p>Used where the index cannot be paged on, and for the detectors, which carry no sortable id
+     * field: theirs is the document {@code _id}. A result that does not fit one search is reported as
+     * a failure rather than used in part, as {@code DetectorLookupService.findDetectorsUsingRules}
+     * does.
      *
      * @param index the index to read.
      * @param query the query to match.
@@ -541,10 +586,12 @@ class StandardSpaceReconciler {
      * Reads every document a query matches, one page at a time, and hands each hit to {@code
      * consumer}.
      *
-     * <p>For the content indices alone, and paginated rather than capped: a capped read here would
-     * look like "these resources are no longer published" and delete them for real. These indices can
-     * be sorted on because the Setup plugin creates them from templates that declare {@code
-     * document.id} a {@code keyword}. The Security Analytics side uses {@link #wholeIndex}.
+     * <p>Paginated rather than capped: a capped read would look like "these resources are no longer
+     * published" and delete them for real. Used for every index that can be sorted on an id, which
+     * the content ones always can, because the Setup plugin creates them from templates that declare
+     * {@code document.id} a {@code keyword}. On the Security Analytics side it depends on the
+     * deployment, so {@link #eachSapDocument} falls back to {@link #wholeIndex} when the sort is
+     * refused.
      *
      * @param index the index to read.
      * @param query the query to match.
@@ -694,9 +741,9 @@ class StandardSpaceReconciler {
      * @param deletion how to delete one.
      * @return how many were deleted.
      */
-    private int deleteEach(List<String> ids, String kind, Set<String> failed, Deletion deletion) {
+    private Phase deleteEach(List<String> ids, String kind, Set<String> failed, Deletion deletion) {
         if (ids.isEmpty()) {
-            return 0;
+            return new Phase(0, false);
         }
         if (Thread.currentThread().isInterrupted()) {
             // A kind that was interrupted leaves the flag set, and the await below would throw the
@@ -704,28 +751,37 @@ class StandardSpaceReconciler {
             // with nobody waiting for it. Start none instead.
             log.warn(Constants.W_LOG_SAP_RECONCILE_INTERRUPTED, kind);
             failed.addAll(ids);
-            return 0;
+            return new Phase(0, false);
         }
         CountDownLatch latch = new CountDownLatch(ids.size());
         Set<String> mine = Collections.synchronizedSet(new LinkedHashSet<>());
         Set<String> done = Collections.synchronizedSet(new LinkedHashSet<>());
         for (String id : ids) {
-            deletion.start(
-                    id,
-                    ActionListener.wrap(
-                            response -> {
-                                done.add(id);
-                                latch.countDown();
-                            },
-                            e -> {
-                                mine.add(id);
-                                log.debug(Constants.D_LOG_SAP_RECONCILE_DELETE_FAILED, kind, id, e.getMessage());
-                                latch.countDown();
-                            }));
+            try {
+                deletion.start(
+                        id,
+                        ActionListener.wrap(
+                                response -> {
+                                    done.add(id);
+                                    latch.countDown();
+                                },
+                                e -> {
+                                    mine.add(id);
+                                    log.debug(Constants.D_LOG_SAP_RECONCILE_DELETE_FAILED, kind, id, e.getMessage());
+                                    latch.countDown();
+                                }));
+            } catch (Exception e) {
+                // A throw from start never reaches the listener, so this counts the latch down
+                // itself. Without it the wait below sits out its whole timeout for a deletion that
+                // never began, and the ids started before this one are left with nobody waiting.
+                mine.add(id);
+                log.debug(Constants.D_LOG_SAP_RECONCILE_DELETE_FAILED, kind, id, e.getMessage());
+                latch.countDown();
+            }
         }
+        boolean inFlight = false;
         try {
-            if (!latch.await(
-                    PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS)) {
+            if (!latch.await(this.deleteTimeout(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_RECONCILE_TIMEOUT, kind, latch.getCount());
                 // Whatever has not answered yet is reported as pending rather than as deleted:
                 // the next pass finds it again if it really did not go. The ones that did answer
@@ -735,7 +791,7 @@ class StandardSpaceReconciler {
                         mine.add(id);
                     }
                 }
-                this.awaitInFlight(latch, kind);
+                inFlight = !this.awaitInFlight(latch, kind);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -746,8 +802,45 @@ class StandardSpaceReconciler {
                 }
             }
         }
-        failed.addAll(mine);
-        return ids.size() - mine.size();
+        int pending;
+        synchronized (mine) {
+            // Listeners of deletions that outlived the wait are still adding to this set, and a
+            // synchronized set does not synchronize iteration: addAll iterates it.
+            failed.addAll(mine);
+            pending = mine.size();
+        }
+        return new Phase(ids.size() - pending, inFlight);
+    }
+
+    /**
+     * What one kind of deletion left behind.
+     *
+     * @param deleted how many were deleted.
+     * @param inFlight whether some were still running when the pass gave up waiting, in which case
+     *     the kinds after this one must not start.
+     */
+    private record Phase(int deleted, boolean inFlight) {}
+
+    /**
+     * Returns how long to wait for one kind of deletion, from the setting unless a test replaced it.
+     *
+     * @return the wait, in seconds.
+     */
+    private long deleteTimeout() {
+        return this.deleteTimeoutSeconds >= 0
+                ? this.deleteTimeoutSeconds
+                : PluginSettings.getInstance().getSaCleanupTimeoutSeconds();
+    }
+
+    /**
+     * Shortens both waits, for tests that would otherwise sit out the production minutes.
+     *
+     * @param deleteSeconds how long one kind is waited for.
+     * @param capSeconds how long the ones that outlive that wait are given.
+     */
+    void setTimeoutsForTests(long deleteSeconds, long capSeconds) {
+        this.deleteTimeoutSeconds = deleteSeconds;
+        this.inFlightCapSeconds = capSeconds;
     }
 
     /**
@@ -760,20 +853,24 @@ class StandardSpaceReconciler {
      *
      * @param latch the latch counting the deletions still running.
      * @param kind what they are, for the logs.
+     * @return whether they all finished; {@code false} leaves the kinds after this one unstarted.
      */
-    private void awaitInFlight(CountDownLatch latch, String kind) {
+    private boolean awaitInFlight(CountDownLatch latch, String kind) {
         try {
-            if (!latch.await(IN_FLIGHT_CAP_SECONDS, TimeUnit.SECONDS)) {
+            if (!latch.await(this.inFlightCapSeconds, TimeUnit.SECONDS)) {
                 log.error(
                         Constants.E_LOG_SAP_RECONCILE_STILL_IN_FLIGHT,
                         latch.getCount(),
                         kind,
-                        IN_FLIGHT_CAP_SECONDS);
+                        this.inFlightCapSeconds);
+                return false;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn(Constants.W_LOG_SAP_RECONCILE_INTERRUPTED, kind);
+            return false;
         }
+        return true;
     }
 
     @SuppressWarnings("unchecked")

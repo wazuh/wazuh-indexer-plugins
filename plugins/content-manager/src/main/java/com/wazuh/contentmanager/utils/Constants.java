@@ -487,8 +487,12 @@ public class Constants {
             "No standard integrations in the content indices; skipping the Security Analytics"
                     + " reconciliation rather than treating the space as emptied.";
     public static final String W_LOG_SAP_RECONCILE_NO_CONTENT_RULES =
-            "No standard rules in the content indices while Security Analytics holds {}; skipping the"
-                    + " reconciliation rather than deleting them all and the detectors with them.";
+            "No standard rules in the content indices, while Security Analytics holds {}; skipping the"
+                    + " reconciliation. Every integration would read as having lost all of its rules,"
+                    + " which would delete every standard detector.";
+    public static final String W_LOG_SAP_RECONCILE_UNREADABLE_ON_SAP =
+            "{} Security Analytics document(s) carry no readable id and were left out of the"
+                    + " comparison, so anything they stand for is not deleted.";
     public static final String D_LOG_SAP_RECONCILE_NO_SORT =
             "[{}] cannot be paged on, falling back to a single capped read: {}";
     public static final String D_LOG_SAP_RECONCILE_NOTHING_STALE =

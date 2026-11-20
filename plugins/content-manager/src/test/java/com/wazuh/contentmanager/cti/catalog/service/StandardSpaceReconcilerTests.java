@@ -464,6 +464,36 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
     }
 
     /**
+     * A kind that left deletions running does not let the next kind start.
+     *
+     * <p>Security Analytics refuses to delete a log type while a detector still reads it, so an
+     * integration whose detector is still being deleted would be reported as pending for a reason of
+     * our own making. The ones already known to have failed are still reported, which is what asks
+     * for the immediate retry.
+     */
+    public void testApply_aKindLeftInFlightStopsTheKindsAfterIt() {
+        stubDeletionsSucceeding();
+        // This detector never answers, so its kind is still in flight when the waits run out.
+        doAnswer(invocation -> null).when(this.sapService).deleteDetector(eq("detector-silent"), any());
+        StandardSpaceReconciler reconciler = new StandardSpaceReconciler(this.client, this.sapService);
+        reconciler.setTimeoutsForTests(1, 1);
+
+        StandardSpaceReconciler.Result result =
+                reconciler.apply(
+                        new StandardSpaceReconciler.Plan(
+                                List.of("detector-silent"),
+                                Collections.emptyList(),
+                                List.of("rule-1"),
+                                List.of("integration-1")));
+
+        Assert.assertEquals(Set.of("detector-silent"), result.pending());
+        Assert.assertEquals("the rules must not have started", 0, result.deletedRules());
+        Assert.assertEquals("nor the integrations", 0, result.deletedIntegrations());
+        verify(this.sapService, never()).deleteRule(anyString(), any(), any());
+        verify(this.sapService, never()).deleteIntegration(anyString(), any(), any());
+    }
+
+    /**
      * A deletion that answered is not reported as pending when another one times out. Reporting it
      * would name resources that are already gone, count them as not deleted, and ask for a retry that
      * has nothing to do.
@@ -473,6 +503,8 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         // This one never answers: no response, no failure, so the latch never reaches zero.
         doAnswer(invocation -> null).when(this.sapService).deleteRule(eq("rule-silent"), any(), any());
         StandardSpaceReconciler reconciler = new StandardSpaceReconciler(this.client, this.sapService);
+        // Without this the test sits out the production waits, which are two minutes and then five.
+        reconciler.setTimeoutsForTests(1, 1);
 
         StandardSpaceReconciler.Result result =
                 reconciler.apply(
@@ -546,7 +578,7 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         verifyNoInteractions(this.sapService);
     }
 
-    /** With nothing on the Security Analytics side either, there is simply nothing to do. */
+    /** With nothing on the Security Analytics side either, the guard still abstains. */
     public void testReconcile_noRulesOnEitherSideIsNotAFailure() {
         StandardSpaceReconciler.Result result =
                 reconcilerReading(
@@ -560,6 +592,30 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
 
         Assert.assertFalse(result.deletedAnything());
         Assert.assertTrue(result.pending().isEmpty());
+    }
+
+    /**
+     * The guard abstains on an empty content rule set whatever Security Analytics holds.
+     *
+     * <p>It used to require Security Analytics to still hold rules, which left the worst case open:
+     * with both rule sets empty and detectors present, every integration reads as having lost all of
+     * its rules and every standard detector is planned for deletion. The Security Analytics side is
+     * read leniently, so an index that is absent or unreadable arrives here as an empty set.
+     */
+    public void testReconcile_emptyContentRulesSparesTheDetectorsWithNothingOnTheOtherSideEither() {
+        StandardSpaceReconciler.Result result =
+                reconcilerReading(
+                                inventory(
+                                        Map.of("integration-1", List.of("rule-1"), "integration-2", List.of("rule-2")),
+                                        Collections.emptySet(),
+                                        Set.of("integration-1", "integration-2"),
+                                        Collections.emptySet(),
+                                        Set.of("integration-1", "integration-2")))
+                        .reconcile();
+
+        Assert.assertFalse("no detector may be deleted here", result.deletedAnything());
+        Assert.assertTrue(result.pending().isEmpty());
+        verifyNoInteractions(this.sapService);
     }
 
     /** Both sides agreeing costs nothing beyond the reads. */
