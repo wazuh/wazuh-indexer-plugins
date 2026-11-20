@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.console.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.Level;
@@ -35,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.wazuh.contentmanager.cti.console.EnvironmentFixtures;
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
@@ -61,6 +64,8 @@ import static org.mockito.Mockito.when;
 public class PlansServiceTests extends OpenSearchTestCase {
     private static final String PLANS_SERVICE_DEBUG =
             "com.wazuh.contentmanager.cti.console.service.PlansServiceImpl:DEBUG";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private PlansService plansService;
     @Mock private ApiClient mockClient;
@@ -526,5 +531,77 @@ public class PlansServiceTests extends OpenSearchTestCase {
                 200,
                 "{\"plans\": [{\"name\": \"Free\", \"is_public\": true}]}",
                 ContentType.APPLICATION_JSON);
+    }
+
+    private static SimpleHttpResponse environmentResponse(String body) {
+        return SimpleHttpResponse.create(
+                200, body.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON);
+    }
+
+    /**
+     * The plan read from a registered environment carries the whole CTI Console answer, exactly as
+     * received, next to the plan fields read from it.
+     */
+    public void testGetMyPlanKeepsTheEnvironmentAsReceived() throws Exception {
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenReturn(PlansServiceTests.environmentResponse(EnvironmentFixtures.REGISTERED));
+
+        Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer"));
+
+        Assert.assertEquals(MAPPER.readTree(EnvironmentFixtures.REGISTERED), plan.getEnvironment());
+        Assert.assertEquals(EnvironmentFixtures.PLAN_NAME, plan.getName());
+        Assert.assertFalse(plan.isPublic());
+    }
+
+    /** The async lookup, the one {@code GET /subscription} uses, keeps it too, with one request. */
+    @SuppressWarnings("unchecked")
+    public void testGetMyPlanAsyncKeepsTheEnvironmentAsReceived() throws Exception {
+        this.stubAsyncEnvironmentMe(
+                PlansServiceTests.environmentResponse(EnvironmentFixtures.REGISTERED));
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        this.plansService.getMyPlan(
+                new Token("t", "Bearer"),
+                ActionListener.wrap(plan::set, e -> Assert.fail("unexpected failure: " + e)));
+
+        Assert.assertEquals(
+                MAPPER.readTree(EnvironmentFixtures.REGISTERED), plan.get().getEnvironment());
+        verify(this.mockClient, times(1)).getEnvironmentMe(any(Token.class), any(ActionListener.class));
+    }
+
+    /**
+     * The environment is the whole answer: an {@code environment} field inside a plan entry is not
+     * mapped into it.
+     */
+    public void testEnvironmentIsNotReadFromThePlanEntry() throws Exception {
+        String body =
+                "{\"plans\": [{\"name\": \"Pro\", \"is_public\": false, \"environment\": \"not-this\"}]}";
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenReturn(PlansServiceTests.environmentResponse(body));
+
+        Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer"));
+
+        Assert.assertEquals(MAPPER.readTree(body), plan.getEnvironment());
+    }
+
+    /** The public plan comes from the catalog, not from an environment, so it carries none. */
+    @SuppressWarnings("unchecked")
+    public void testPublicPlanHasNoEnvironment() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SimpleHttpResponse>>getArgument(0)
+                                    .onResponse(PlansServiceTests.publicPlanResponse());
+                            return null;
+                        })
+                .when(this.mockClient)
+                .getCatalogPlans(any(ActionListener.class));
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        this.plansService.getPlan(
+                ActionListener.wrap(plan::set, e -> Assert.fail("unexpected failure: " + e)));
+
+        Assert.assertEquals("Free", plan.get().getName());
+        Assert.assertNull(plan.get().getEnvironment());
     }
 }

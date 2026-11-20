@@ -19,14 +19,31 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+
+import com.wazuh.contentmanager.cti.console.EnvironmentFixtures;
+import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
+import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link SyncPass}. */
 public class SyncPassTests extends OpenSearchTestCase {
@@ -94,5 +111,49 @@ public class SyncPassTests extends OpenSearchTestCase {
 
         assertEquals(SyncPass.SwapOutcome.SWAPPED, pass.swapOutcome("iocs"));
         assertEquals(SyncPass.SwapOutcome.UNCHANGED, pass.swapOutcome("ruleset"));
+    }
+
+    /**
+     * The fields the CTI Console added to the environment change nothing in the plan a pass applies.
+     * The lookup {@link SyncPass#resolve()} makes reads the same plan, with one request, from the
+     * answer with and without them.
+     */
+    public void testEnvironmentFieldsDoNotChangeThePlanAPassApplies() throws Exception {
+        List<Object> withoutNewFields =
+                SyncPassTests.planAPassApplies(EnvironmentFixtures.REGISTERED_PLAN_ONLY);
+        List<Object> withNewFields = SyncPassTests.planAPassApplies(EnvironmentFixtures.REGISTERED);
+
+        Assert.assertEquals(
+                Arrays.asList(
+                        EnvironmentFixtures.PLAN_NAME, false, EnvironmentFixtures.FEATURE_RESOURCE, null),
+                withoutNewFields);
+        Assert.assertEquals(withoutNewFields, withNewFields);
+    }
+
+    /**
+     * Looks the plan up from the given CTI Console answer the way {@link SyncPass#resolve()} does and
+     * returns what a pass reads from it: plan name, whether it is public, and the resource for the
+     * consumer type of its feature and for a consumer type it has no feature for.
+     */
+    private static List<Object> planAPassApplies(String environment) throws Exception {
+        ApiClient client = mock(ApiClient.class);
+        when(client.getEnvironmentMe(any(Token.class)))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, environment.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+        PlansServiceImpl plansService = new PlansServiceImpl();
+        plansService.setClient(client);
+        try {
+            Plan plan = plansService.getMyPlan(new Token("t", "Bearer"));
+            SyncPass pass = SyncPass.withPlan(plan);
+            verify(client, times(1)).getEnvironmentMe(any(Token.class));
+            return Arrays.asList(
+                    plan.getName(),
+                    plan.isPublic(),
+                    pass.planResource(EnvironmentFixtures.FEATURE_TYPE),
+                    pass.planResource("cti:catalog:consumer:ruleset"));
+        } finally {
+            plansService.close();
+        }
     }
 }

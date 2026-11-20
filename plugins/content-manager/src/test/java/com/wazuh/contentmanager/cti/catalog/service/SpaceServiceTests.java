@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
@@ -29,13 +30,17 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.NodeNotConnectedException;
+import org.opensearch.transport.SendRequestTransportException;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
@@ -52,11 +57,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static com.wazuh.contentmanager.utils.TransientFailuresTests.allShardsFailed;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -789,5 +798,99 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                         })
                 .when(this.indicesAdminClient)
                 .exists(any(IndicesExistsRequest.class), any());
+    }
+
+    /** The search failure seen when the only copy of a shard sits on a peer that just left. */
+    private static Exception departingPeer() {
+        return allShardsFailed(new NodeNotConnectedException(null, "Node not connected"));
+    }
+
+    /** The failure seen by a read still in flight when the local node stops. */
+    private static Exception localShutdown() {
+        return new SendRequestTransportException(
+                null, "indices:data/read/search", new NodeClosedException((DiscoveryNode) null));
+    }
+
+    /**
+     * Fails the search {@code getResourcesBySpace} sends, or the existence check before it, with
+     * {@code failure}, and returns how many ERROR lines the read logged.
+     */
+    private long errorsFetchingResources(Exception failure, boolean failExistenceCheck) {
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            if (failExistenceCheck) {
+                                l.onFailure(failure);
+                            } else {
+                                l.onResponse(this.indicesExistsResponse);
+                            }
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SearchResponse>>getArgument(1).onFailure(failure);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        AtomicReference<Exception> received = new AtomicReference<>();
+        try (CapturingAppender appender = CapturingAppender.attach(SpaceService.class)) {
+            this.policyHashService.getResourcesBySpace(
+                    DECODER_IDX,
+                    Space.STANDARD,
+                    ActionListener.wrap(r -> fail("the read must fail"), received::set));
+            assertNotNull("the caller still gets the failure", received.get());
+            return appender.count(Level.ERROR);
+        }
+    }
+
+    /**
+     * A resource read cut by a peer leaving the cluster, or by this node stopping, is not an ERROR:
+     * both clear on their own, and the caller still gets the failure to act on. A real failure is
+     * still an ERROR, on both failure paths (wazuh-indexer#2118).
+     */
+    public void testGetResourcesBySpaceLogsOnlyRealFailuresAsErrors() {
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
+
+        assertEquals(0, this.errorsFetchingResources(departingPeer(), false));
+        assertEquals(0, this.errorsFetchingResources(localShutdown(), false));
+        assertEquals(0, this.errorsFetchingResources(localShutdown(), true));
+        assertEquals(1, this.errorsFetchingResources(new IllegalStateException("boom"), false));
+        assertEquals(1, this.errorsFetchingResources(new IllegalStateException("boom"), true));
+    }
+
+    /** Fails the policy search with {@code failure} and returns how many ERROR lines it logged. */
+    private long errorsGettingPolicy(Exception failure) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SearchResponse>>getArgument(1).onFailure(failure);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        AtomicReference<Exception> received = new AtomicReference<>();
+        try (CapturingAppender appender = CapturingAppender.attach(SpaceService.class)) {
+            this.policyHashService.getPolicy(
+                    Space.TEST.toString(),
+                    ActionListener.wrap(r -> fail("the read must fail"), received::set));
+            assertNotNull("the caller still gets the failure", received.get());
+            return appender.count(Level.ERROR);
+        }
+    }
+
+    /** Same for the policy read, which every Engine content load starts with. */
+    public void testGetPolicyLogsOnlyRealFailuresAsErrors() {
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
+
+        assertEquals(0, this.errorsGettingPolicy(departingPeer()));
+        assertEquals(0, this.errorsGettingPolicy(localShutdown()));
+        assertEquals(1, this.errorsGettingPolicy(new IllegalStateException("boom")));
     }
 }

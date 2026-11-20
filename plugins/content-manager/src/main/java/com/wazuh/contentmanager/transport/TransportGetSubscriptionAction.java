@@ -58,11 +58,19 @@ public class TransportGetSubscriptionAction
                 ActionListener.wrap(
                         plan -> {
                             boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
+                            // Only a plan read from the registered environment carries one. The
+                            // registration check also drops it if the instance was unregistered
+                            // while the lookup was in flight.
+                            String environment =
+                                    isRegistered && plan != null && plan.getEnvironment() != null
+                                            ? plan.getEnvironment().toString()
+                                            : null;
                             listener.onResponse(
                                     new GetSubscriptionResponse(
                                             plan != null ? plan.getName() : null,
                                             plan != null && plan.isPublic(),
-                                            isRegistered));
+                                            isRegistered,
+                                            environment));
                         },
                         e -> {
                             if (e instanceof CtiConsoleUnavailableException) {

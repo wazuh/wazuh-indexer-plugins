@@ -16,8 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.console.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 
@@ -31,8 +33,35 @@ public class Plan {
 
     private List<Feature> features;
 
+    /**
+     * The CTI Console environment this plan was read from: the whole answer, as parsed. Not part of
+     * the plan itself, so never mapped from or to JSON.
+     */
+    @JsonIgnore private JsonNode environment;
+
     /** Default no-argument constructor. */
     public Plan() {}
+
+    /**
+     * Returns the CTI Console environment this plan was read from: the whole answer to {@code GET
+     * /platform/environments/me}, as parsed. It is passed through to API callers and never
+     * interpreted.
+     *
+     * @return the environment, or {@code null} if the plan did not come from a registered environment
+     *     (e.g. the public plan).
+     */
+    public JsonNode getEnvironment() {
+        return this.environment;
+    }
+
+    /**
+     * Sets the CTI Console environment this plan was read from.
+     *
+     * @param environment the parsed CTI Console answer, or {@code null}.
+     */
+    public void setEnvironment(JsonNode environment) {
+        this.environment = environment;
+    }
 
     /**
      * Retrieves the name of the plan.
