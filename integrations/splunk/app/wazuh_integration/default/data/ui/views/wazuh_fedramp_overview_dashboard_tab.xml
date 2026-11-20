@@ -30,35 +30,35 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Top 10 agents by events number",
+      "name": "Top 10 agents by findings",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.agent.name\", metric as \"Count\""
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Most common requirements",
+      "name": "Top 5 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | eval f1='wazuh.rule.compliance.fedramp{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.fedramp\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Fedramp Requirements",
+      "name": "Top 10 FedRAMP requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | eval f1='wazuh.rule.compliance.fedramp{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"FEDRAMP Requirements\", metric as \"Count\""
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Requirements evolution over time",
+      "name": "Top 10 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | eval f1='wazuh.rule.compliance.fedramp{}' | timechart span=30m useother=f usenull=f limit=10 count by f1"
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Requirements by agent",
+      "name": "Top 5 requirements by agent",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | eval f1='wazuh.rule.compliance.fedramp{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Requirements\""
       }
@@ -67,7 +67,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.pie",
-      "title": "Top 10 agents by events number",
+      "title": "Top 10 agents by findings",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -77,7 +77,7 @@
     },
     "viz_02": {
       "type": "splunk.bar",
-      "title": "Most common requirements",
+      "title": "Top 5 requirements",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -85,7 +85,7 @@
     },
     "viz_03": {
       "type": "splunk.column",
-      "title": "Fedramp Requirements",
+      "title": "Top 10 FedRAMP requirements",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -93,7 +93,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "Requirements evolution over time",
+      "title": "Top 10 requirements over time",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -103,7 +103,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Requirements by agent",
+      "title": "Top 5 requirements by agent",
       "dataSources": {
         "primary": "ds_05"
       },

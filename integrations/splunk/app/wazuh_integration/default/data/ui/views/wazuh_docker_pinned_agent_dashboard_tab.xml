@@ -74,21 +74,21 @@
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top 5 events",
+      "name": "Top 5 actions",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"event.action\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Resources usage over time",
+      "name": "Top 5 event categories over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.category{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Events occurred evolution",
+      "name": "Top 10 actions over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | timechart useother=f usenull=f limit=10 count by f1"
       }
@@ -107,7 +107,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top 5 events",
+      "title": "Top 5 actions",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -117,7 +117,7 @@
     },
     "viz_03": {
       "type": "splunk.column",
-      "title": "Resources usage over time",
+      "title": "Top 5 event categories over time",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -127,7 +127,7 @@
     },
     "viz_04": {
       "type": "splunk.area",
-      "title": "Events occurred evolution",
+      "title": "Top 10 actions over time",
       "dataSources": {
         "primary": "ds_04"
       },

@@ -349,10 +349,10 @@ d.row(320,
       chart("splunk.column", "Events over time by category", f"{E} | timechart usenull=f useother=f count by wazuh.integration.category", stackMode="stacked", w=800),
       chart("splunk.pie", "Events by outcome", f'{E} | eval outcome=coalesce(\'event.outcome\', "unknown") | stats count by outcome'))
 d.row(320,
-      chart("splunk.bar", "Top integrations", f"{E} | stats count by wazuh.integration.name | sort - count | head 10"),
-      chart("splunk.bar", "Top agents", f"{E} | stats count by wazuh.agent.name | sort - count | head 10"))
+      chart("splunk.bar", "Top 10 integrations", f"{E} | stats count by wazuh.integration.name | sort - count | head 10"),
+      chart("splunk.bar", "Top 10 agents", f"{E} | stats count by wazuh.agent.name | sort - count | head 10"))
 d.row(320,
-      table("Authentication failures by source", f'{E} "event.category{{}}"="authentication" event.outcome="failure" | stats count, values(user.name) as users, dc(wazuh.agent.name) as agents by source.ip | sort - count | head 20'),
+      table("Top 20 sources of authentication failures", f'{E} "event.category{{}}"="authentication" event.outcome="failure" | stats count, values(user.name) as users, dc(wazuh.agent.name) as agents by source.ip | sort - count | head 20'),
       table("Cloud activity", f'{E} wazuh.integration.category="cloud-services" | stats count by cloud.provider, cloud.account.id, event.action, event.outcome | sort - count'))
 events = d
 

@@ -30,35 +30,35 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Findings evolution over time",
+      "name": "Top 5 techniques over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top tactics",
+      "name": "Top 10 tactics",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.tactic.name{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.mitre.tactic.name\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Top techniques",
+      "name": "Top 10 techniques",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.mitre.technique.name\", metric as \"Count\""
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Top tactics by agent",
+      "name": "Top 5 tactics by agent",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.tactic.name{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.rule.mitre.tactic.name\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Top techniques by agent",
+      "name": "Top 5 techniques by agent",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.rule.mitre.technique.name\""
       }
@@ -67,7 +67,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.line",
-      "title": "Findings evolution over time",
+      "title": "Top 5 techniques over time",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -75,7 +75,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top tactics",
+      "title": "Top 10 tactics",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -85,7 +85,7 @@
     },
     "viz_03": {
       "type": "splunk.pie",
-      "title": "Top techniques",
+      "title": "Top 10 techniques",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -95,7 +95,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "Top tactics by agent",
+      "title": "Top 5 tactics by agent",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -105,7 +105,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Top techniques by agent",
+      "title": "Top 5 techniques by agent",
       "dataSources": {
         "primary": "ds_05"
       },

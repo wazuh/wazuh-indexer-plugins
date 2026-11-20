@@ -95,7 +95,7 @@
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Audit level evolution",
+      "name": "Top 10 rule levels over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" \"event.action\"=$scope|s$ | eval f1='wazuh.rule.level' | timechart span=1d useother=f usenull=f limit=10 count by f1"
       }
@@ -144,7 +144,7 @@
     },
     "viz_05": {
       "type": "splunk.area",
-      "title": "Audit level evolution",
+      "title": "Top 10 rule levels over time",
       "dataSources": {
         "primary": "ds_05"
       },

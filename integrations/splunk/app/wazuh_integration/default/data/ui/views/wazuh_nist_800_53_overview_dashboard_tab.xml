@@ -30,7 +30,7 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Most active agents",
+      "name": "Top 10 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"Agent\", metric as \"Count\""
       }
@@ -39,19 +39,19 @@
       "type": "ds.search",
       "name": "Top 10 requirements over time",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | eval f1='wazuh.rule.compliance.nist_800_53{}' | timechart useother=f usenull=f limit=8 count by f1"
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | eval f1='wazuh.rule.compliance.nist_800_53{}' | timechart useother=f usenull=f limit=10 count by f1"
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Requirements distribution by agent",
+      "name": "Requirements distribution of the top 5 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | eval f1='wazuh.agent.id', f2='wazuh.rule.compliance.nist_800_53{}' | chart count over f1 by f2 useother=f usenull=f limit=9 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Agent\""
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Events volume by agent",
+      "name": "Findings volume of the top 5 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | eval f1='wazuh.rule.compliance.nist_800_53{}', f2='wazuh.agent.id' | stats count as metric by f1, f2 | sort - metric | head 50 | rename f1 as \"Requirement\", f2 as \"Agent\", metric as \"Count\""
       }
@@ -81,7 +81,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.pie",
-      "title": "Most active agents",
+      "title": "Top 10 agents",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -99,7 +99,7 @@
     },
     "viz_03": {
       "type": "splunk.area",
-      "title": "Requirements distribution by agent",
+      "title": "Requirements distribution of the top 5 agents",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -109,7 +109,7 @@
     },
     "viz_04": {
       "type": "splunk.punchcard",
-      "title": "Events volume by agent",
+      "title": "Findings volume of the top 5 agents",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -122,7 +122,7 @@
         "primary": "ds_05"
       },
       "options": {
-        "underLabel": "Total events"
+        "underLabel": "Total findings"
       }
     },
     "viz_06": {

@@ -88,14 +88,14 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "NIS2 requirements",
+      "name": "Top 10 NIS2 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.nis2{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.nis2\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "NIS2 requirements over time",
+      "name": "Top 5 NIS2 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.nis2{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -134,7 +134,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "NIS2 requirements",
+      "title": "Top 10 NIS2 requirements",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "NIS2 requirements over time",
+      "title": "Top 5 NIS2 requirements over time",
       "dataSources": {
         "primary": "ds_05"
       },

@@ -88,7 +88,7 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Events by category over time (agent)",
+      "name": "Top 10 event categories over time (agent)",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.category{}' | timechart useother=f usenull=f limit=10 count by f1"
       }
@@ -102,9 +102,9 @@
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Top Source IPs by Activity (agent)",
+      "name": "Top 15 source IPs by activity (agent)",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" \"wazuh.agent.name\"=$scope|s$ | eval f1='source.ip', f2='event.action' | stats count as metric by f1, f2 | sort - metric | head 75 | rename f1 as \"Source IP\", f2 as \"Top Actions\", metric as \"Event Count\""
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" \"wazuh.agent.name\"=$scope|s$ | eval f1='source.ip', f2='event.action' | stats count as metric by f1, f2 | sort - metric | head 75 | rename f1 as \"Source IP\", f2 as \"Top 5 actions\", metric as \"Findings\""
       }
     }
   },
@@ -139,7 +139,7 @@
     },
     "viz_04": {
       "type": "splunk.area",
-      "title": "Events by category over time (agent)",
+      "title": "Top 10 event categories over time (agent)",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -157,7 +157,7 @@
     },
     "viz_06": {
       "type": "splunk.table",
-      "title": "Top Source IPs by Activity (agent)",
+      "title": "Top 15 source IPs by activity (agent)",
       "dataSources": {
         "primary": "ds_06"
       },

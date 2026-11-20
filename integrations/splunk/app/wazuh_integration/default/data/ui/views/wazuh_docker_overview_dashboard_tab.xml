@@ -37,14 +37,14 @@
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top 5 events",
+      "name": "Top 5 actions",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"event.action\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Events by source over time",
+      "name": "Top 5 event categories over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" | eval f1='event.category{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -70,7 +70,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top 5 events",
+      "title": "Top 5 actions",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -80,7 +80,7 @@
     },
     "viz_03": {
       "type": "splunk.column",
-      "title": "Events by source over time",
+      "title": "Top 5 event categories over time",
       "dataSources": {
         "primary": "ds_03"
       },

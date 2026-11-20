@@ -95,23 +95,23 @@
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Events by source over time (agent)",
+      "name": "Top 5 sources over time (agent)",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.provider' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Top actions over time (agent)",
+      "name": "Top 5 actions over time (agent)",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Top Source IPs and Actions (agent)",
+      "name": "Top 15 source IPs and their actions (agent)",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" \"wazuh.agent.name\"=$scope|s$ | eval f1='source.ip', f2='event.action', f3='cloud.account.id' | stats count as metric by f1, f2, f3 | sort - metric | head 225 | rename f1 as \"Source IP\", f2 as \"Top Actions\", f3 as \"Account ID\", metric as \"Event Count\""
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" \"wazuh.agent.name\"=$scope|s$ | eval f1='source.ip', f2='event.action', f3='cloud.account.id' | stats count as metric by f1, f2, f3 | sort - metric | head 225 | rename f1 as \"Source IP\", f2 as \"Top 5 actions\", f3 as \"Account ID\", metric as \"Findings\""
       }
     }
   },
@@ -158,7 +158,7 @@
     },
     "viz_05": {
       "type": "splunk.area",
-      "title": "Events by source over time (agent)",
+      "title": "Top 5 sources over time (agent)",
       "dataSources": {
         "primary": "ds_05"
       },
@@ -168,7 +168,7 @@
     },
     "viz_06": {
       "type": "splunk.area",
-      "title": "Top actions over time (agent)",
+      "title": "Top 5 actions over time (agent)",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -178,7 +178,7 @@
     },
     "viz_07": {
       "type": "splunk.table",
-      "title": "Top Source IPs and Actions (agent)",
+      "title": "Top 15 source IPs and their actions (agent)",
       "dataSources": {
         "primary": "ds_07"
       },

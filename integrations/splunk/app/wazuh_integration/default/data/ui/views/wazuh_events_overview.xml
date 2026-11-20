@@ -72,21 +72,21 @@
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Top integrations",
+      "name": "Top 10 integrations",
       "options": {
         "query": "`wazuh_events` | stats count by wazuh.integration.name | sort - count | head 10"
       }
     },
     "ds_08": {
       "type": "ds.search",
-      "name": "Top agents",
+      "name": "Top 10 agents",
       "options": {
         "query": "`wazuh_events` | stats count by wazuh.agent.name | sort - count | head 10"
       }
     },
     "ds_09": {
       "type": "ds.search",
-      "name": "Authentication failures by source",
+      "name": "Top 20 sources of authentication failures",
       "options": {
         "query": "`wazuh_events` \"event.category{}\"=\"authentication\" event.outcome=\"failure\" | stats count, values(user.name) as users, dc(wazuh.agent.name) as agents by source.ip | sort - count | head 20"
       }
@@ -153,7 +153,7 @@
     },
     "viz_07": {
       "type": "splunk.bar",
-      "title": "Top integrations",
+      "title": "Top 10 integrations",
       "dataSources": {
         "primary": "ds_07"
       },
@@ -161,7 +161,7 @@
     },
     "viz_08": {
       "type": "splunk.bar",
-      "title": "Top agents",
+      "title": "Top 10 agents",
       "dataSources": {
         "primary": "ds_08"
       },
@@ -169,7 +169,7 @@
     },
     "viz_09": {
       "type": "splunk.table",
-      "title": "Authentication failures by source",
+      "title": "Top 20 sources of authentication failures",
       "dataSources": {
         "primary": "ds_09"
       },

@@ -74,7 +74,7 @@
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top query events",
+      "name": "Top 5 DNS queries",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='dns.question.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Query Name\", metric as \"Count\""
       }
@@ -88,28 +88,28 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Top project ID by action",
+      "name": "Top 5 project IDs by action",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='cloud.region', f2='cloud.project.id', f3='event.action' | stats count as metric by f1, f2, f3 | sort - metric | head 50 | eval value=f1 . \" / \" . f2 . \" / \" . f3 | table value metric | rename value as \"Region / Project ID / Action\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "GCP alerts evolution",
+      "name": "GCP findings over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | timechart count as \"Count\""
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Event outcome count",
+      "name": "Findings by outcome",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.outcome' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Outcome\", metric as \"Count\""
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Event category by project ID",
+      "name": "Top 5 projects by event category",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='cloud.project.id', f2='event.category{}' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Project ID\""
       }
@@ -126,7 +126,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top query events",
+      "title": "Top 5 DNS queries",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -146,7 +146,7 @@
     },
     "viz_04": {
       "type": "splunk.pie",
-      "title": "Top project ID by action",
+      "title": "Top 5 project IDs by action",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -156,7 +156,7 @@
     },
     "viz_05": {
       "type": "splunk.line",
-      "title": "GCP alerts evolution",
+      "title": "GCP findings over time",
       "dataSources": {
         "primary": "ds_05"
       },
@@ -164,7 +164,7 @@
     },
     "viz_06": {
       "type": "splunk.column",
-      "title": "Event outcome count",
+      "title": "Findings by outcome",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -172,7 +172,7 @@
     },
     "viz_07": {
       "type": "splunk.bar",
-      "title": "Event category by project ID",
+      "title": "Top 5 projects by event category",
       "dataSources": {
         "primary": "ds_07"
       },

@@ -30,14 +30,14 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Findings volume by agent",
+      "name": "Findings volume of the top 5 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.id', f2='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1, f2 | sort - metric | head 50 | rename f1 as \"Agent ID\", f2 as \"Requirement\", metric as \"Count\""
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Most common requirements",
+      "name": "Top 5 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Requirement\", metric as \"Count\""
       }
@@ -51,7 +51,7 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Most active agents",
+      "name": "Top 10 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"Agent\", metric as \"Count\""
       }
@@ -72,14 +72,14 @@
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Requirements evolution over time",
+      "name": "Top 10 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | timechart useother=f usenull=f limit=10 count by f1"
       }
     },
     "ds_08": {
       "type": "ds.search",
-      "name": "Requirements distribution by agent",
+      "name": "Requirements distribution of the top 5 agents",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.name', f2='wazuh.rule.compliance.cmmc{}' | chart count over f1 by f2 useother=f usenull=f limit=10 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.agent.name\""
       }
@@ -88,7 +88,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.punchcard",
-      "title": "Findings volume by agent",
+      "title": "Findings volume of the top 5 agents",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -96,7 +96,7 @@
     },
     "viz_02": {
       "type": "splunk.bar",
-      "title": "Most common requirements",
+      "title": "Top 5 requirements",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -114,7 +114,7 @@
     },
     "viz_04": {
       "type": "splunk.pie",
-      "title": "Most active agents",
+      "title": "Top 10 agents",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -144,7 +144,7 @@
     },
     "viz_07": {
       "type": "splunk.column",
-      "title": "Requirements evolution over time",
+      "title": "Top 10 requirements over time",
       "dataSources": {
         "primary": "ds_07"
       },
@@ -154,7 +154,7 @@
     },
     "viz_08": {
       "type": "splunk.column",
-      "title": "Requirements distribution by agent",
+      "title": "Requirements distribution of the top 5 agents",
       "dataSources": {
         "primary": "ds_08"
       },

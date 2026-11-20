@@ -37,21 +37,21 @@
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top 10 agents by events count",
+      "name": "Top 10 agents by findings",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.agent.name\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Last events",
+      "name": "Findings volume of the top 5 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | eval f1='wazuh.rule.compliance.pci_dss{}', f2='wazuh.agent.name' | stats count as metric by f1, f2 | sort - metric | head 25 | rename f1 as \"Requirements\", f2 as \"Agents\", metric as \"Count\""
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Requirements by agent",
+      "name": "Top 5 requirements by agent",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | eval f1='wazuh.rule.compliance.pci_dss{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Requirements\""
       }
@@ -68,7 +68,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top 10 agents by events count",
+      "title": "Top 10 agents by findings",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -78,7 +78,7 @@
     },
     "viz_03": {
       "type": "splunk.punchcard",
-      "title": "Last events",
+      "title": "Findings volume of the top 5 requirements",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -86,7 +86,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "Requirements by agent",
+      "title": "Top 5 requirements by agent",
       "dataSources": {
         "primary": "ds_04"
       },
