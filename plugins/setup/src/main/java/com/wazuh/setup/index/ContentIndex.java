@@ -92,6 +92,7 @@ public class ContentIndex extends WazuhIndex {
             ObjectMapper mapper = new ObjectMapper();
             InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
             IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+            indexTemplate.validateSchemaVersions(templateName);
 
             // Dynamically set the index patterns to match every concrete index behind the alias
             indexTemplate.setIndexPatterns(List.of(this.index + "*"));
@@ -115,6 +116,11 @@ public class ContentIndex extends WazuhIndex {
                     "Error reading index template from filesystem [{}]. Caused by: {}",
                     template,
                     e.toString());
+        } catch (IllegalArgumentException e) {
+            // A template without its schema versions is a packaging defect, not a transient
+            // failure: no retry, and the initialization fails naming the template.
+            log.error("Invalid index template [{}]: {}", template, e.getMessage());
+            throw e;
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index template {} already exists. Skipping.", templateName);
         } catch (

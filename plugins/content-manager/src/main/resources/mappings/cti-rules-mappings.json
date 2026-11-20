@@ -192,5 +192,11 @@
       "norms": false,
       "type": "text"
     }
+  },
+  "_meta": {
+    "wazuh": {
+      "schema_version": 50000,
+      "compat_version": 50000
+    }
   }
 }

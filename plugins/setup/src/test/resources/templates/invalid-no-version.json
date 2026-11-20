@@ -1,0 +1,21 @@
+{
+  "index_patterns": [
+    "test-index*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": "1"
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "name": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

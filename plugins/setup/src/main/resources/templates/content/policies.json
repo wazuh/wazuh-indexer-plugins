@@ -113,7 +113,14 @@
           "enabled": false,
           "type": "object"
         }
+      },
+      "_meta": {
+        "wazuh": {
+          "schema_version": 50000,
+          "compat_version": 50000
+        }
       }
     }
-  }
+  },
+  "version": 50000
 }
