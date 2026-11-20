@@ -324,7 +324,7 @@ and nothing is shared with the other Wazuh packages on the host:
 
 | Path | Owner and mode | Holds |
 | --- | --- | --- |
-| `export/` | `root:wazuh-indexer 0750` | What this package publishes for the Wazuh Manager and the Wazuh Dashboard on the same host: `credentials.env` (`root:root 0600`), with `WAZUH_INDEXER_ADMIN_PASSWORD`, `WAZUH_INDEXER_KIBANASERVER_PASSWORD` and `WAZUH_INDEXER_MANAGER_PASSWORD`; `ca.pem` (`root:wazuh-indexer 0640`), the CA certificate; and the client pairs `manager-client.pem`, `manager-client-key.pem`, `dashboard-client.pem` and `dashboard-client-key.pem` (`root:root 0600`), issued from the CA for the two consumers. |
+| `export/` | `root:wazuh-indexer 0750` | What this package publishes for the Wazuh Manager and the Wazuh Dashboard on the same host: `credentials.env` (`root:root 0600`), with `WAZUH_INDEXER_ADMIN_PASSWORD`, `WAZUH_INDEXER_KIBANASERVER_PASSWORD` and `WAZUH_INDEXER_MANAGER_PASSWORD`; and `ca.pem` (`root:wazuh-indexer 0640`), the CA certificate. |
 | `ca/` | `root:wazuh-indexer 0750` | The CA this node issues its certificates from: `root-ca.pem` (`0640`) and `root-ca.key` (`root:root 0400`). The package mints it when the directory is empty and records that in `.wazuh-indexer-bootstrap-ca`; a CA staged there by the operator has no marker, is used as it is and is never removed. |
 | `local.env` | `root:root 0600`, optional | The operator's values, read before anything else: a password instead of a generated one, or `WAZUH_INDEXER_CERT_SANS`. The package never writes it. |
 | `certs/` | `root:wazuh-indexer 0750` | The node's pair and the CA it trusts, `root:wazuh-indexer 0640`; the admin pair, `root:root 0600`. |
@@ -447,13 +447,11 @@ Every certificate the package issues, the CA included, is signed through `openss
 
 The node certificate and the admin certificate carry the key usage of their TLS role, the profile `wazuh-certs-tool.sh` gives the same certificates. Both have `basicConstraints = critical, CA:FALSE` and `keyUsage = critical, digitalSignature, keyEncipherment`. The node certificate has `extendedKeyUsage = serverAuth, clientAuth`, because the node is the TLS server on 9200 and both ends of the transport layer on 9300. The admin certificate has `extendedKeyUsage = clientAuth` and no Subject Alternative Name: only securityadmin presents it, as a client, so no host name is ever checked against it. Each certificate is accepted only in the role its extended key usage names: the indexer refuses a client certificate without `clientAuth`, and a client refuses a server certificate without `serverAuth`.
 
-#### Client pairs
-
-The indexer trusts only its own CA, so a client that presents a certificate to it has to present one this CA issued, and only this package holds the key. At every resolution where `ca/` holds the key, the resolver issues a pair for the manager (`CN=wazuh-manager`) and one for the dashboard (`CN=wazuh-dashboard`), `OU=Wazuh, O=Wazuh, L=California, C=US`, with `extendedKeyUsage = clientAuth` and no Subject Alternative Name, and publishes them in `export/` as root's private files; a pair already there that chains to the current CA and whose key matches is kept. The manager imports its pair as `certs/indexer-connector.pem`; the dashboard does not use its pair yet. A consumer on another host takes a copy of the pair from any indexer node of the cluster: the pair names no host, and the indexer maps its subject to nothing.
-
-The pairs grant no rights by themselves, and three things keep it so, asserted by the acceptance suite: the security plugin's certificate authentication domain stays disabled in the shipped `config.yml`, `plugins.security.ssl.http.clientauth_mode` stays at its default (`OPTIONAL`), and the subjects are in neither `admin_dn` nor `nodes_dn`, which `--check` verifies. With `OPTIONAL`, a client that presents a certificate from any other CA fails the TLS handshake, which is what makes trust separation testable. `--clear` removes the pairs with the rest of `export/`.
-
 The package and `wazuh-certs-tool.sh` issue these certificates with the same subject, in the same order. That order is part of the contract, not a detail: the Security plugin compares the rendered DN, so a deployment that replaces the package certificates with the tool's own keeps the DNs already written into `opensearch.yml` valid only while both agree.
+
+#### Client certificates
+
+The package issues no client certificate. The manager and the dashboard verify the indexer against `export/ca.pem` and log in with a password, as `wazuh-manager` and `kibanaserver`. A certificate that a client presents grants nothing, and two shipped settings keep it so, both asserted by the acceptance suite: the security plugin's certificate authentication domain stays disabled in `config.yml`, and `plugins.security.ssl.http.clientauth_mode` stays at its default, `OPTIONAL`, so a client that presents no certificate is accepted. A client that presents a certificate from any other CA fails the TLS handshake. An operator who sets `REQUIRE` provides the client certificates.
 
 #### Distinguished names
 

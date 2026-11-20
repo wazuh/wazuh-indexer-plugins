@@ -24,9 +24,11 @@ import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.NoHttpResponseException;
+import org.apache.logging.log4j.Level;
 import org.opensearch.common.network.NetworkAddress;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.junit.annotations.TestLogging;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -44,8 +46,10 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.settings.PluginSettingsTests;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -294,14 +298,26 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
     /**
      * Against a real server that closes the first connection without answering, the request is sent
      * again on a new connection and gets the 200 the server answers there.
+     *
+     * <p>The attempt that was retried leaves nothing at {@code ERROR}: the request recovered, so an
+     * error line would describe a failure that did not happen. It is still reported at {@code DEBUG},
+     * which is asserted too — on its own, "no error" would also hold if the failed attempt stopped
+     * reaching the callback at all, and then the test would guard nothing.
+     *
+     * <p>This is the only test here that goes through a real socket, so it is the only one that
+     * builds the callback at all; the rest stub {@code executeOnce}.
      */
+    @TestLogging(
+            value = "com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback:DEBUG",
+            reason = "Asserts that a retried attempt is reported at DEBUG and not at ERROR")
     public void testRetriesConnectionClosedByServer() throws Exception {
         PluginSettingsTests.clearInstance();
         PluginSettings.getInstance(
                 Settings.builder()
                         .put(PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS.getKey(), 1)
                         .build());
-        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress());
+        try (CapturingAppender appender = CapturingAppender.attach(HttpResponseCallback.class);
+                ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress());
                 ApiClient client = new ApiClient()) {
             Thread responder =
                     new Thread(
@@ -335,6 +351,14 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
             responder.join();
 
             assertEquals(HttpStatus.SC_OK, result.getCode());
+            assertEquals(
+                    "a retried attempt that recovered must not be logged as an error",
+                    0,
+                    appender.count(Level.ERROR));
+            assertTrue(
+                    "the failed attempt must still be reported at debug: " + appender.messages(Level.DEBUG),
+                    appender.messages(Level.DEBUG).stream()
+                            .anyMatch(message -> message.contains(ConnectionClosedException.class.getName())));
         }
     }
 
