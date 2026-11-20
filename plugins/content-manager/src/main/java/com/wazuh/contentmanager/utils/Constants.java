@@ -394,6 +394,8 @@ public class Constants {
             "Failed to schedule Engine content reload: {}";
     public static final String D_LOG_ENGINE_POLICIES_INDEX_NOT_READY =
             "Index [{}] does not exist yet; deferring Engine content load until it is created.";
+    public static final String D_LOG_ENGINE_LOAD_NODE_STOPPING =
+            "Node is shutting down; ending the Engine content load at the {} space: {}";
     public static final String D_LOG_ENGINE_CLUSTER_NOT_READY =
             "Cluster cannot serve content reads yet ({}); deferring Engine content load.";
     public static final String W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED =
@@ -412,6 +414,9 @@ public class Constants {
             "No aggregate hash for {} space yet; skipping Engine load.";
     public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
             "Content hash unchanged for {} space; Engine already up to date.";
+    public static final String D_LOG_ENGINE_SPACE_REFUSED_UNCHANGED =
+            "Engine refused the {} space at this content hash; skipping it until the scheduled retry "
+                    + "or a content change.";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =
@@ -628,8 +633,6 @@ public class Constants {
             "Could not read the policy for space [{}] to verify its aggregate hash: {}";
     public static final String I_LOG_SPACE_HASH_RECOVERED =
             "Recalculated the aggregate hash for space [{}] at startup.";
-    public static final String D_LOG_POLICY_INDEX_NOT_READY =
-            "Policies are not readable yet; cannot read the policy for space [{}]: {}";
     public static final String D_LOG_SPACE_HASH_RETRY_SCHEDULED =
             "Standard space hash not readable yet; will retry on the next cluster-state update.";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =
@@ -951,6 +954,7 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_MESSAGE = "message";
+    public static final String KEY_ENVIRONMENT = "environment";
     // Owned by the security plugin: field names of
     // org.opensearch.security.action.simulate.PermissionCheckResponse.
     public static final String KEY_ACCESS_ALLOWED = "accessAllowed";

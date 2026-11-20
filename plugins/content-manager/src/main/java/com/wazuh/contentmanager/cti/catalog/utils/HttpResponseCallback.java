@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.message.StatusLine;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,15 +38,38 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     /** The error message. */
     final String errorMessage;
 
+    /** The level {@link #failed} logs at. */
+    private final Level failureLevel;
+
     /**
-     * Default constructor
+     * Default constructor. The failure is logged at {@code ERROR}: the caller has no retry, so a
+     * failed exchange is a failed request.
      *
      * @param httpRequest the request
      * @param errorMessage the error message
      */
     public HttpResponseCallback(SimpleHttpRequest httpRequest, String errorMessage) {
+        this(httpRequest, errorMessage, Level.ERROR);
+    }
+
+    /**
+     * Constructor that chooses the level of the failure line.
+     *
+     * <p>{@code DEBUG} is for a caller that reports the outcome itself. This callback sees one
+     * exchange and runs before anyone decides what that exchange means, so at {@code ERROR} it marks
+     * attempts that are about to be re-issued and succeed. A caller that leaves the visible line to
+     * its own retry warning, or to the exception it rethrows, passes {@code DEBUG} and keeps this one
+     * as detail.
+     *
+     * @param httpRequest the request
+     * @param errorMessage the error message
+     * @param failureLevel the level to log a failed exchange at
+     */
+    public HttpResponseCallback(
+            SimpleHttpRequest httpRequest, String errorMessage, Level failureLevel) {
         this.httpRequest = httpRequest;
         this.errorMessage = errorMessage;
+        this.failureLevel = failureLevel;
     }
 
     @Override
@@ -65,7 +89,7 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
 
     @Override
     public void failed(Exception ex) {
-        log.error("{}->{}", this.httpRequest, ex);
+        log.log(this.failureLevel, "{}->{}", this.httpRequest, ex);
     }
 
     @Override

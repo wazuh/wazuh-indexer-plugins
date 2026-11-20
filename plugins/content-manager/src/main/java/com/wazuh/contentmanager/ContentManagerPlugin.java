@@ -122,6 +122,10 @@ import com.wazuh.contentmanager.utils.SetupReadiness;
 public class ContentManagerPlugin extends Plugin
         implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+
+    /** Name of the environment variable that carries the Wazuh Cloud pre-registration key. */
+    private static final String DEPLOY_KEY = "DEPLOY_KEY";
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
@@ -407,8 +411,9 @@ public class ContentManagerPlugin extends Plugin
         // cluster manager. Engine communication is node-local (a Unix socket), so each node must
         // load the content itself; the content data lives in cluster-wide indices. The listener
         // fires on every cluster-state update, so a load that failed because the Engine was not yet
-        // ready is retried on a subsequent event, and late/rejoining nodes converge on join — with
-        // no dedicated timer or poll. Once loaded, each call is a cheap in-memory hash comparison.
+        // ready is retried on a subsequent event, and late/rejoining nodes converge on join. A space
+        // the Engine refused is not sent again on every event: the loader's scheduled retry, or a
+        // content change, sends it. Once loaded, each call is a cheap in-memory hash comparison.
         this.engineContentListener = event -> this.engineContentLoader.reloadIfChanged();
         this.clusterService.addListener(this.engineContentListener);
         // Attempt an initial load immediately; if the Engine is not ready yet the listener retries.
@@ -1432,10 +1437,15 @@ public class ContentManagerPlugin extends Plugin
     /**
      * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
      *
-     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     * <p>It is an environment variable, not a JVM system property: it is the channel the
+     * pre-registration requirement specifies, and the one that keeps the token out of the node log
+     * and of the {@code GET _nodes} response, both of which publish the JVM command line.
+     *
+     * @return value of the "DEPLOY_KEY" environment variable, or an empty string if it does not
      *     exist.
      */
     public static String preDeploymentKey() {
-        return System.getProperty("DEPLOY_KEY", "");
+        String key = System.getenv(DEPLOY_KEY);
+        return key == null || key.isBlank() ? "" : key;
     }
 }

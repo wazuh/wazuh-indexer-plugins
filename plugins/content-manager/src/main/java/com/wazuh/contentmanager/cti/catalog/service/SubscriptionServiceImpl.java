@@ -123,7 +123,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                                             },
                                             e -> {
                                                 log.warn(
-                                                        "Failed to load access token from" + " credentials index: {}",
+                                                        "Failed to load access token from credentials index: {}",
                                                         e.getMessage());
                                                 listener.onResponse(null);
                                             }));

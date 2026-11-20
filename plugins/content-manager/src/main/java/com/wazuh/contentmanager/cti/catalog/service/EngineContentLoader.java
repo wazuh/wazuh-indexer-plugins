@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.TransientFailures;
 
 /**
@@ -62,7 +63,10 @@ import com.wazuh.contentmanager.utils.TransientFailures;
  * into this node's Engine and reloads only that space when they differ. A load that fails, because
  * the Engine refused the payload or could not be reached, records no hash, and the run schedules a
  * retry with a growing delay, since a content change fires no cluster-state event that would retry
- * it. Once loaded, every later call is a cheap in-memory comparison.
+ * it. Until that retry runs, a space whose payload the Engine refused (a 4xx) is not sent again at
+ * the same hash: the Engine would refuse it again, and each pass would rebuild the whole payload on
+ * every cluster-state update, of which a starting node fires many. Once loaded, every later call is
+ * a cheap in-memory comparison.
  *
  * <p>The reload is fully asynchronous: the index reads are chained through {@link ActionListener}
  * callbacks instead of being awaited on a pool thread, and the tracked spaces are walked one at a
@@ -131,10 +135,21 @@ public class EngineContentLoader {
     /**
      * Per-space hash of the content currently loaded into this node's Engine (space name → hash).
      * In-memory only: a node restart (fresh Engine) starts empty and reloads every space. A space's
-     * entry is advanced only after a successful (200 OK) load, so a failed load is retried on the
-     * next trigger.
+     * entry is advanced only after a successful (200 OK) load, so a failed load is retried: by the
+     * next trigger, or, when the Engine refused it, by the scheduled retry (see {@link
+     * #refusedHashes}).
      */
     private final Map<String, String> loadedHashes = new ConcurrentHashMap<>();
+
+    /**
+     * Per-space hash of the content the Engine last refused with a 4xx (space name → hash). While a
+     * retry is scheduled, a pass skips a space still at its refused hash instead of rebuilding and
+     * sending a payload the Engine has already refused; the retry, or a new hash, sends it again. An
+     * Engine that could not be reached (5xx) is not recorded here, so the next trigger retries it as
+     * soon as the Engine is up. In-memory only, like {@link #loadedHashes}: the first pass after a
+     * restart sends every space.
+     */
+    private final Map<String, String> refusedHashes = new ConcurrentHashMap<>();
 
     /**
      * Relative time of the first deferral of the current not-ready streak, or {@link #NOT_DEFERRING}
@@ -306,6 +321,10 @@ public class EngineContentLoader {
      * previous content until some unrelated trigger: a content change writes documents and fires no
      * cluster-state event. The delay doubles with each consecutive failed run, up to {@link
      * #RETRY_MAX_DELAY}, so an Engine that stays down is not polled continuously.
+     *
+     * <p>It is normally scheduled when the run ends. A refused load schedules it at once instead (see
+     * {@link #promote}): a run repeats its pass while triggers keep arriving, and the repeat skips
+     * the refused space only while a retry is scheduled.
      */
     private void scheduleRetry() {
         if (!this.retryScheduled.compareAndSet(false, true)) {
@@ -399,14 +418,19 @@ public class EngineContentLoader {
      * previous space's completion. A failure loading one space is logged and does not prevent the
      * others from loading. Package-private so tests can drive the chain directly.
      *
-     * <p>A node that cannot read the content yet is the one exception: every space reads its hash
+     * <p>A node that cannot read the content for now is the one exception: every space reads its hash
      * from the same {@link Constants#INDEX_POLICIES} index, so any failure {@link
-     * TransientFailures#isTransientReadFailure classified as a startup condition} — a missing index,
-     * a cluster block ({@code state not recovered / initialized}), or shards that are not allocated
-     * yet ({@code all shards failed}) — is a precondition of the whole run rather than a per-space
-     * failure. They are all normal while a node starts up and all clear on their own, so the run ends
-     * after a single debug line instead of logging the same error once per tracked space on every
-     * cluster-state update. The next cluster-state event retries.
+     * TransientFailures#isTransientReadFailure classified as transient} — a missing index, a cluster
+     * block ({@code state not recovered / initialized}), or shards that are not allocated yet or sit
+     * on a peer that just left ({@code all shards failed}) — is a precondition of the whole run
+     * rather than a per-space failure. They are all normal while a node starts up or a peer restarts,
+     * and all clear on their own, so the run ends after a single debug line instead of logging the
+     * same error once per tracked space on every cluster-state update. The next cluster-state event
+     * retries: the peer leaving and rejoining fires one.
+     *
+     * <p>A failure caused by this node shutting down ({@link NodeShutdown#isShutdownFailure}) also
+     * ends the run after a debug line, with no retry: every remaining read fails the same way, and
+     * the next start loads every space anyway.
      *
      * @param index index into {@link #TRACKED_SPACES} of the space to reload next.
      * @param onComplete invoked once, after the last space finishes (successfully or not).
@@ -424,6 +448,11 @@ public class EngineContentLoader {
                 ActionListener.wrap(
                         v -> this.reloadFrom(index + 1, onComplete),
                         e -> {
+                            if (NodeShutdown.isShutdownFailure(e)) {
+                                log.debug(Constants.D_LOG_ENGINE_LOAD_NODE_STOPPING, space, e.getMessage());
+                                onComplete.run();
+                                return;
+                            }
                             if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null) {
                                 this.deferRun(
                                         Constants.D_LOG_ENGINE_POLICIES_INDEX_NOT_READY,
@@ -452,7 +481,10 @@ public class EngineContentLoader {
      * <p>Reads the space's aggregate hash from {@link Constants#INDEX_POLICIES}; if there is no
      * policy yet, no usable hash, or the hash matches what is already loaded for this space, it does
      * nothing. Otherwise it builds the space's engine payload and promotes it, recording the new hash
-     * only on a 200 OK so a non-OK response is retried on the next trigger.
+     * only on a 200 OK so a non-OK response is retried.
+     *
+     * <p>A space still at the hash the Engine refused is skipped while a retry is scheduled, and
+     * counts as a failed load so the run keeps the retry backoff: the retry sends it again.
      *
      * @param space the space name (e.g. {@code standard}, {@code test}, {@code custom}).
      * @param listener notified when this space is done: {@code onResponse} whether it was skipped or
@@ -477,6 +509,12 @@ public class EngineContentLoader {
                             }
                             if (desiredHash.equals(this.loadedHashes.get(space))) {
                                 log.debug(Constants.D_LOG_ENGINE_SPACE_UNCHANGED, space);
+                                listener.onResponse(null);
+                                return;
+                            }
+                            if (desiredHash.equals(this.refusedHashes.get(space)) && this.retryScheduled.get()) {
+                                log.debug(Constants.D_LOG_ENGINE_SPACE_REFUSED_UNCHANGED, space);
+                                this.passFailed = true;
                                 listener.onResponse(null);
                                 return;
                             }
@@ -526,6 +564,10 @@ public class EngineContentLoader {
      * blocking step of a reload (a Unix-domain-socket round trip), so it is the only one that
      * occupies a pool thread — and only for a space whose content actually changed.
      *
+     * <p>A 4xx means the Engine read the payload and refused it, so the same hash would be refused
+     * again: it is recorded in {@link #refusedHashes} and the retry is scheduled right away, so the
+     * passes until then skip the space.
+     *
      * @param space the space name.
      * @param desiredHash the hash to record once the Engine accepts the payload.
      * @param payload the space's engine payload.
@@ -537,16 +579,19 @@ public class EngineContentLoader {
                 payload,
                 ActionListener.wrap(
                         response -> {
-                            if (response.getStatus() == RestStatus.OK.getStatus()) {
+                            int status = response.getStatus();
+                            if (status == RestStatus.OK.getStatus()) {
                                 this.loadedHashes.put(space, desiredHash);
+                                this.refusedHashes.remove(space);
                                 log.info(Constants.I_LOG_ENGINE_SPACE_LOADED, space);
                             } else {
                                 log.warn(
-                                        Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS,
-                                        space,
-                                        response.getStatus(),
-                                        response.getMessage());
+                                        Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS, space, status, response.getMessage());
                                 this.passFailed = true;
+                                if (status >= 400 && status < 500) {
+                                    this.refusedHashes.put(space, desiredHash);
+                                    this.scheduleRetry();
+                                }
                             }
                             listener.onResponse(null);
                         },
