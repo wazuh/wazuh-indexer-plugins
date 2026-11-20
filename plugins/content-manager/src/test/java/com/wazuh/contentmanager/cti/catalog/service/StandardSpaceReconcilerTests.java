@@ -486,7 +486,10 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
                                 List.of("rule-1"),
                                 List.of("integration-1")));
 
-        Assert.assertEquals(Set.of("detector-silent"), result.pending());
+        Assert.assertEquals(
+                "what never started is left over too",
+                Set.of("detector-silent", "rule-1", "integration-1"),
+                result.pending());
         Assert.assertEquals("the rules must not have started", 0, result.deletedRules());
         Assert.assertEquals("nor the integrations", 0, result.deletedIntegrations());
         verify(this.sapService, never()).deleteRule(anyString(), any(), any());
@@ -578,6 +581,35 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         verifyNoInteractions(this.sapService);
     }
 
+    /**
+     * An abstention says the two sides were never compared, which is not the same as having found
+     * nothing. Only the flag tells them apart, and a caller that remembers what it has reported
+     * depends on it.
+     */
+    public void testReconcile_anAbstentionIsNotTheSameAsNothingStale() {
+        StandardSpaceReconciler.Result abstuvo =
+                reconcilerReading(
+                                inventory(
+                                        Map.of("integration-1", List.of("rule-1")),
+                                        Collections.emptySet(),
+                                        Set.of("integration-1"),
+                                        Set.of("rule-1"),
+                                        Set.of("integration-1")))
+                        .reconcile();
+        StandardSpaceReconciler.Result nadaQueHacer =
+                reconcilerReading(
+                                inventory(
+                                        Map.of("integration-1", List.of("rule-1")),
+                                        Set.of("rule-1"),
+                                        Set.of("integration-1"),
+                                        Set.of("rule-1"),
+                                        Set.of("integration-1")))
+                        .reconcile();
+
+        Assert.assertFalse("no content rules: nothing was compared", abstuvo.compared());
+        Assert.assertTrue("both sides read and agreed", nadaQueHacer.compared());
+    }
+
     /** With nothing on the Security Analytics side either, the guard still abstains. */
     public void testReconcile_noRulesOnEitherSideIsNotAFailure() {
         StandardSpaceReconciler.Result result =
@@ -592,6 +624,7 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
 
         Assert.assertFalse(result.deletedAnything());
         Assert.assertTrue(result.pending().isEmpty());
+        Assert.assertFalse("the guard abstained, it did not compare", result.compared());
     }
 
     /**

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.junit.After;
-import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.List;
@@ -51,16 +50,13 @@ import com.wazuh.contentmanager.utils.Constants;
  * should spend. Run it on its own:
  *
  * <pre>
- * ./gradlew :wazuh-indexer-content-manager:integTest -PnumNodes=1 \
- *     --tests "*StandardSpaceReconciliationIT*"
+ * ./gradlew :wazuh-indexer-content-manager:standardSpaceIntegTest -PnumNodes=1
  * </pre>
  *
  * <p>It is kept because it is the only thing that exercises the five searches against real indices
  * and the real Security Analytics deletions, and it has already earned it: it caught the reads
  * sorting on fields that a dynamically mapped index makes {@code text}.
  */
-@Ignore(
-        "Takes about ten minutes and needs the CTI catalog; run it on its own, see the class javadoc")
 public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
 
     private static final String LOG_TYPES_INDEX = ".opensearch-sap-log-types-config";

@@ -490,6 +490,9 @@ public class Constants {
             "No standard rules in the content indices, while Security Analytics holds {}; skipping the"
                     + " reconciliation. Every integration would read as having lost all of its rules,"
                     + " which would delete every standard detector.";
+    public static final String D_LOG_SAP_RECONCILE_NOTHING_ANYWHERE =
+            "Neither the content nor Security Analytics holds anything in the standard space;"
+                    + " nothing to reconcile.";
     public static final String W_LOG_SAP_RECONCILE_UNREADABLE_ON_SAP =
             "{} Security Analytics document(s) carry no readable id and were left out of the"
                     + " comparison, so anything they stand for is not deleted.";

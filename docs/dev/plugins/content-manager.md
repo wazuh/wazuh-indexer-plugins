@@ -727,7 +727,7 @@ Every write of a consumer document replaces the whole document. A write that doe
 
 The three upsert phases above only create and update: they iterate over the content indices and push what they find. Anything CTI deletes stops appearing there, and nothing would remove it from Security Analytics. `StandardSpaceReconciler` closes that gap by comparing the two sides at the end of every pass and deleting what is left over, which covers an incremental deletion and a change of consumer with the same code.
 
-It reads five things and matches them by the CTI document id, which is the same on both sides:
+It reads five things and matches them by the CTI document id, which is the same on both sides. The content side is read strictly, so a failed read stops the whole comparison; the Security Analytics side is read leniently, because a cluster that has none of those indices yet simply holds nothing stale. Both are paged on an id where the index allows it, falling back to one capped read where it does not:
 
 | Side | Index | Filter | Id read |
 |------|-------|--------|---------|
@@ -744,6 +744,8 @@ Three things are deleted, in this order:
 1. **Detectors with nothing left to detect**: the one belonging to an integration whose rules CTI deleted, and the one no integration owns on either side. Deleting a `standard` rule removes neither, because Security Analytics only cleans detector references for the `custom` space.
 2. **Rules the content no longer has.**
 3. **Integrations the content no longer has**, through `deleteIntegration`, which for the `standard` space deletes the detector first and the log type second.
+
+A kind that still has deletions running when the pass gives up waiting stops the kinds after it, because Security Analytics refuses to delete a log type while a detector still reads it. What never started is reported as left over along with what failed, so the next pass finds it again.
 
 The diff abstains rather than guesses, and logs why. A read it could not complete deletes nothing. Neither does an empty content side, in either of its forms: no standard integrations at all, or no standard rules. A cluster whose content has not loaded yet looks exactly like one whose content was deleted, and the blast radius would be the whole space — with no content rules in particular, every integration reads as having lost all of its own, and every standard detector would go with them. A space emptied on purpose is cleared through `StandardSpaceWiper`, which deletes both sides together.
 

@@ -260,6 +260,15 @@ class StandardSpaceReconciler {
             // reads as having lost all of its own, so every standard detector would be planned for
             // deletion. That holds whatever Security Analytics turns out to be holding, which is why
             // this does not look at its side at all.
+            if (inventory.sapRules().isEmpty()
+                    && inventory.sapIntegrations().isEmpty()
+                    && inventory.sapDetectors().isEmpty()) {
+                // Nothing on either side: a cluster that has not loaded its content yet, or one
+                // wiped on purpose. Normal and quiet, and this runs on every scheduled pass, so it
+                // must not warn hourly about detectors that do not exist.
+                log.debug(Constants.D_LOG_SAP_RECONCILE_NOTHING_ANYWHERE);
+                return Result.abstained();
+            }
             log.warn(Constants.W_LOG_SAP_RECONCILE_NO_CONTENT_RULES, inventory.sapRules().size());
             return Result.abstained();
         }
@@ -303,10 +312,16 @@ class StandardSpaceReconciler {
         Set<String> failed = new LinkedHashSet<>();
         Phase detectors = this.deleteEach(plan.detectors(), "detectors", failed, this::deleteDetector);
         if (detectors.inFlight()) {
+            // The kinds after this one never started, and they are still left over. Reporting them
+            // is what keeps the pass asking for its retry: a pending set that does not change is
+            // only logged at debug, so leaving them out would hide them after the second pass.
+            failed.addAll(plan.rules());
+            failed.addAll(plan.integrations());
             return new Result(failed, detectors.deleted(), 0, 0, true);
         }
         Phase rules = this.deleteEach(plan.rules(), "rules", failed, this::deleteRule);
         if (rules.inFlight()) {
+            failed.addAll(plan.integrations());
             return new Result(failed, detectors.deleted(), rules.deleted(), 0, true);
         }
         Phase integrations =
