@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -169,7 +170,8 @@ public class SetupConfigFilesTests extends OpenSearchTestCase {
      */
     private SetupConfig load(String yaml) throws IOException {
         Files.writeString(this.directory.resolve(SetupConfig.FILE), yaml, StandardCharsets.UTF_8);
-        return SetupConfig.load(this.directory, this.templates, IndexStateManagement.POLICIES);
+        return SetupConfig.load(
+                this.directory, this.templates, IndexStateManagement.POLICIES, NamedXContentRegistry.EMPTY);
     }
 
     /**

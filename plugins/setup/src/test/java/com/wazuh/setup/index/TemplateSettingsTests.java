@@ -32,6 +32,7 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.Assert;
@@ -147,7 +148,8 @@ public class TemplateSettingsTests extends OpenSearchTestCase {
         if (yaml != null) {
             Path directory = LuceneTestCase.createTempDir();
             Files.writeString(directory.resolve(SetupConfig.FILE), yaml, StandardCharsets.UTF_8);
-            index.setConfig(SetupConfig.load(directory, TEMPLATES, List.of()));
+            index.setConfig(
+                    SetupConfig.load(directory, TEMPLATES, List.of(), NamedXContentRegistry.EMPTY));
         }
         return index;
     }

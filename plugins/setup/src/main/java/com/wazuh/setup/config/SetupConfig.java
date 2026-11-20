@@ -19,15 +19,19 @@ package com.wazuh.setup.config;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.hash.MessageDigests;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.seqno.SequenceNumbers;
+import org.opensearch.indexmanagement.indexstatemanagement.model.Policy;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collection;
@@ -105,16 +109,25 @@ public final class SetupConfig {
      * @param templates resource paths of the index templates of the plugin, for example {@code
      *     templates/streams/events}. Only those under a group folder can be overridden.
      * @param policies ids of the default ISM policies.
+     * @param xContentRegistry registry of the node, which Index State Management reads a policy with.
      * @return the configuration.
-     * @throws SetupConfigException if the file is not valid YAML, holds an unknown key or an invalid
-     *     value, or a policy file it selects is missing or invalid. The message names the key or the
-     *     file.
+     * @throws SetupConfigException if the path is not a regular file, is not valid YAML, holds an
+     *     unknown key or an invalid value, or a policy file it selects is missing or invalid. The
+     *     message names the key or the file.
      */
     public static SetupConfig load(
-            Path directory, Collection<String> templates, Collection<String> policies) {
+            Path directory,
+            Collection<String> templates,
+            Collection<String> policies,
+            NamedXContentRegistry xContentRegistry) {
         Path file = directory.resolve(FILE);
-        if (!Files.isRegularFile(file)) {
+        if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
             return new SetupConfig(file, null, Settings.EMPTY, Map.of());
+        }
+        // Something is there, so a configuration was meant. A directory or a link to nothing is an
+        // error, not an absent file: the defaults must not be applied silently in its place.
+        if (!Files.isRegularFile(file)) {
+            throw new SetupConfigException("[" + file + "] exists but is not a regular file");
         }
 
         byte[] content;
@@ -152,7 +165,8 @@ public final class SetupConfig {
                         throw new IllegalArgumentException("unknown policy [" + policy + "]");
                     }
                     if (SetupConfig.parseSwitch(settings.get(key))) {
-                        customPolicies.put(policy, SetupConfig.loadPolicy(directory, policy, now));
+                        customPolicies.put(
+                                policy, SetupConfig.loadPolicy(directory, policy, now, xContentRegistry));
                     }
                 } else {
                     throw new IllegalArgumentException("unknown key");
@@ -183,6 +197,25 @@ public final class SetupConfig {
                 .put(this.settings.getByPrefix(TEMPLATES + group + "." + ANY + "." + SETTINGS))
                 .put(this.settings.getByPrefix(TEMPLATES + id + "." + SETTINGS))
                 .build();
+    }
+
+    /**
+     * Describes the overrides in effect for an index template, to complete the error of an index that
+     * could not be initialized. The file accepts values that the cluster can still refuse, such as a
+     * number of shards that goes over the shard limit of the cluster, and that error names no key.
+     *
+     * @param template resource path of the template, for example {@code templates/streams/events}.
+     * @return the description, or an empty text when the file overrides nothing for the template.
+     */
+    public String describeOverrides(String template) {
+        Settings overrides = this.templateOverrides(template);
+        if (overrides.isEmpty()) {
+            return "";
+        }
+        List<String> values =
+                new TreeSet<>(overrides.keySet())
+                        .stream().map(key -> key + " = " + overrides.get(key)).toList();
+        return "Overrides of [" + this.file + "] in effect for this index: " + values;
     }
 
     /**
@@ -308,9 +341,11 @@ public final class SetupConfig {
      * @param directory directory of the policy files.
      * @param policy id of the default policy.
      * @param now current time, in epoch milliseconds.
+     * @param xContentRegistry registry of the node.
      * @return the policy file.
      */
-    private static PolicyFile loadPolicy(Path directory, String policy, long now) {
+    private static PolicyFile loadPolicy(
+            Path directory, String policy, long now, NamedXContentRegistry xContentRegistry) {
         Path file = directory.resolve(policy + ".json");
         if (!Files.isRegularFile(file)) {
             throw new SetupConfigException(
@@ -323,7 +358,49 @@ public final class SetupConfig {
             throw new SetupConfigException("policy file [" + file + "] cannot be read: " + e, e);
         }
         SetupConfig.validatePolicy(file, policy, SetupConfig.parsePolicy(file, content), now);
+        SetupConfig.parseAsIndexStateManagement(file, policy, content, xContentRegistry);
         return new PolicyFile(file, content, SetupConfig.sha256(content));
+    }
+
+    /**
+     * Parses a policy file with the parser of Index State Management (ISM), the one that reads the
+     * policy once it is stored. It checks what {@link #validatePolicy} does not: the states, their
+     * actions and transitions, and the values.
+     *
+     * <p>The plugin stores the policy without the ISM API, so ISM checks nothing at that point. To
+     * attach the policies to new indices, ISM reads all of them in one go. A stored policy it cannot
+     * parse makes that read fail, and from then on no new index gets a policy, whichever policy it
+     * should get. So a policy that ISM cannot parse must never be stored.
+     *
+     * @param file path of the file, for the error message.
+     * @param policy id of the default policy.
+     * @param content content of the file, already checked to hold only the {@code policy} object.
+     * @param xContentRegistry registry of the node.
+     */
+    private static void parseAsIndexStateManagement(
+            Path file, String policy, byte[] content, NamedXContentRegistry xContentRegistry) {
+        try (XContentParser parser =
+                JsonXContent.jsonXContent.createParser(
+                        xContentRegistry,
+                        LoggingDeprecationHandler.INSTANCE,
+                        new ByteArrayInputStream(content))) {
+            // The ISM parser takes the content of the [policy] object: skip "{", "policy" and "{".
+            parser.nextToken();
+            parser.nextToken();
+            parser.nextToken();
+            Policy.parse(
+                    parser,
+                    policy,
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
+        } catch (Exception e) {
+            throw new SetupConfigException(
+                    "policy file ["
+                            + file
+                            + "] is not a policy Index State Management can read: "
+                            + SetupConfig.describe(e),
+                    e);
+        }
     }
 
     /**
@@ -352,8 +429,7 @@ public final class SetupConfig {
      *
      * <p>The plugin stores the policy without the ISM API, so ISM checks nothing. The fields are
      * checked against the mapping of the ISM configuration index, which rejects any other field. The
-     * states and their actions are not checked: an error there shows in the explain API of the
-     * indices that run the policy.
+     * states and their actions are checked next, by {@link #parseAsIndexStateManagement}.
      *
      * @param file path of the file, for the error messages.
      * @param policy id of the default policy.

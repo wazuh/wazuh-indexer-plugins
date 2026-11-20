@@ -185,7 +185,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   -H 'Content-Type: application/json' -d '{"policy_id": "stream-findings-policy"}'
 ```
 
-**5. Wait for the change to apply, and verify it.** `change_policy` is asynchronous: the response lists the indices it queued, not the indices it changed. Each index switches on its next ISM run (every 5 minutes by default) and reports `Attempting to change policy to stream-findings-policy` until the following run resumes the policy, so the switch can take two runs or more. It is complete when every index reports a step name and the `last_updated_time` of the edited file:
+**5. Wait for the change to apply, and verify it.** `change_policy` is asynchronous: the response lists the indices it queued, not the indices it changed. Each index switches on its next ISM run (every 5 minutes by default) and reports `Attempting to change policy to stream-findings-policy` until the following run resumes the policy, so the switch can take two runs or more. An index whose ISM run was interrupted by a recent restart of the node does not run again for up to an hour, and switches then. In order to make it run sooner: remove the policy from that index and add it back, with the two commands at the end of this step, and the index starts the stored policy at its next run. It is complete when every index reports a step name and the `last_updated_time` of the edited file:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
@@ -211,6 +211,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   'https://localhost:9200/_plugins/_ism/add/<index>' \
   -H 'Content-Type: application/json' -d '{"policy_id": "stream-findings-policy"}'
 ```
+
+An index added back starts the policy again from its default state.
 
 To go back to the default retention, set the switch back to `false`, restart, and run steps 4 and 5 again. The restart warning applies here too.
 

@@ -21,15 +21,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.common.hash.MessageDigests;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.wazuh.setup.utils.CapturingAppender;
 
@@ -72,7 +75,7 @@ public class SetupConfigTests extends OpenSearchTestCase {
      */
     private SetupConfig load(String yaml) throws IOException {
         Files.writeString(this.directory.resolve(SetupConfig.FILE), yaml, StandardCharsets.UTF_8);
-        return SetupConfig.load(this.directory, TEMPLATES, POLICIES);
+        return SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY);
     }
 
     /**
@@ -116,12 +119,84 @@ public class SetupConfigTests extends OpenSearchTestCase {
                 + " \"ism_template\": [{\"index_patterns\": [\"wazuh-events-v5*\"], \"priority\": 0}]}}";
     }
 
+    /**
+     * Reads a default policy as the plugin bundles it, which is also what its editable copy holds.
+     *
+     * @param id id of the default policy.
+     * @return the policy document.
+     * @throws IOException if the policy cannot be read.
+     */
+    private static String defaultPolicy(String id) throws IOException {
+        try (InputStream is =
+                SetupConfigTests.class.getClassLoader().getResourceAsStream("policies/" + id + ".json")) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Replaces a text of a policy document, and fails if the document does not hold it once.
+     *
+     * @param document the policy document.
+     * @param text the text to replace.
+     * @param replacement its replacement.
+     * @return the edited document.
+     */
+    private static String edit(String document, String text, String replacement) {
+        Assert.assertEquals(
+                "[" + text + "] in the policy", 2, document.split(Pattern.quote(text), -1).length);
+        return document.replace(text, replacement);
+    }
+
     /** Without the file there are no overrides and every policy is the default one. */
     public void testAbsentFile() {
-        SetupConfig config = SetupConfig.load(this.directory, TEMPLATES, POLICIES);
+        SetupConfig config =
+                SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY);
 
         Assert.assertTrue(config.templateOverrides(EVENTS).isEmpty());
         Assert.assertNull(config.customPolicy(EVENTS_POLICY));
+    }
+
+    /**
+     * A path that exists and is not a file is an error, not an absent file: a configuration was
+     * meant, and the defaults must not replace it silently. A link to a file is read as the file.
+     *
+     * @throws IOException if a file cannot be written.
+     */
+    public void testPathThatIsNotAFile() throws IOException {
+        Path file = this.directory.resolve(SetupConfig.FILE);
+
+        Files.createDirectory(file);
+        this.assertNotAFile(file);
+        Files.delete(file);
+
+        Files.createSymbolicLink(file, this.directory.resolve("absent.yml"));
+        this.assertNotAFile(file);
+        Files.delete(file);
+
+        Path target = this.directory.resolve("linked.yml");
+        Files.writeString(
+                target,
+                "templates.streams.events.settings.index.number_of_shards: 3\n",
+                StandardCharsets.UTF_8);
+        Files.createSymbolicLink(file, target);
+        SetupConfig config =
+                SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY);
+        Assert.assertEquals("3", config.templateOverrides(EVENTS).get("index.number_of_shards"));
+    }
+
+    /**
+     * Asserts that the configuration is rejected because its path is not a regular file.
+     *
+     * @param file path of the configuration file.
+     */
+    private void assertNotAFile(Path file) {
+        SetupConfigException e =
+                LuceneTestCase.expectThrows(
+                        SetupConfigException.class,
+                        () ->
+                                SetupConfig.load(
+                                        this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY));
+        Assert.assertEquals("[" + file + "] exists but is not a regular file", e.getMessage());
     }
 
     /**
@@ -415,6 +490,40 @@ public class SetupConfigTests extends OpenSearchTestCase {
     }
 
     /**
+     * A policy file must be a policy that Index State Management (ISM) can read. The plugin stores it
+     * without the ISM API, and one stored policy that ISM cannot parse stops ISM from attaching any
+     * policy to new indices. Each case is a mistake that an edit of the default policy can make, and
+     * the error carries what the ISM parser says about it.
+     *
+     * @throws IOException if a file cannot be read or written.
+     */
+    public void testPolicyFileThatIndexStateManagementCannotRead() throws IOException {
+        String enabled = "policies.stream-events-policy.custom: true\n";
+        String file = this.directory.resolve(EVENTS_POLICY + ".json").toString();
+        String shipped = SetupConfigTests.defaultPolicy(EVENTS_POLICY);
+
+        // The default policy is accepted as it ships, and with a valid age.
+        this.writePolicy(EVENTS_POLICY, shipped);
+        Assert.assertNotNull(this.load(enabled).customPolicy(EVENTS_POLICY));
+        this.writePolicy(EVENTS_POLICY, SetupConfigTests.edit(shipped, "\"1d\"", "\"7d\""));
+        Assert.assertNotNull(this.load(enabled).customPolicy(EVENTS_POLICY));
+
+        String[][] mistakes = {
+            {
+                "\"min_rollover_age\": \"1d\"", "\"min_rollover_age\": \"7days\"", "failed to parse [7days]"
+            },
+            {"\"state_name\": \"delete\"", "\"state_name\": \"remove\"", "nonexistent state=remove"},
+            {"\"default_state\": \"hot\"", "\"default_state\": \"warm\"", "valid default state"},
+            {"\"delete\": {}", "\"delet\": {}", "Invalid field: [delet]"},
+            {"\"min_doc_count\"", "\"min_doc_cont\"", "Invalid field: [min_doc_cont]"},
+        };
+        for (String[] mistake : mistakes) {
+            this.writePolicy(EVENTS_POLICY, SetupConfigTests.edit(shipped, mistake[0], mistake[1]));
+            this.assertInvalid(enabled, file, "Index State Management can read", mistake[2]);
+        }
+    }
+
+    /**
      * A policy file can only hold the fields the ISM configuration index maps, where the plugin
      * stores the policy. Anything else would fail when the policy is stored, after other indices were
      * created, so it is rejected first, and the error names the file and the fields.
@@ -519,7 +628,8 @@ public class SetupConfigTests extends OpenSearchTestCase {
 
     /** Without the file, the log says that the defaults are used. */
     public void testLogWithoutFile() {
-        SetupConfig config = SetupConfig.load(this.directory, TEMPLATES, POLICIES);
+        SetupConfig config =
+                SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY);
 
         try (CapturingAppender appender = CapturingAppender.attach(SetupConfigTests.class)) {
             config.log(LogManager.getLogger(SetupConfigTests.class));

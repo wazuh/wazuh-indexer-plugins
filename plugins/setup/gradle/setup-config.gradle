@@ -211,7 +211,9 @@ ${rule}
 #
 #   index.number_of_shards
 #       Number of primary shards of each index. An integer from 1 to 1024. It cannot be changed on
-#       an index that exists.
+#       an index that exists. Every shard, primary or replica, counts against the shard limit of the
+#       cluster, 1000 for each data node by default, and the plugin creates about 50 indices from
+#       these templates at the first start.
 #   index.number_of_replicas
 #       Number of copies of each primary shard. An integer, 0 or more. It has no effect unless
 #       index.auto_expand_replicas is false.
@@ -241,9 +243,11 @@ ${rule}
     setupConfigGroups.each { group, groupDescription ->
       text << "\n${rule}\n${wrap(groupDescription, ' ')}\n${rule}\n"
       if (group == 'content') {
-        text << wrap('The Content Manager rebuilds these indices when the source of the content changes. A rebuilt index ' +
-            'takes index.number_of_replicas, index.auto_expand_replicas and index.codec from the Content Manager, ' +
-            'not from this file.', ' ') << '\n'
+        text << wrap('The Content Manager creates these indices again with its own index.number_of_replicas, ' +
+            'index.auto_expand_replicas and index.codec, and the values of this file for those three settings ' +
+            'are then not applied. For ioc and vulnerabilities they never apply: their index is created again ' +
+            'each time their content is loaded, the first time included. For the others they apply until the ' +
+            'source of the content changes.', ' ') << '\n'
       }
       text << "\n# Every ${group} template\n"
       wildcard("templates.${group}.*", defaults[group].values(), text)

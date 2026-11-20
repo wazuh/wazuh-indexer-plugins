@@ -102,6 +102,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private AiAssistantSettingsAdminIndex settingsAdminIndex;
     private AiAssistantSessionsIndex sessionsIndex;
     private Path configDirectory;
+    private NamedXContentRegistry xContentRegistry;
     // spotless:off
     private final String[] categories = {
         "access-management",
@@ -135,6 +136,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.configDirectory = environment.configDir().resolve(SetupConfig.DIRECTORY);
+        this.xContentRegistry = xContentRegistry;
         // spotless:off
         // Setup status index - Holds the initialization marker read by other plugins (e.g.
         // Content Manager) to defer their startup work until setup completes. Added first so its
@@ -285,7 +287,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                                 SetupPlugin.initialize(
                                                         SetupPlugin.this.indices,
                                                         SetupPlugin.this.setupStatusIndex,
-                                                        SetupPlugin.this.configDirectory);
+                                                        SetupPlugin.this.configDirectory,
+                                                        SetupPlugin.this.xContentRegistry);
                                                 SetupPlugin.this.setupStatusIndex.markReady();
                                             } catch (Exception e) {
                                                 log.error("Setup initialization failed: {}", e.getMessage(), e);
@@ -315,24 +318,41 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
      * exists. The configuration file is read next, and an invalid one stops the initialization there:
      * no other index is created, and the caller marks the status as failed.
      *
+     * <p>If an index cannot be initialized while the file overrides settings of its template, the
+     * error also lists those overrides.
+     *
      * @param indices every index of the plugin, the setup status index included.
      * @param setupStatusIndex the setup status index.
      * @param configDirectory directory of the configuration file and the policy files.
+     * @param xContentRegistry registry of the node, to parse the policy files.
      * @throws com.wazuh.setup.config.SetupConfigException if the configuration is invalid.
      */
     static void initialize(
-            List<Index> indices, SetupStatusIndex setupStatusIndex, Path configDirectory) {
+            List<Index> indices,
+            SetupStatusIndex setupStatusIndex,
+            Path configDirectory,
+            NamedXContentRegistry xContentRegistry) {
         setupStatusIndex.initialize();
 
         List<String> templates = indices.stream().map(Index::getTemplate).toList();
         SetupConfig config =
-                SetupConfig.load(configDirectory, templates, IndexStateManagement.POLICIES);
+                SetupConfig.load(
+                        configDirectory, templates, IndexStateManagement.POLICIES, xContentRegistry);
         config.log(log);
 
         for (Index index : indices) {
             if (index != setupStatusIndex) {
                 index.setConfig(config);
-                index.initialize();
+                try {
+                    index.initialize();
+                } catch (RuntimeException e) {
+                    // The cluster can refuse a value the file accepts, and its error names no key.
+                    String overrides = config.describeOverrides(index.getTemplate());
+                    if (overrides.isEmpty()) {
+                        throw e;
+                    }
+                    throw new IllegalStateException(e.getMessage() + " " + overrides, e);
+                }
             }
         }
     }

@@ -80,6 +80,24 @@ configurations {
   zipArchive
 }
 
+// The Index Management plugin, which this plugin extends, publishes its classes only inside its
+// zip. Its policy parser checks the policy files of the configuration directory, so the jars the
+// parser needs are taken out of the zip. They are not bundled: on a node, the classes come from
+// the extended plugin.
+def indexManagementJarsDir = layout.buildDirectory.dir('index-management-jars')
+def extractIndexManagementJars = tasks.register('extractIndexManagementJars', Sync) {
+  description = 'Take the jars of the Index Management policy parser out of the plugin zip'
+  from({ zipTree(getPlugin('opensearch-index-management').get().asFile) }) {
+    include 'opensearch-index-management-*.jar'
+    include 'kotlin-stdlib-?.*.jar'
+  }
+  into indexManagementJarsDir
+}
+def indexManagementJars = fileTree(indexManagementJarsDir) {
+  include '*.jar'
+  builtBy extractIndexManagementJars
+}
+
 dependencies {
   runtimeOnly "org.apache.logging.log4j:log4j-slf4j2-impl:2.25.4"
   implementation "org.slf4j:slf4j-api:2.0.17"
@@ -93,6 +111,8 @@ dependencies {
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: opensearch_build
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+  compileOnly indexManagementJars
+  testImplementation indexManagementJars
 
   // Provides the zstd/zstd_no_dict index codecs used in index templates
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-custom-codecs', version: opensearch_build
@@ -214,6 +234,7 @@ def setupConfigStaging = layout.buildDirectory.dir('setup-config-it').get().asFi
 def setupConfigIntegTests = [
   overridesIntegTest    : [tests: 'SetupConfigOverridesIT', files: 'overrides'],
   invalidConfigIntegTest: [tests: 'SetupConfigInvalidIT', files: 'invalid'],
+  invalidPolicyIntegTest: [tests: 'SetupConfigInvalidIT', files: 'invalid-policy'],
 ]
 setupConfigIntegTests.each { taskName, testCase ->
   def stage = tasks.register("${taskName}Config", Sync) {

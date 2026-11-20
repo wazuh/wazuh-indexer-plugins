@@ -45,7 +45,9 @@ Each template has a block like this one:
 #templates.streams.events.settings.index.translog.durability: async   # request or async
 ```
 
-A key can be set only once. The examples repeat keys of the lists, so uncomment a key in one place: if it is uncommented twice, the initialization fails and the error names the key.
+A key can be set only once. The examples repeat keys of the lists, so uncomment a key in one place: if it is uncommented twice, the initialization fails and the error names the key. That check covers a key repeated in the same form. If a setting is written once as a flat key and once in a [nested block](#groups-and-precedence), no error is raised and the last one in the file wins.
+
+The file is YAML: indent with spaces, never with tabs. A tab, even on a line of its own, makes the whole file invalid.
 
 In the packages the files belong to `root:wazuh-indexer` with mode `640`, in a directory with mode `750`.
 
@@ -59,6 +61,8 @@ A package upgrade replaces a `setup.yml` or a policy file that was not edited, a
 Compare the saved file with yours to see what changed. The plugin only reads `setup.yml` and the `<policy-id>.json` files, so the saved copies have no effect.
 
 The upgrade restarts the indexer when it was running, so the plugin reads the files again.
+
+When the package is removed, RPM keeps an edited file as `<file>.rpmsave` and removes the others. DEB keeps every file until the package is purged, which removes the directory. A `setup.yml` that was deleted is installed again by a new installation of the RPM. `dpkg` remembers the deletion and does not bring the file back unless it is run with `--force-confmiss`.
 
 ## Index template settings
 
@@ -111,7 +115,7 @@ templates:
 
 ### Supported settings
 
-- **`index.number_of_shards`** (Integer, range 1–1024) — number of primary shards of each index. It cannot be changed on an index that exists.
+- **`index.number_of_shards`** (Integer, range 1–1024) — number of primary shards of each index. It cannot be changed on an index that exists. Every shard counts against the shard limit of the cluster: see [A value the cluster refuses](#a-value-the-cluster-refuses).
 - **`index.number_of_replicas`** (Integer, 0 or more) — number of copies of each primary shard. It has no effect unless `index.auto_expand_replicas` is `false`.
 - **`index.auto_expand_replicas`** (`"<min>-<max>"`, `"<min>-all"` or `false`) — range the number of replicas follows as data nodes join and leave. `false` uses `index.number_of_replicas`.
 - **`index.refresh_interval`** (Time value such as `5s` or `1m`, or `-1`) — how often new documents become searchable. `-1` disables the periodic refresh.
@@ -126,7 +130,12 @@ Every default template sets `index.auto_expand_replicas: 0-1`, which takes prece
 
 ### Content indices
 
-The Content Manager rebuilds a content index when the source of its content changes. The rebuilt index takes `index.number_of_replicas`, `index.auto_expand_replicas` and `index.codec` from the Content Manager, not from `setup.yml`. The other three settings are kept.
+The Content Manager creates content indices again, and gives them its own values of `index.number_of_replicas`, `index.auto_expand_replicas` and `index.codec`. The values of `setup.yml` for those three settings do not reach such an index:
+
+- **`ioc` and `vulnerabilities`:** they never apply. The Content Manager deletes and creates these indices each time it loads a snapshot of their content, starting with the first load after the installation.
+- **The other content indices:** they apply until the source of the content changes, which makes the Content Manager rebuild the index.
+
+The other three settings always come from the index template, so the values of `setup.yml` are kept.
 
 ### Default values
 
@@ -211,6 +220,8 @@ Keep these fields of a policy file as they are:
 - The file holds only the `policy` object, and the object only the fields a policy has: `policy_id`, `description`, `last_updated_time`, `schema_version`, `error_notification`, `default_state`, `states`, `ism_template` and `user`. Any other field fails the initialization, for example the `_id` and `_seq_no` of a policy copied from the ISM API.
 - `ism_template` holds the index patterns ISM uses to attach the policy to the backing indices that a rollover creates. With other patterns those indices are left without a policy, and nothing deletes them.
 
+The plugin also reads each policy file with the parser of Index State Management before it creates anything, so a mistake in the states is found at the restart. An age such as `"7days"` instead of `"7d"`, a transition to a state that does not exist, or an action or a field that ISM does not know fails the initialization, with the reason ISM gives.
+
 A policy read from its file no longer receives the changes that a new version makes to the default policy. The plugin logs a warning for each one at every initialization.
 
 Setting the switch back to `false` restores the default policy under the same id at the next initialization.
@@ -220,7 +231,7 @@ The policy stored in the cluster is written again from the default or from the f
 The plugin reads the configuration directory each time it initializes the cluster, which happens when a node that has just started is elected cluster manager. Nothing from a previous read is kept: the files are the only source.
 
 - **Single node:** a restart of the indexer applies the change.
-- **Several nodes:** copy the same `setup.yml` and policy files to every cluster-manager-eligible node, then restart those nodes one at a time, the elected cluster manager last. The node elected after that restart reads its own copy of the files, so a node with different files would apply different settings.
+- **Several nodes:** copy the same `setup.yml` and policy files to every cluster-manager-eligible node, then restart those nodes one at a time, the elected cluster manager last. The node elected after that restart reads its own copy of the files, so a node with different files would apply different settings. A node reads its files the first time it is elected after it starts, which can be long after its restart, for example when the elected cluster manager stops. An invalid file on one eligible node then makes the setup status `failed` for the whole cluster at that election, and the Content Manager stops synchronizing.
 
 What a change reaches:
 
@@ -275,10 +286,11 @@ If an index exists and does not have the value of an override, the plugin also l
 
 The plugin checks the whole configuration before it creates anything. The initialization stops if:
 
+- `setup.yml` exists but is not a file: a directory, or a link that points to nothing,
 - `setup.yml` is not valid YAML,
 - a key is unknown: a group, a template name, a setting or a policy id that does not exist,
 - a value has the wrong type or is out of range,
-- the policy file of a switch set to `true` is missing, is not valid JSON, does not keep the id of the default policy, holds a field a policy does not have, or has no `last_updated_time` or one in the future.
+- the policy file of a switch set to `true` is missing, is not valid JSON, does not keep the id of the default policy, holds a field a policy does not have, has no `last_updated_time` or one in the future, or is not a policy that Index State Management can read.
 
 No index template, index, data stream or policy is created or updated, the [setup status](architecture.md#readiness-marker) is `failed`, and the error in the indexer log names the key or the file:
 
@@ -286,13 +298,42 @@ No index template, index, data stream or policy is created or updated, the [setu
 [ERROR][c.w.s.SetupPlugin] [node-1] Setup initialization failed: [templates.streams.events.settings.index.number_of_shards] in [/etc/wazuh-indexer/wazuh-indexer-setup/setup.yml]: invalid value: Failed to parse value [three] for setting [index.number_of_shards]
 ```
 
+For a policy file, the error carries the reason Index State Management gives:
+
+```
+[ERROR][c.w.s.SetupPlugin] [node-1] Setup initialization failed: policy file [/etc/wazuh-indexer/wazuh-indexer-setup/stream-events-policy.json] is not a policy Index State Management can read: failed to parse [7days]: For input string: "7day"
+```
+
 The indexer itself keeps running. The Content Manager waits for the setup status and does not start its work while it is `failed`. Fix the file and restart the node.
+
+With several nodes, fix the files on every cluster-manager-eligible node and restart those nodes as described in [When changes take effect](#when-changes-take-effect), the elected cluster manager last. Correcting the files without a restart, or restarting a node that is not the elected cluster manager, changes nothing: the plugin initializes the cluster once per start of a node, when that node is elected. A `failed` status can therefore outlive the restart of the node that caused it, until a node that has just started is elected.
 
 To read the status:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/.wazuh-setup-status/_doc/setup-status?filter_path=_source"
 ```
+
+### A value the cluster refuses
+
+A value can be valid for the file and still be refused by the cluster when an index is created. The usual case is the number of shards. Every shard, primary or replica, counts against `cluster.max_shards_per_node`, which is 1000 for each data node by default. At the first start the plugin creates about 50 indices from the templates that `setup.yml` can override: one backing index for each data stream, the stateful indices and the content indices. With `templates.*.*.settings.index.number_of_shards: 30`, a single node would need about 1500 shards. Later, each rollover adds a backing index to its stream until the policy deletes the previous one.
+
+When the cluster refuses a value:
+
+- The initialization stops at that index, and the setup status is `failed`.
+- The index templates and the indices created before it stay, with the values of the file.
+- The error is the one of the cluster, followed by the overrides of `setup.yml` in effect for that index:
+
+```
+[ERROR][c.w.s.SetupPlugin] [node-1] Setup initialization failed: Validation Failed: 1: this action would add [30] total LOCAL_ONLY shards, but this cluster currently has [998]/[1000] maximum LOCAL_ONLY shards open; Overrides of [/etc/wazuh-indexer/wazuh-indexer-setup/setup.yml] in effect for this index: [index.number_of_shards = 30]
+```
+
+Correcting `setup.yml` is not enough while the indices already created keep the cluster over its limit:
+
+- **On a new installation,** where they are still empty, delete what was created with the wrong value: each data stream with `DELETE _data_stream/<name>`, and the other indices with `DELETE <index>`. A data stream has to be deleted as a whole, because its write index cannot be deleted on its own. Deleting a data stream deletes its data.
+- **Where they hold data,** raise `cluster.max_shards_per_node` instead.
+
+Then restart the node.
 
 ## Examples
 

@@ -26,6 +26,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
@@ -407,9 +408,12 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
                 "{\"policy\": {\"policy_id\": \""
                         + IndexStateManagement.EVENTS_POLICY
                         + "\", \"description\": \"Edited copy\", \"last_updated_time\": 1700000000000,"
+                        + " \"default_state\": \"hot\", \"states\": [{\"name\": \"hot\"}],"
                         + " \"ism_template\": [{\"index_patterns\": [\"wazuh-events-v5*\"], \"priority\": 0}]}}",
                 StandardCharsets.UTF_8);
-        this.ismIndex.setConfig(SetupConfig.load(directory, List.of(), IndexStateManagement.POLICIES));
+        this.ismIndex.setConfig(
+                SetupConfig.load(
+                        directory, List.of(), IndexStateManagement.POLICIES, NamedXContentRegistry.EMPTY));
         doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
     }
 

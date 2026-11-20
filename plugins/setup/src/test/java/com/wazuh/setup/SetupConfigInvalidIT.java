@@ -30,9 +30,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Integration test for an invalid configuration file of the plugin. The test cluster starts with
- * the {@code setup.yml} of {@code src/test/resources/setup-config/invalid}, which holds a value of
- * the wrong type.
+ * Integration test for an invalid configuration of the plugin. Two Gradle tasks run it, each on a
+ * cluster that starts with the files of a folder of {@code src/test/resources/setup-config}:
+ *
+ * <ul>
+ *   <li>{@code invalid}: a {@code setup.yml} that holds a value of the wrong type.
+ *   <li>{@code invalid-policy}: a valid {@code setup.yml} that selects a policy file which Index
+ *       State Management cannot read. On a node, the parser that rejects it comes from the Index
+ *       Management plugin.
+ * </ul>
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class SetupConfigInvalidIT extends OpenSearchRestTestCase {
@@ -60,8 +66,8 @@ public class SetupConfigInvalidIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * The initialization stops at the invalid file: the setup status is failed, and nothing else the
-     * plugin creates exists. Only the setup status index does, to hold that status.
+     * The initialization stops at the invalid configuration: the setup status is failed, and nothing
+     * else the plugin creates exists. Only the setup status index does, to hold that status.
      *
      * @throws Exception if a request fails or the status is not set in time.
      */

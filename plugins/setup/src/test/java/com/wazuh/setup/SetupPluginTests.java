@@ -17,6 +17,7 @@
 package com.wazuh.setup;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
@@ -34,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -69,7 +71,10 @@ public class SetupPluginTests extends OpenSearchTestCase {
     private void initialize(String yaml) throws IOException {
         Files.writeString(this.directory.resolve(SetupConfig.FILE), yaml, StandardCharsets.UTF_8);
         SetupPlugin.initialize(
-                List.of(this.setupStatusIndex, this.eventsIndex), this.setupStatusIndex, this.directory);
+                List.of(this.setupStatusIndex, this.eventsIndex),
+                this.setupStatusIndex,
+                this.directory,
+                NamedXContentRegistry.EMPTY);
     }
 
     /**
@@ -105,10 +110,52 @@ public class SetupPluginTests extends OpenSearchTestCase {
                 "3", config.getValue().templateOverrides(EVENTS_TEMPLATE).get("index.number_of_shards"));
     }
 
+    /**
+     * The cluster can refuse a value the file accepts, such as a number of shards over its shard
+     * limit. The error of the index then also names the file and the overrides in effect for it.
+     *
+     * @throws IOException if the file cannot be written.
+     */
+    public void testFailedIndexWithOverrides() throws IOException {
+        doThrow(new IllegalArgumentException("this action would add [30] shards"))
+                .when(this.eventsIndex)
+                .initialize();
+
+        IllegalStateException e =
+                LuceneTestCase.expectThrows(
+                        IllegalStateException.class, () -> this.initialize(SHARDS_KEY + ": 30\n"));
+
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("this action would add [30] shards"));
+        Assert.assertTrue(
+                e.getMessage(),
+                e.getMessage().contains(this.directory.resolve(SetupConfig.FILE).toString()));
+        Assert.assertTrue(e.getMessage(), e.getMessage().contains("[index.number_of_shards = 30]"));
+    }
+
+    /**
+     * An index that fails with no override of its template fails with its own error, unchanged.
+     *
+     * @throws IOException if the file cannot be written.
+     */
+    public void testFailedIndexWithoutOverrides() throws IOException {
+        IllegalArgumentException failure = new IllegalArgumentException("no shard available");
+        doThrow(failure).when(this.eventsIndex).initialize();
+
+        IllegalArgumentException e =
+                LuceneTestCase.expectThrows(
+                        IllegalArgumentException.class, () -> this.initialize("#" + SHARDS_KEY + ": 30\n"));
+
+        Assert.assertSame(failure, e);
+    }
+
     /** Without a configuration file, every index is initialized with no overrides. */
     public void testNoConfigurationFile() {
         SetupPlugin.initialize(
-                List.of(this.setupStatusIndex, this.eventsIndex), this.setupStatusIndex, this.directory);
+                List.of(this.setupStatusIndex, this.eventsIndex),
+                this.setupStatusIndex,
+                this.directory,
+                NamedXContentRegistry.EMPTY);
 
         ArgumentCaptor<SetupConfig> config = ArgumentCaptor.forClass(SetupConfig.class);
         verify(this.eventsIndex).setConfig(config.capture());
