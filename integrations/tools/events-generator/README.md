@@ -1,52 +1,53 @@
-### Events generator tool
+# Events generator
 
-This python tool provides functionality to generate and index sample events for Wazuh's indices.
+Generates Wazuh Common Schema (WCS) events and findings in the Wazuh indexer, to develop and test
+the integrations.
 
-#### Getting started
+- Events go to the `wazuh-events-v5-<category>` data streams, built from the templates of
+  `samples/events.json` and an agent of `samples/agents.json`.
+- A share of the events produces a finding in `wazuh-findings-v5-<category>`, as the Security
+  Analytics plugin does: a copy of the event, `event.doc_id` and `event.index` pointing to it, a rule
+  of `samples/rules.json` under `wazuh.rule`, and the same deterministic document id as the plugin.
+  The rule is one of the integration of the event, and of its `event.action` for the rules that list their `actions`.
+  Findings can be indexed some time after their event, as the plugin indexes them.
+- Optionally, a share of the events also goes to a custom data stream.
 
-Create a virtual environment to install the dependencies of the project.
+The samples are synthetic. The tests check that every field of them is in the WCS events and
+findings modules.
 
-```console
-python -m venv .venv
-source .venv/bin/activate
+## Usage
+
+```bash
 pip install -r requirements.txt
+python run.py -a <wazuh indexer> -u admin -p <password> --ca <root-ca.pem>
 ```
 
-Start the events' generator with `./run.py` or `python run.py`. The program takes no required
-arguments, as it's configured with default values that will work in most cases during development.
-To know more about its capabilities and arguments, display the help menu with `-h`.
+| Option | Default | Description |
+| --- | --- | --- |
+| `-a`, `-P` | `localhost`, `9200` | Address and port of the Wazuh indexer. |
+| `-u`, `-p` | `$WAZUH_INDEXER_USERNAME` or `admin`, `$WAZUH_INDEXER_PASSWORD` | Credentials. |
+| `--ca` | | CA certificate of the Wazuh indexer. Without it, the certificate is not verified. |
+| `-c` | `0` | Events to index. `0` runs indefinitely. |
+| `-t` | `5` | Seconds between events. |
+| `-f` | `0.3` | Probability of an event producing a finding. |
+| `--findings-delay` | `$WAZUH_GENERATOR_FINDINGS_DELAY` or `0` | Seconds between an event and the indexing of its finding. |
+| `--custom-stream` | `$WAZUH_CUSTOM_STREAM` | Data stream that also gets a share of the events (`--custom-ratio`, default `0.2`). It must exist. |
+| `--categories` | all | Comma-separated categories to generate events of. |
+| `--seed` | | Seed of the random choices, for repeatable output. |
+| `--dry-run` | | Print the documents instead of indexing them. |
 
-As for now, this tool generates events for the `wazuh-alerts-4.x-*` and `wazuh-archives-4.x-*` indices.
-You may also need to create an **index pattern** in _dashboards_ in order to perform
-queries to the index from the UI. To do that, go to Dashboards Management > Index Patterns > Create index pattern > wazuh-alerts-4.x-* > timestamp as Time field
+## Docker
 
-Newer indices, like `wazuh-states-vulnerabilities`, are ECS compliant and use a dedicated events' generator.
-You can find it in the [wcs](../../../wcs/) folder.
+The development environments build and run the generator from this folder. To run it alone:
 
-
-```console
-python run.py -o indexer -c 5 -t 1
-INFO:event_generator:Inventory created
-INFO:event_generator:Publisher created
-INFO:event_generator:Event created
-{'_index': 'wazuh-alerts-4.x-2024.02.13-000001', '_id': 'dRWno40BZRXLJU5t0u6Z', '_version': 1, 'result': 'created', '_shards': {'total': 2, 'successful': 2, 'failed': 0}, '_seq_no': 168, '_primary_term': 1}
-INFO:event_generator:Event created
-{'_index': 'wazuh-alerts-4.x-2024.02.13-000001', '_id': 'dhWno40BZRXLJU5t1u6Y', '_version': 1, 'result': 'created', '_shards': {'total': 2, 'successful': 2, 'failed': 0}, '_seq_no': 169, '_primary_term': 1}
-INFO:event_generator:Event created
-{'_index': 'wazuh-alerts-4.x-2024.02.13-000001', '_id': 'dxWno40BZRXLJU5t2u6i', '_version': 1, 'result': 'created', '_shards': {'total': 2, 'successful': 2, 'failed': 0}, '_seq_no': 170, '_primary_term': 1}
-INFO:event_generator:Event created
-{'_index': 'wazuh-alerts-4.x-2024.02.13-000001', '_id': 'eBWno40BZRXLJU5t3u6v', '_version': 1, 'result': 'created', '_shards': {'total': 2, 'successful': 2, 'failed': 0}, '_seq_no': 171, '_primary_term': 1}
-INFO:event_generator:Event created
-{'_index': 'wazuh-alerts-4.x-2024.02.13-000001', '_id': 'eRWno40BZRXLJU5t4u66', '_version': 1, 'result': 'created', '_shards': {'total': 2, 'successful': 2, 'failed': 0}, '_seq_no': 172, '_primary_term': 1}
+```bash
+docker build -t wazuh/indexer-events-generator .
+docker run --rm wazuh/indexer-events-generator --dry-run -c 3 -t 0
 ```
 
-### Building the Docker image
+## Tests
 
-```console
-docker build -t wazuh/indexer-events-generator:latest .
-```
-
-Run with: 
-```console
-docker run -it --name=wazuh-indexer-events-generator --rm wazuh/indexer-events-generator python run.py -h
+```bash
+pip install -r tests/requirements.txt
+python -m pytest
 ```
