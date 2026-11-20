@@ -17,3 +17,5 @@ build
 *env/
 
 *.tar
+# Python bytecode caches of the WCS generator scripts
+__pycache__/

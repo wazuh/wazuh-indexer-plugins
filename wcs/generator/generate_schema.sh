@@ -192,6 +192,16 @@ function copy_files() {
     echo "  - '$destination_path' updated"
   done
 
+  # Runs right after the copy, so every later step (dynamic_templates conversion, Content
+  # Manager mappings) works on a template that already carries its schema versions.
+  echo "---> Schema versions"
+  for ecs_module in "${modules_to_update[@]}"; do
+    if [[ -z "${module_to_file[$ecs_module]}" ]]; then
+      continue
+    fi
+    python3 "$repo_path/wcs/generator/stamp_schema_versions.py" "$ecs_module"
+  done
+
   echo "---> Dynamic templates"
   for ecs_module in "${modules_to_update[@]}"; do
     for dynamic_module in "${dynamic_template_modules[@]}"; do

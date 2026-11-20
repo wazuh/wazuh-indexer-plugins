@@ -19,6 +19,10 @@
       "mapping.total_fields.limit": 1000
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "date_detection": false,
       "dynamic": "true",
       "properties": {
@@ -1936,5 +1940,6 @@
         }
       }
     }
-  }
+  },
+  "version": 50000
 }

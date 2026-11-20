@@ -39,6 +39,16 @@ jobs:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
         run: bash wcs/generator/generate_schema.sh
 
+      # Runs on the regenerated templates, before they are pushed: a template whose mappings or
+      # settings changed must carry the schema versions of the release this branch targets.
+      - name: Check schema versions
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          python3 -m unittest discover -s wcs/generator/tests
+          python3 wcs/generator/check_schema_versions.py
+
       - name: Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.INDEXER_BOT_TOKEN }}

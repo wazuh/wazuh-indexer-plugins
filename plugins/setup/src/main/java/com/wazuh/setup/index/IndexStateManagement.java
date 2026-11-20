@@ -189,6 +189,7 @@ public class IndexStateManagement extends Index {
                 InputStream is =
                         this.getClass().getClassLoader().getResourceAsStream(this.template + ".json");
                 IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+                indexTemplate.validateSchemaVersions(this.template);
 
                 CreateIndexRequest request =
                         new CreateIndexRequest(index)
@@ -212,6 +213,11 @@ public class IndexStateManagement extends Index {
                     "Error reading index template from filesystem [{}]. Caused by: {}",
                     this.template,
                     e.toString());
+        } catch (IllegalArgumentException e) {
+            // A template without its schema versions is a packaging defect, not a transient
+            // failure: no retry, and the initialization fails naming the template.
+            log.error("Invalid index template [{}]: {}", this.template, e.getMessage());
+            throw e;
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.

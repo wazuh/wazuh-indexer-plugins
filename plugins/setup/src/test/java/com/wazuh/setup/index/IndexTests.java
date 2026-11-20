@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -109,6 +109,20 @@ public class IndexTests extends OpenSearchTestCase {
 
         // Verify that client.execute was called
         verify(this.client).execute(any(), any());
+    }
+
+    /**
+     * Verifies that a template without its schema versions fails the initialization without reaching
+     * the cluster: it is a packaging defect, so there is nothing to retry.
+     */
+    public void testCreateTemplateWithoutSchemaVersionsFails() {
+        IllegalArgumentException e =
+                expectThrows(
+                        IllegalArgumentException.class,
+                        () -> this.index.createTemplate("templates/invalid-no-version"));
+
+        assertTrue(e.getMessage(), e.getMessage().contains("[invalid-no-version] declares no version"));
+        verify(this.client, never()).execute(any(), any());
     }
 
     /** Verifies that initialize() invokes both createTemplate and createIndex in order. */
