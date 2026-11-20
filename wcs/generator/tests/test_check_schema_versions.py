@@ -24,7 +24,7 @@ def template(fields=None, settings=None, schema=50000, compat=50000, dynamic_tem
         "dynamic": "strict",
         "date_detection": False,
         "properties": fields if fields is not None else {"name": {"type": "keyword"}},
-        "_meta": {"wazuh": {"schema_version": schema, "compat_version": compat}},
+        "_meta": {"schema_version": schema, "compat_version": compat},
     }
     if dynamic_templates is not None:
         mappings["dynamic_templates"] = dynamic_templates
@@ -63,7 +63,7 @@ class StampTests(unittest.TestCase):
         self.assertTrue(stamp.stamp(doc, 50100, 50000))
         self.assertEqual(doc["version"], 50100)
         self.assertEqual(
-            doc["template"]["mappings"]["_meta"]["wazuh"],
+            doc["template"]["mappings"]["_meta"],
             {"schema_version": 50100, "compat_version": 50000},
         )
 
@@ -79,7 +79,7 @@ class StampTests(unittest.TestCase):
                 json.dump(
                     {
                         "dynamic": "strict",
-                        "_meta": {"wazuh": {"schema_version": 50100, "compat_version": 50000}},
+                        "_meta": {"schema_version": 50100, "compat_version": 50000},
                     },
                     handle,
                 )

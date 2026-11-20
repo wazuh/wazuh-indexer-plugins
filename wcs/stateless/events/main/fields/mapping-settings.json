@@ -2,9 +2,7 @@
   "dynamic": "strict_allow_templates",
   "date_detection": false,
   "_meta": {
-    "wazuh": {
-      "schema_version": 50000,
-      "compat_version": 50000
-    }
+    "schema_version": 50000,
+    "compat_version": 50000
   }
 }

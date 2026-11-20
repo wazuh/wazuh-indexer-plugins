@@ -39,9 +39,6 @@ public class IndexTemplate {
     /** Key of the mapping metadata object holding the schema versions. */
     public static final String META_KEY = "_meta";
 
-    /** Key of the Wazuh object inside the mapping metadata. */
-    public static final String META_WAZUH_KEY = "wazuh";
-
     /** Key of the release that last changed the template. */
     public static final String SCHEMA_VERSION_KEY = "schema_version";
 
@@ -107,8 +104,8 @@ public class IndexTemplate {
     }
 
     /**
-     * Returns the Wazuh schema versions declared in the mapping metadata ({@code
-     * mappings._meta.wazuh}), or null when the template declares none.
+     * Returns the schema versions declared in the mapping metadata ({@code mappings._meta}), or null
+     * when the template declares none.
      *
      * @return map with the {@value #SCHEMA_VERSION_KEY} and {@value #COMPAT_VERSION_KEY} entries.
      */
@@ -117,19 +114,15 @@ public class IndexTemplate {
         if (this.mappings == null || !(this.mappings.get(META_KEY) instanceof Map)) {
             return null;
         }
-        Map<String, Object> meta = (Map<String, Object>) this.mappings.get(META_KEY);
-        if (!(meta.get(META_WAZUH_KEY) instanceof Map)) {
-            return null;
-        }
-        return (Map<String, Object>) meta.get(META_WAZUH_KEY);
+        return (Map<String, Object>) this.mappings.get(META_KEY);
     }
 
     /**
      * Checks that the template declares its schema versions: the native {@code version} field, and
-     * {@code schema_version} and {@code compat_version} under {@code mappings._meta.wazuh}, both
-     * positive integers, with {@code compat_version} not greater than {@code schema_version} and
-     * {@code version} equal to {@code schema_version}. Every index created from the template inherits
-     * the mapping metadata, which is how the plugin tells on a later boot whether the index needs an
+     * {@code schema_version} and {@code compat_version} under {@code mappings._meta}, both positive
+     * integers, with {@code compat_version} not greater than {@code schema_version} and {@code
+     * version} equal to {@code schema_version}. Every index created from the template inherits the
+     * mapping metadata, which is how the plugin tells on a later boot whether the index needs an
      * upgrade.
      *
      * @param templateName name of the template, used in the error message.
@@ -143,13 +136,7 @@ public class IndexTemplate {
         Map<String, Object> versions = this.getSchemaVersions();
         if (versions == null) {
             throw new IllegalArgumentException(
-                    "Index template ["
-                            + templateName
-                            + "] declares no mappings."
-                            + META_KEY
-                            + "."
-                            + META_WAZUH_KEY
-                            + " object");
+                    "Index template [" + templateName + "] declares no mappings." + META_KEY + " object");
         }
         long schemaVersion = positiveInteger(versions, SCHEMA_VERSION_KEY, templateName);
         long compatVersion = positiveInteger(versions, COMPAT_VERSION_KEY, templateName);
@@ -200,9 +187,7 @@ public class IndexTemplate {
                             + "] declares no positive integer "
                             + key
                             + " under mappings."
-                            + META_KEY
-                            + "."
-                            + META_WAZUH_KEY);
+                            + META_KEY);
         }
         return ((Number) value).longValue();
     }

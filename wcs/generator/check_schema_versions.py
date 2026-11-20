@@ -11,7 +11,7 @@ fails when the versions do not match the classification.
 
 Rules, per template:
 
-  * The versions stamped in the template must match the `_meta.wazuh` of the module's
+  * The versions stamped in the template must match the `_meta` of the module's
     `fields/mapping-settings.json` (otherwise the template was not regenerated) and be
     consistent with each other.
   * If the mappings or settings changed, `schema_version` must be the number of the release
@@ -45,7 +45,6 @@ import sys
 
 from stamp_schema_versions import (
     META_KEY,
-    META_WAZUH_KEY,
     RESOURCES_PATH,
     load_module_map,
     load_versions,
@@ -100,8 +99,9 @@ def git_show(root, ref, path):
 def read_versions(template):
     """Return (version, schema_version, compat_version) as stored in a template, any may be None."""
     meta = template.get("template", {}).get("mappings", {}).get(META_KEY, {})
-    wazuh = meta.get(META_WAZUH_KEY, {}) if isinstance(meta, dict) else {}
-    return template.get("version"), wazuh.get("schema_version"), wazuh.get("compat_version")
+    if not isinstance(meta, dict):
+        meta = {}
+    return template.get("version"), meta.get("schema_version"), meta.get("compat_version")
 
 
 def list_templates(root, modules):

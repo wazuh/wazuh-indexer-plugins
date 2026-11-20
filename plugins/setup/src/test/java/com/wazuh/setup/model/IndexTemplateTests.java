@@ -48,7 +48,7 @@ public class IndexTemplateTests extends OpenSearchTestCase {
                     + "  \"mappings\": {"
                     + "    \"dynamic\": \"strict\","
                     + "    \"properties\": {\"name\": {\"type\": \"keyword\"}},"
-                    + "    \"_meta\": {\"wazuh\": {\"schema_version\": 50100, \"compat_version\": 50000}}"
+                    + "    \"_meta\": {\"schema_version\": 50100, \"compat_version\": 50000}"
                     + "  }"
                     + "}}";
 
@@ -92,12 +92,11 @@ public class IndexTemplateTests extends OpenSearchTestCase {
         IndexTemplate template =
                 parse(
                         VALID.replace(
-                                ",    \"_meta\": {\"wazuh\": {\"schema_version\": 50100, \"compat_version\": 50000}}",
-                                ""));
+                                ",    \"_meta\": {\"schema_version\": 50100, \"compat_version\": 50000}", ""));
 
         IllegalArgumentException e =
                 expectThrows(IllegalArgumentException.class, () -> template.validateSchemaVersions("test"));
-        assertTrue(e.getMessage(), e.getMessage().contains("_meta.wazuh"));
+        assertTrue(e.getMessage(), e.getMessage().contains("mappings._meta"));
     }
 
     /** A schema version that is not a positive integer is rejected. */
