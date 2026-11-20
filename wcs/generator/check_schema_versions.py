@@ -11,8 +11,9 @@ fails when the versions do not match the classification.
 
 Rules, per template:
 
-  * The versions stamped in the template must match the module's `fields/schema-version.json`
-    (otherwise the template was not regenerated) and be consistent with each other.
+  * The versions stamped in the template must match the `_meta.wazuh` of the module's
+    `fields/mapping-settings.json` (otherwise the template was not regenerated) and be
+    consistent with each other.
   * If the mappings or settings changed, `schema_version` must be the number of the release
     the branch targets (`VERSION.json`). Two changes to the same template within one release
     cycle both carry that release's number, so only the first one has to raise it.
@@ -230,7 +231,7 @@ def evaluate(base, head, target, declared=None):
 
     Returns (status, change, reasons): status is OK, WARN or FAIL; change is "new", "none",
     "compatible" or "breaking"; reasons is the list of lines to report. `declared` is the
-    (schema_version, compat_version) pair from the module's schema-version.json, when the
+    (schema_version, compat_version) pair from the module's mapping-settings.json, when the
     template belongs to a module.
     """
     reasons = []
@@ -244,7 +245,7 @@ def evaluate(base, head, target, declared=None):
         return FAIL, "unknown", [f"compat_version ({compat}) is greater than schema_version ({schema})"]
     if declared is not None and (schema, compat) != declared:
         return FAIL, "unknown", [
-            f"template carries {schema}/{compat} but schema-version.json declares "
+            f"template carries {schema}/{compat} but mapping-settings.json declares "
             f"{declared[0]}/{declared[1]}: regenerate the module"
         ]
 

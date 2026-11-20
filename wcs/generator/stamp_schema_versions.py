@@ -2,7 +2,7 @@
 """
 Stamp a WCS module's schema versions into its generated index template.
 
-Every module declares two release numbers in `fields/schema-version.json`:
+Every module declares two release numbers under `_meta.wazuh` in `fields/mapping-settings.json`:
 
   * `schema_version`: the release that last changed the mappings or settings of the template.
   * `compat_version`: the oldest `schema_version` whose indices can still be upgraded in
@@ -13,12 +13,15 @@ A release number is the release version with one digit for the major and two dig
 the minor and the patch, so that numeric order matches release order: 5.0.0 is 50000, 5.2.1 is
 50201 and 5.10.14 is 51014.
 
-The two numbers are written to the module's generated template under
+The generator carries `_meta` into the mappings of the generated template as it is, so every
+index created from the template inherits the two numbers in its own mapping metadata, where
+the Setup plugin reads them on later boots. This script completes the generated template under
 `plugins/setup/src/main/resources/` (or wherever `module_list.txt` sends it):
 
-  * `schema_version` as the native `version` field of the composable index template;
-  * both as `template.mappings._meta.wazuh`, so every index created from the template carries
-    them in its own mapping metadata, where the Setup plugin reads them on later boots.
+  * `schema_version` as the native `version` field of the composable index template, which
+    the generator does not produce;
+  * both under `template.mappings._meta.wazuh`, again, so that a template whose mappings were
+    edited by hand still matches the module.
 
 `generate_schema.sh` runs this for every regenerated module. Run it with `all` to stamp every
 module, which is also how to check that none has drifted (`--check`).
@@ -35,7 +38,7 @@ import os
 import re
 import sys
 
-VERSION_FILE = "schema-version.json"
+VERSION_FILE = "mapping-settings.json"
 META_KEY = "_meta"
 META_WAZUH_KEY = "wazuh"
 RESOURCES_PATH = "plugins/setup/src/main/resources"
@@ -84,17 +87,25 @@ def release_number(version):
 
 
 def load_versions(root, module):
-    """Read and validate a module's schema-version.json, returning (schema_version, compat_version)."""
+    """Read and validate the versions a module's mapping-settings.json declares under _meta.wazuh.
+
+    Returns (schema_version, compat_version).
+    """
     path = os.path.join(root, "wcs", module, "fields", VERSION_FILE)
     if not os.path.isfile(path):
         raise ValueError(f"module '{module}' has no fields/{VERSION_FILE}")
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
-    return validate_versions(data, f"wcs/{module}/fields/{VERSION_FILE}")
+    source = f"wcs/{module}/fields/{VERSION_FILE}"
+    meta = data.get(META_KEY) if isinstance(data, dict) else None
+    wazuh = meta.get(META_WAZUH_KEY) if isinstance(meta, dict) else None
+    if wazuh is None:
+        raise ValueError(f"{source}: declares no {META_KEY}.{META_WAZUH_KEY} object")
+    return validate_versions(wazuh, f"{source}: {META_KEY}.{META_WAZUH_KEY}")
 
 
 def validate_versions(data, source):
-    """Check the shape of a schema-version document and return (schema_version, compat_version)."""
+    """Check the shape of a versions object and return (schema_version, compat_version)."""
     if not isinstance(data, dict):
         raise ValueError(f"{source}: expected an object")
     for key in ("schema_version", "compat_version"):

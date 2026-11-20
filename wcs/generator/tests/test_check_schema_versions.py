@@ -6,8 +6,10 @@ Run from the repository root:
 """
 
 import copy
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
@@ -68,6 +70,27 @@ class StampTests(unittest.TestCase):
     def test_is_idempotent(self):
         doc = template()
         self.assertFalse(stamp.stamp(doc, 50000, 50000))
+
+    def test_load_versions_reads_mapping_settings_meta(self):
+        with tempfile.TemporaryDirectory() as root:
+            fields = os.path.join(root, "wcs", "stateful", "demo", "fields")
+            os.makedirs(fields)
+            with open(os.path.join(fields, stamp.VERSION_FILE), "w", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "dynamic": "strict",
+                        "_meta": {"wazuh": {"schema_version": 50100, "compat_version": 50000}},
+                    },
+                    handle,
+                )
+            self.assertEqual(stamp.load_versions(root, "stateful/demo"), (50100, 50000))
+
+            with open(os.path.join(fields, stamp.VERSION_FILE), "w", encoding="utf-8") as handle:
+                json.dump({"dynamic": "strict"}, handle)
+            with self.assertRaises(ValueError):
+                stamp.load_versions(root, "stateful/demo")
+            with self.assertRaises(ValueError):
+                stamp.load_versions(root, "stateful/missing")
 
     def test_validate_versions(self):
         self.assertEqual(stamp.validate_versions({"schema_version": 3, "compat_version": 2}, "x"), (3, 2))

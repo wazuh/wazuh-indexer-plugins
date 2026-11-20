@@ -13,7 +13,7 @@ The generation of the Wazuh Common Schema is automated using a set of scripts an
 - [count_and_update_total_fields.sh](./count_and_update_total_fields.sh): counts fields in a generated index template and proposes (or applies with --apply) an updated mapping.total_fields.limit rounded up to the next 500.
 - [convert_to_dynamic_templates.py](./convert_to_dynamic_templates.py): converts a generated index template's monolithic static `properties` block into a `dynamic_templates` array, so fields are mapped lazily on first ingest instead of all at once. Used to keep the field mapping count of the `wazuh-events` and `wazuh-findings` data streams (`stateless/events/main` and `stateless/events/findings` modules) under the `mapping.total_fields.limit`, since those streams define far more fields than any single document actually uses. `generate_schema.sh` runs it automatically for those two modules; see "Dynamic templates" below.
 - [generate_default_query_fields.py](./generate_default_query_fields.py): rewrites a module's `index.query.default_field` from the mapping the same template declares, so the list cannot name a field the index does not have, a field no text term can match, or an entry with stray whitespace. `generate_schema.sh` runs it automatically for every regenerated module; see "Default query fields" below.
-- [stamp_schema_versions.py](./stamp_schema_versions.py): writes the `schema_version` and `compat_version` a module declares in `fields/schema-version.json` into its generated template, as the template's `version` and under `mappings._meta.wazuh`. `generate_schema.sh` runs it automatically for every regenerated module; see "Schema versions" below.
+- [stamp_schema_versions.py](./stamp_schema_versions.py): writes the `schema_version` and `compat_version` a module declares in `fields/mapping-settings.json` into its generated template, as the template's `version` and under `mappings._meta.wazuh`. `generate_schema.sh` runs it automatically for every regenerated module; see "Schema versions" below.
 - [check_schema_versions.py](./check_schema_versions.py): compares every generated template with the base branch, classifies the change as compatible or breaking, and fails when the schema versions do not match. Run by the GitHub workflow on every pull request; see "Schema versions" below.
 
 ### Requirements
@@ -139,12 +139,18 @@ python3 wcs/generator/generate_default_query_fields.py all --check
 
 The Setup plugin creates the indices from these templates on the first boot of a cluster, and on later boots, after a package upgrade, it has to tell which of the existing indices no longer match the template that ships. A stored template only affects indices created afterwards, and a text comparison of live mappings against shipped ones cannot be trusted, so every template carries two version numbers instead, and every index created from it inherits them in its mapping metadata.
 
-Each module declares them in `fields/schema-version.json`:
+Each module declares them under `_meta.wazuh` in `fields/mapping-settings.json`, next to the rest of its mapping behaviour:
 
 ```json
 {
-  "schema_version": 50000,
-  "compat_version": 50000
+  "dynamic": "strict",
+  "date_detection": false,
+  "_meta": {
+    "wazuh": {
+      "schema_version": 50000,
+      "compat_version": 50000
+    }
+  }
 }
 ```
 
@@ -160,7 +166,7 @@ Both are release numbers: one digit for the major and two digits each for the mi
 | 5.2.1 | 5 | 02 | 01 | 50201 |
 | 5.10.14 | 5 | 10 | 14 | 51014 |
 
-`stamp_schema_versions.py` writes them into the generated template, as its native `version` field and under `template.mappings._meta.wazuh`:
+The generator copies `_meta` into the mappings of the generated template, and `stamp_schema_versions.py` completes it with the native `version` field of the template, which the generator does not produce, so the template ends up carrying both:
 
 ```json
 "_meta": { "wazuh": { "schema_version": 50300, "compat_version": 50200 } }
@@ -174,7 +180,7 @@ An index carrying `schema_version: 50200` can be upgraded in place to this templ
 - If the change is breaking, set `compat_version` to the same number. Breaking means: a field removed, a field type changed, any other non-updatable parameter of an existing field changed, an analyzer or normalizer changed, a static index setting changed (`number_of_shards`, `codec`), or the index patterns or the data stream flag changed.
 - If the change only adds fields, multi-fields or dynamic templates, or changes a dynamic setting (`refresh_interval`, `number_of_replicas`, `query.default_field`, the field limits, the ISM policy), leave `compat_version` as it is.
 
-`check_schema_versions.py` enforces these rules on every pull request. It diffs each regenerated template against the base branch, classifies the change, and fails when the versions do not match: a changed template without the target `schema_version`, a breaking change without the matching `compat_version`, a compatible change that moved `compat_version`, or a template whose stamped versions differ from its `schema-version.json` because it was not regenerated. A version change without a template change is only a warning. The classification of every template is written to the job summary. To run it locally, from the repository root, against the branch the pull request targets:
+`check_schema_versions.py` enforces these rules on every pull request. It diffs each regenerated template against the base branch, classifies the change, and fails when the versions do not match: a changed template without the target `schema_version`, a breaking change without the matching `compat_version`, a compatible change that moved `compat_version`, or a template whose stamped versions differ from its `mapping-settings.json` because it was not regenerated. A version change without a template change is only a warning. The classification of every template is written to the job summary. To run it locally, from the repository root, against the branch the pull request targets:
 
 ```bash
 python3 wcs/generator/check_schema_versions.py --base origin/5.0.0
@@ -206,7 +212,7 @@ The name of the folder will be the name of the module to be passed to the script
 - `fields/subset.yml`: This file contains the subset of ECS fields to be used for the module.
 - `fields/template-settings-legacy.json`: This file contains the legacy template settings for the module.
 - `fields/template-settings.json`: This file contains the composable template settings for the module.
-- `fields/schema-version.json`: This file contains the `schema_version` and `compat_version` of the module, both set to the release that adds it (see "Schema versions" above).
+- `fields/mapping-settings.json`: This file contains the mapping behaviour of the module (`dynamic`, `date_detection`) and, under `_meta.wazuh`, its `schema_version` and `compat_version`, both set to the release that adds it (see "Schema versions" above).
 - `fields/custom`: folder containg custom fields for the module. This folder is optional.
 
 > [!IMPORTANT]
