@@ -97,14 +97,14 @@ The Engine listens on a local Unix socket with restricted permissions (`750`) an
 
 ## Data storage
 
-The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, other).
+The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, other, unclassified).
 
 | Index pattern              | Description                                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `wazuh-events-v5-{cat}`    | Decoded and normalized security events from monitored endpoints, per category.                               |
 | `wazuh-events-raw-v5`      | Raw incoming events, retained briefly under an aggressive ISM purge policy (gated by an Engine setting).     |
 | `wazuh-findings-v5-{cat}`  | Enriched findings produced by Ruleset Management, embedding the triggering event and rule metadata.          |
-| `wazuh-states-v5-*`        | Stateful inventory data (vulnerabilities, packages, ports, FIM, services, browser extensions, SCA, etc.).    |
+| `wazuh-states-*`           | Stateful inventory data (vulnerabilities, packages, ports, FIM, services, browser extensions, SCA, etc.).    |
 | `wazuh-active-responses`   | Active Response execution requests, driven by a dedicated Alerting monitor.                                  |
 | `wazuh-metrics-*`          | Agent and communications telemetry metrics.                                                                  |
 | `wazuh-threatintel-*`      | Content Manager system indices for CTI content (rules, decoders, integrations, KVDBs, filters, policies, IoCs). |

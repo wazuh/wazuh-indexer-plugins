@@ -41,7 +41,7 @@ The canonical 5.x configuration layout is:
 | `/etc/wazuh-indexer/certs/` | Transport and HTTP TLS certificates |
 | `/etc/wazuh-indexer/ca/` | Certificate authority the node's certificates are issued from. New in 5.x |
 | `/etc/wazuh-indexer/local.env` | Optional. Passwords and certificate names you supply before installing. New in 5.x, never written by the package |
-| `/etc/wazuh-indexer/export/` | Passwords, CA certificate and client certificates published for the Wazuh manager and the Wazuh dashboard. New in 5.x |
+| `/etc/wazuh-indexer/export/` | Passwords and CA certificate published for the Wazuh manager and the Wazuh dashboard. New in 5.x |
 | `/etc/wazuh-indexer/opensearch.keystore` | Secure settings (see [Keystore](#keystore)) |
 | `/etc/wazuh-indexer/opensearch-security/` | Security plugin configuration (see [Security migration](#security-migration)) |
 

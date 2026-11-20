@@ -24,6 +24,8 @@ The following tables list the indices created by this plugin.
 | `wazuh-metrics-normalization`  | Stores statistics about the Wazuh Engine's event normalization (decoding) stage.                                                                                                                                                           |
 | `wazuh-ai-assistant-sessions`  | Stores the users' conversations with the AI assistant. Rolled over daily, kept for 7 days. Each document carries the owning username in its `user` field, stamped by the plugin from the authenticated caller; Document Level Security restricts every read to that user's own conversations, and every write goes through the [session API](./api-reference.md#ai-assistant-sessions).        |
 
+The events, raw events and findings streams acknowledge a write before it is synced to disk. See [Write durability of the stream indices](architecture.md#write-durability-of-the-stream-indices) for what an abrupt stop of a node can lose.
+
 ### Stateful indices
 
 | Index                                       | Description                                                                                                                                                                                                   |

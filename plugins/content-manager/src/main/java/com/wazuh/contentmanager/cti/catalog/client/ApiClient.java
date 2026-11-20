@@ -29,6 +29,7 @@ import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
@@ -386,11 +387,15 @@ public class ApiClient implements AutoCloseable {
      */
     SimpleHttpResponse executeOnce(SimpleHttpRequest request, long clientTimeout)
             throws ExecutionException, InterruptedException, TimeoutException {
+        // DEBUG, not ERROR: this is one attempt, and the callback runs before executeWithRetry
+        // decides whether to re-issue the request. At ERROR, a failure that the next attempt
+        // recovers from still leaves an error in the log. executeWithRetry owns the visible line:
+        // a WARN when it retries, and the exception it rethrows, which every caller logs.
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
-                        new HttpResponseCallback(request, "Outgoing request failed"));
+                        new HttpResponseCallback(request, "Outgoing request failed", Level.DEBUG));
 
         try {
             return future.get(clientTimeout, TimeUnit.SECONDS);
