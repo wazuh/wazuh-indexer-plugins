@@ -1,4 +1,5 @@
 import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
 
@@ -79,6 +80,24 @@ configurations {
   zipArchive
 }
 
+// The Index Management plugin, which this plugin extends, publishes its classes only inside its
+// zip. Its policy parser checks the policy files of the configuration directory, so the jars the
+// parser needs are taken out of the zip. They are not bundled: on a node, the classes come from
+// the extended plugin.
+def indexManagementJarsDir = layout.buildDirectory.dir('index-management-jars')
+def extractIndexManagementJars = tasks.register('extractIndexManagementJars', Sync) {
+  description = 'Take the jars of the Index Management policy parser out of the plugin zip'
+  from({ zipTree(getPlugin('opensearch-index-management').get().asFile) }) {
+    include 'opensearch-index-management-*.jar'
+    include 'kotlin-stdlib-?.*.jar'
+  }
+  into indexManagementJarsDir
+}
+def indexManagementJars = fileTree(indexManagementJarsDir) {
+  include '*.jar'
+  builtBy extractIndexManagementJars
+}
+
 dependencies {
   runtimeOnly "org.apache.logging.log4j:log4j-slf4j2-impl:2.25.4"
   implementation "org.slf4j:slf4j-api:2.0.17"
@@ -92,6 +111,8 @@ dependencies {
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: opensearch_build
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+  compileOnly indexManagementJars
+  testImplementation indexManagementJars
 
   // Provides the zstd/zstd_no_dict index codecs used in index templates
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-custom-codecs', version: opensearch_build
@@ -199,8 +220,68 @@ task integTest(type: RestIntegTestTask) {
   description = "Run tests against a cluster"
   testClassesDirs = sourceSets.test.output.classesDirs
   classpath = sourceSets.test.runtimeClasspath
+  // The tests of the configuration file run on clusters started with that file
+  exclude '**/SetupConfig*IT.class'
 }
 tasks.named("check").configure { dependsOn(integTest) }
+
+// Integration tests of the configuration file (setup.yml). The plugin reads the file when it
+// initializes the cluster, so each case needs a cluster that starts with its own file. The files of
+// a case are in src/test/resources/setup-config/<case>. They are staged in the build directory,
+// which is where the clusters take them from, so that a second phase can replace them.
+def setupConfigFixtures = file('src/test/resources/setup-config')
+def setupConfigStaging = layout.buildDirectory.dir('setup-config-it').get().asFile
+def setupConfigIntegTests = [
+  overridesIntegTest    : [tests: 'SetupConfigOverridesIT', files: 'overrides'],
+  invalidConfigIntegTest: [tests: 'SetupConfigInvalidIT', files: 'invalid'],
+  invalidPolicyIntegTest: [tests: 'SetupConfigInvalidIT', files: 'invalid-policy'],
+]
+setupConfigIntegTests.each { taskName, testCase ->
+  def stage = tasks.register("${taskName}Config", Sync) {
+    description = "Stage the configuration files of ${taskName}"
+    from new File(setupConfigFixtures, testCase.files)
+    into new File(setupConfigStaging, testCase.files)
+    // The second phase overwrites a staged file, and that change is not always seen as one.
+    outputs.upToDateWhen { false }
+  }
+  tasks.register(taskName, RestIntegTestTask) {
+    description = "Run ${testCase.tests} against a cluster configured with setup-config/${testCase.files}"
+    dependsOn stage
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    setIncludes(["**/${testCase.tests}.class"])
+  }
+  tasks.named("check").configure { dependsOn(taskName) }
+}
+
+// Second phase of overridesIntegTest, on the same cluster: setup.yml is replaced by the one of
+// setup-config/restored, where the policy switches are back to false, and the cluster restarts.
+// The plugin initializes the cluster again with the new file, on top of what the first phase left.
+tasks.register('restoredDefaultsIntegTest', StandaloneRestIntegTestTask) {
+  description = "Run SetupConfigRestoredIT against the cluster of overridesIntegTest, restarted with setup-config/restored"
+  dependsOn 'overridesIntegTest'
+  useCluster testClusters.overridesIntegTest
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  include '**/SetupConfigRestoredIT.class'
+  systemProperty 'tests.rest.load_packaged', 'false'
+  doFirst {
+    copy {
+      from new File(setupConfigFixtures, 'restored')
+      into new File(setupConfigStaging, 'overrides')
+    }
+    // The cluster's own restart() installs the plugins again, which fails while they are installed.
+    testClusters.overridesIntegTest.nodes.each { node ->
+      node.stop(false)
+      delete node.distroDir.resolve('plugins').toFile().listFiles()
+      node.start()
+    }
+  }
+  nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters.overridesIntegTest.allHttpSocketURI.join(",")}")
+  nonInputProperties.systemProperty('tests.cluster', "${-> testClusters.overridesIntegTest.allTransportPortURI.join(",")}")
+  nonInputProperties.systemProperty('tests.clustername', "${-> testClusters.overridesIntegTest.getName()}")
+}
+tasks.named("check").configure { dependsOn('restoredDefaultsIntegTest') }
 
 integTest {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
@@ -223,6 +304,25 @@ testClusters {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("cluster.debug") != null) {
       jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+  }
+
+  setupConfigIntegTests.each { taskName, testCase ->
+    "${taskName}" {
+      plugin(getPlugin("opensearch-job-scheduler"))
+      plugin(getPlugin("opensearch-index-management"))
+      plugin(getPlugin("opensearch-custom-codecs"))
+
+      testDistribution = "INTEG_TEST"
+
+      plugin(project.tasks.bundlePlugin.archiveFile)
+
+      // Copied before the plugins are installed. The installer keeps the files that exist, and adds
+      // the rest of the plugin configuration directory next to them.
+      new File(setupConfigFixtures, testCase.files).listFiles().each { configFile ->
+        extraConfigFile "wazuh-indexer-setup/${configFile.name}",
+            new File(setupConfigStaging, "${testCase.files}/${configFile.name}")
+      }
     }
   }
 
@@ -267,3 +367,6 @@ task updateVersion {
 
 // Code coverage (JaCoCo): reports, and integTest cluster coverage with -Dtests.coverage=true.
 apply from: file("../../gradle/coverage.gradle")
+
+// Files of the plugin configuration directory (setup.yml, ISM policy copies, README).
+apply from: file("gradle/setup-config.gradle")

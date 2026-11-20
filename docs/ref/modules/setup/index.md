@@ -7,6 +7,8 @@ The Wazuh Indexer Setup plugin is responsible for:
 - Creating the initial indices. We distinguish between **stateful** and **stream** indices. While stream indices contain immutable time-series data and are rolled over periodically, stateful indices store dynamic data that can change over time and reside in a single index.
 - Stream indices are created with a data stream configuration and an ISM rollover policy. See [Retention](retention.md) for what those policies actually guarantee — rollover is driven by volume, so the deletion ages are a floor and not a ceiling.
 
+The shards, replicas, refresh interval, codec and translog durability of these indices, and the ISM policies, can be changed through the plugin's configuration file. See [Customization](customization.md).
+
 ## Indices
 
 The following tables list the indices created by this plugin.

@@ -98,7 +98,7 @@ public class ContentIndex extends WazuhIndex {
 
             String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
             CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
-            Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
+            Settings settings = this.templateSettings(template, templateName, indexTemplate);
             ComposableIndexTemplate composableTemplate =
                     indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
 

@@ -57,6 +57,17 @@ public class IndexStateManagement extends Index {
     // index; the setup plugin creates no template or data stream for it.
     static final String SECURITY_AUDITLOGS_POLICY = "security-auditlogs-policy";
 
+    /** Ids of the default ISM policies, in the order they are created. */
+    public static final List<String> POLICIES =
+            List.of(
+                    EVENTS_POLICY,
+                    FINDINGS_POLICY,
+                    RAW_EVENTS_POLICY,
+                    ACTIVE_RESPONSES_POLICY,
+                    METRICS_POLICY,
+                    AI_ASSISTANT_SESSIONS_POLICY,
+                    SECURITY_AUDITLOGS_POLICY);
+
     /** Base path for ISM policy files */
     static final String POLICIES_PATH = "policies/";
 
@@ -79,16 +90,7 @@ public class IndexStateManagement extends Index {
      */
     public IndexStateManagement(String index, String template) {
         super(index, template);
-        this.policies = new ArrayList<>();
-
-        // Add ISM policies to be created
-        this.policies.add(EVENTS_POLICY);
-        this.policies.add(FINDINGS_POLICY);
-        this.policies.add(RAW_EVENTS_POLICY);
-        this.policies.add(ACTIVE_RESPONSES_POLICY);
-        this.policies.add(METRICS_POLICY);
-        this.policies.add(AI_ASSISTANT_SESSIONS_POLICY);
-        this.policies.add(SECURITY_AUDITLOGS_POLICY);
+        this.policies = new ArrayList<>(POLICIES);
     }
 
     /**
@@ -106,14 +108,18 @@ public class IndexStateManagement extends Index {
     }
 
     /**
-     * Indexes the given ISM policy to the ISM internal index.
+     * Indexes the given ISM policy to the ISM internal index. The policy is the bundled one, unless
+     * the configuration file of the plugin replaces it with a policy file. Both are stored under the
+     * same id, so the index templates name the right policy either way.
      *
      * @param policy policy name to create.
      */
     void indexPolicy(String policy) {
         try {
-            String policyPath = POLICIES_PATH + policy + ".json";
-            Map<String, Object> policyFile = this.jsonUtils.fromFile(policyPath);
+            Map<String, Object> policyFile = this.config.customPolicy(policy);
+            if (policyFile == null) {
+                policyFile = this.jsonUtils.fromFile(POLICIES_PATH + policy + ".json");
+            }
             applyIsmTemplateTimestamp(policyFile);
 
             IndexRequest indexRequest =
@@ -153,6 +159,9 @@ public class IndexStateManagement extends Index {
      * succeeds and the template matches no index at all. The ISM API stores the same timestamp in
      * both places; this does the same for the policies indexed here.
      *
+     * <p>ISM takes <code>ism_template</code> as a list of templates or as a single one. The bundled
+     * policies use a list, and a policy file of the configuration directory can use either.
+     *
      * @param policyFile parsed policy document, modified in place.
      */
     @SuppressWarnings("unchecked")
@@ -162,10 +171,15 @@ public class IndexStateManagement extends Index {
         }
         Map<String, Object> policy = (Map<String, Object>) policyFile.get(POLICY_FIELD);
         Object lastUpdatedTime = policy.get(LAST_UPDATED_TIME_FIELD);
-        if (lastUpdatedTime == null || !(policy.get(ISM_TEMPLATE_FIELD) instanceof List)) {
+        Object ismTemplate = policy.get(ISM_TEMPLATE_FIELD);
+        if (lastUpdatedTime == null) {
             return;
         }
-        for (Object template : (List<Object>) policy.get(ISM_TEMPLATE_FIELD)) {
+        List<Object> templates =
+                ismTemplate instanceof List
+                        ? (List<Object>) ismTemplate
+                        : ismTemplate instanceof Map ? List.of(ismTemplate) : List.of();
+        for (Object template : templates) {
             if (template instanceof Map) {
                 ((Map<String, Object>) template).putIfAbsent(LAST_UPDATED_TIME_FIELD, lastUpdatedTime);
             }
