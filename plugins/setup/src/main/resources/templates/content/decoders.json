@@ -13,6 +13,10 @@
       }
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "dynamic": "true",
       "dynamic_templates": [
         {
@@ -127,10 +131,6 @@
           "norms": false,
           "type": "text"
         }
-      },
-      "_meta": {
-        "schema_version": 50000,
-        "compat_version": 50000
       }
     }
   },

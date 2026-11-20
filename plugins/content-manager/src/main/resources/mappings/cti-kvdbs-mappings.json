@@ -1,4 +1,8 @@
 {
+  "_meta": {
+    "compat_version": 50000,
+    "schema_version": 50000
+  },
   "dynamic": "true",
   "properties": {
     "document": {
@@ -73,9 +77,5 @@
       "norms": false,
       "type": "text"
     }
-  },
-  "_meta": {
-    "schema_version": 50000,
-    "compat_version": 50000
   }
 }

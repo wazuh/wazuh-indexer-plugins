@@ -46,6 +46,10 @@
       }
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "date_detection": false,
       "dynamic": "strict",
       "properties": {
@@ -218,10 +222,6 @@
             }
           }
         }
-      },
-      "_meta": {
-        "schema_version": 50000,
-        "compat_version": 50000
       }
     }
   },
