@@ -126,7 +126,7 @@ Only one physical index is live at a time. The alias points to it with `is_write
 | `IndexSwapHelper` | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `shadowIndexExists()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`. |
 | `SyncPass` | One synchronization pass: the subscription plan, looked up once when the pass starts, and what the pass's swap did to each consumer (`UNCHANGED`, `SWAPPED`, `PENDING` or `HELD`). |
 | `ShadowSwapService` | Moves every consumer whose data source changes, together, through the shadow swap below, before any consumer synchronizes. Also rebuilds a single consumer from a newer snapshot of its own data source (see [Error handling](#error-handling)). |
-| `AbstractConsumerService` | Decides whether its consumer changes data source (`resolveContentSource()`) and provides the per-consumer pieces of a swap (`prepareSwap()`, `loadStagedSnapshot()`, `onBeforeAliasSwap()`). Its `synchronize(SyncPass)` never swaps: a consumer the pass's swap moved catches up from the snapshot offset, one whose change is pending keeps its content. |
+| `AbstractConsumerService` | Decides whether its consumer changes data source (`resolveContentSource()`) and provides the per-consumer pieces of a swap (`prepareSwap()`, `loadStagedSnapshot()`). Its `synchronize(SyncPass)` never swaps: a consumer the pass's swap moved catches up from the snapshot offset, one whose change is pending keeps its content. |
 
 ### Shadow swap flow (plan change)
 
@@ -137,15 +137,14 @@ Only one physical index is live at a time. The alias points to it with `is_write
 3. Rewrite the documents of all moving consumers in one bulk request: new identity, `running`, `local_offset` 0, `remote_offset` = new head
 4. Download each snapshot into its shadow indices, one consumer after another (`SnapshotServiceImpl.forStaging()`, which leaves the consumer documents alone)
 5. Reindex user content (space.name != "standard") from live → shadow (only for consumer types with hasUserContent()=true, i.e., ruleset)
-6. `onBeforeAliasSwap()` hooks (the ruleset collects its pre-swap Security Analytics resources)
-7. Refresh all shadow indices, so the last bulks of the loads are searchable the moment they go live (a shard that fails to refresh fails the swap, which is then undone like any failure before the switch)
-8. Unhide non-CVE shadow indices, then one atomic alias swap: a single IndicesAliasesRequest for the aliases of every moving consumer (all 8 for a full plan change)
-9. Record the snapshot offsets in the documents of all moving consumers, in one bulk request
-10. Delete the old physical indices
+6. Refresh all shadow indices, so the last bulks of the loads are searchable the moment they go live (a shard that fails to refresh fails the swap, which is then undone like any failure before the switch)
+7. Unhide non-CVE shadow indices, then one atomic alias swap: a single IndicesAliasesRequest for the aliases of every moving consumer (all 8 for a full plan change)
+8. Record the snapshot offsets in the documents of all moving consumers, in one bulk request
+9. Delete the old physical indices
 
-Each consumer's `synchronize(SyncPass)` then catches up from its snapshot offset to the remote head and runs the post-sync cascade (`onSyncComplete(true)`: Security Analytics sync, stale resource cleanup, engine reload, IoC notification) before reporting `ready`.
+Each consumer's `synchronize(SyncPass)` then catches up from its snapshot offset to the remote head and runs the post-sync cascade (`onSyncComplete(true)`: Security Analytics sync, [reconciliation](#reconciling-the-standard-space-with-security-analytics), engine reload, IoC notification) before reporting `ready`.
 
-The order of the writes keeps an interrupted swap recognizable: the shadow indices exist before the documents change (step 2 before 3), `local_offset` leaves 0 only after the switch (step 8), and a rollback restores the documents before deleting the shadow indices. A document that is `running` with `local_offset` 0 while a shadow index of its consumer exists is a swap that did not finish, and the next pass redoes it. A shadow index next to a consumer whose document has content live is a leftover and is deleted.
+The order of the writes keeps an interrupted swap recognizable: the shadow indices exist before the documents change (step 2 before 3), `local_offset` leaves 0 only after the switch (step 7), and a rollback restores the documents before deleting the shadow indices. A document that is `running` with `local_offset` 0 while a shadow index of its consumer exists is a swap that did not finish, and the next pass redoes it. A shadow index next to a consumer whose document has content live is a leftover and is deleted.
 
 ### Failure modes
 
@@ -718,16 +717,47 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 1. Refreshes all content indices.
 2. Re-applies the [user overrides](#user-overrides-in-the-standard-space) to the `standard` space, before anything reads the rebuilt content.
 3. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
-4. Recalculates SHA-256 hashes for policy integrity verification.
-5. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle. When the cycle changed the content, the same write sets `updated_at` to the current time.
+4. [Reconciles the `standard` space](#reconciling-the-standard-space-with-security-analytics): deletes from Security Analytics what the content indices no longer hold.
+5. Recalculates SHA-256 hashes for policy integrity verification.
+6. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle. When the cycle changed the content, the same write sets `updated_at` to the current time.
 
 Every write of a consumer document replaces the whole document. A write that does not change the content (status, checkpoints, pending phases, the swap's rewrites) builds the document from the one it read and carries `updated_at` over with `LocalConsumer.withUpdatedAt`; only the `ready` write above sets a new one. Each time `ConsumerService.getRemoteConsumer` gets an answer, `AbstractConsumerService` writes the time to `last_checked_at` in the `cti:catalog:global` document through `ConsumersIndex.setLastCheckedAt`; a failure there is logged and does not stop the pass.
+
+### Reconciling the `standard` space with Security Analytics
+
+The three upsert phases above only create and update: they iterate over the content indices and push what they find. Anything CTI deletes stops appearing there, and nothing would remove it from Security Analytics. `StandardSpaceReconciler` closes that gap by comparing the two sides at the end of every pass and deleting what is left over, which covers an incremental deletion and a change of consumer with the same code.
+
+It reads five things and matches them by the CTI document id, which is the same on both sides. The content side is read strictly, so a failed read stops the whole comparison; the Security Analytics side is read leniently, because a cluster that has none of those indices yet simply holds nothing stale. Both are paged on an id where the index allows it, falling back to one capped read where it does not:
+
+| Side | Index | Filter | Id read |
+|------|-------|--------|---------|
+| Content | `wazuh-threatintel-integrations` | `space.name: standard` | `document.id`, plus the `document.rules` it lists |
+| Content | `wazuh-threatintel-rules` | `space.name: standard` | `document.id` |
+| Security Analytics | `.opensearch-sap-log-types-config` | `space.keyword: standard` | `document.id` |
+| Security Analytics | `.opensearch-sap-pre-packaged-rules-config` | `rule.space: standard` | `rule.document.id` |
+| Security Analytics | `.opensearch-sap-detectors-config` | nested `detector.source: standard` | the document `_id`, which is its integration's |
+
+`detector.source` is what keeps a user's own detectors out of the diff: Security Analytics stamps `standard` on the ones this plugin creates and `custom` on everything else.
+
+Three things are deleted, in this order:
+
+1. **Detectors with nothing left to detect**: the one belonging to an integration whose rules CTI deleted, and the one no integration owns on either side. Deleting a `standard` rule removes neither, because Security Analytics only cleans detector references for the `custom` space.
+2. **Rules the content no longer has.**
+3. **Integrations the content no longer has**, through `deleteIntegration`, which for the `standard` space deletes the detector first and the log type second.
+
+A kind that still has deletions running when the pass gives up waiting stops the kinds after it, because Security Analytics refuses to delete a log type while a detector still reads it. What never started is reported as left over along with what failed, so the next pass finds it again.
+
+The diff abstains rather than guesses, and logs why. A read it could not complete deletes nothing. Neither does an empty content side, in either of its forms: no standard integrations at all, or no standard rules. A cluster whose content has not loaded yet looks exactly like one whose content was deleted, and the blast radius would be the whole space — with no content rules in particular, every integration reads as having lost all of its own, and every standard detector would go with them. A space emptied on purpose is cleared through `StandardSpaceWiper`, which deletes both sides together.
+
+A deletion that fails needs no bookkeeping: the resource is still left over, so the next pass finds it again. This is why the reconciliation runs before the early return of a pass with nothing to sync, as a failed deletion changes neither `isUpdated` nor the pending phases.
 
 ### Error handling
 
 If a critical error or data corruption is detected, the system resets `local_offset` to 0, triggering a full snapshot re-initialization on the next run.
 
 A change that cannot be applied to the stored content fails as a `ContentIndex.PatchException`, which carries the change's offset and resource: its patch does not fit the stored document, or, for the consumers updated in batches (IoCs and vulnerabilities), the document is missing. Retrying it fails the same way, so `AbstractConsumerService` handles it in the same pass: when CTI has a snapshot newer than the consumer's local offset, it rebuilds the content from that snapshot and applies the remaining changes from the snapshot's offset. A snapshot at or past the failing offset already holds the change's result; an older one still rebuilds stored content that diverged from CTI, which is what usually makes a valid change fail. The snapshot goes through the same blue/green path as a plan change (`ShadowSwapService.rebuild()`, for that consumer alone): it loads into hidden staging indices and the aliases are swapped only once it has loaded, so the current content stays available meanwhile and is kept if the snapshot cannot be loaded. The consumer document is not touched until the switch. After a rebuild the local offset is at or past the snapshot, so a given snapshot is used at most once; without a newer snapshot, the failure propagates and later runs retry the change. Any other failure (CTI unreachable, cluster errors) propagates as before and resumes from the last checkpoint.
+
+One change is refused rather than failed: a `DELETE` of an integration that still lists decoders, rules or KVDBs. Applying it would leave those resources in Security Analytics with nothing left to say who owned them, so the consumer stops at that offset and reports `failed`, with the integration and the number of resources it still lists in the log. This is the same rule the REST API enforces in `TransportDeleteIntegrationAction.validateDelete`, and both read the lists rather than whether the resources still exist. Unlike a `PatchException` there is no snapshot recovery, by design: the state means CTI published a deletion out of order, and the consumer resumes on its own once CTI publishes the unlink. Until then the whole ruleset consumer is stopped, rules, decoders and KVDBs included.
 
 ---
 

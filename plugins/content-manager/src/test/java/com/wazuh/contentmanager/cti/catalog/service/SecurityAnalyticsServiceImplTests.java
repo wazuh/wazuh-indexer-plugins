@@ -23,7 +23,10 @@ import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.ActionType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -38,14 +41,18 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.securityanalytics.action.WDeleteDetectorAction;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -286,6 +293,65 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         assertFalse("Disabled rule should not be in detector", rules.contains(RULE_2));
     }
 
+    // --- Rules CTI deleted (wazuh-indexer-plugins#1818) -------------------------------------
+
+    /**
+     * A rule CTI deleted has to leave the detectors that used it, which the issue asks for
+     * explicitly.
+     *
+     * <p>Deleting a standard rule in Security Analytics does not strip it from them: {@code
+     * TransportDeleteRuleAction} only cleans detector references for rules in the {@code custom}
+     * space. What does strip it is this rebuild. The detector is built from the rule ids its
+     * integration lists, and {@code fetchEnabledRuleIds} resolves them against the content index, so
+     * an id CTI removed is not there to be returned and does not reach the request. The integration
+     * document still lists it -- CTI does not unlink before deleting, measured on the issue -- and
+     * that is exactly the case this covers.
+     */
+    public void testARuleDeletedByCtiIsStrippedFromTheDetector() throws Exception {
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2, RULE_3);
+        // RULE_2 is no longer a document in the content index: CTI deleted it, and the integration
+        // was never updated to stop listing it.
+        this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_3)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
+
+        verify(this.client).prepareSearch(Constants.INDEX_RULES);
+        this.assertQueryCorrect(RULE_1, RULE_2, RULE_3);
+
+        assertNotNull("the detector is still built from the rules that survive", request);
+        List<String> rules = request.getRules();
+        assertEquals(2, rules.size());
+        assertTrue(rules.contains(RULE_1));
+        assertTrue(rules.contains(RULE_3));
+        assertFalse(
+                "a rule CTI deleted must not reach the detector", rules.contains(RULE_2));
+    }
+
+    /**
+     * When CTI deleted every rule an integration lists, there is no detector to rebuild: this returns
+     * null, the detectors phase skips the document and the detector already in Security Analytics is
+     * left as it was, keeping the monitor it was built with and going on producing findings. That is
+     * the state measured on the issue, and the reason {@link StandardSpaceReconciler} deletes such a
+     * detector instead of trusting the rebuild.
+     *
+     * <p>Note what this does <em>not</em> distinguish: the same null comes back when the user
+     * disables the last rule, which is why the reconciliation triggers on "no rule this integration
+     * lists still exists in the content" and never on this return value. See {@code
+     * StandardSpaceReconcilerTests.testPlan_integrationWhoseRulesTheUserDisabled_keepsItsDetector}.
+     */
+    public void testEveryRuleDeletedByCtiLeavesNoDetectorToRebuild() throws Exception {
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
+        this.mockSearch(this.createEmptySearchResponse());
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
+
+        verify(this.client).prepareSearch(Constants.INDEX_RULES);
+        this.assertQueryCorrect(RULE_1, RULE_2);
+        assertNull(
+                "with no rule left in the content there is nothing to rebuild the detector from",
+                request);
+    }
+
     /** All rules disabled: query sent with all candidates, returns null (empty result). */
     public void testAllRulesDisabledReturnsNull() throws Exception {
         JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
@@ -494,4 +560,91 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         this.service.upsertIntegration(doc, Space.DRAFT, Method.POST, listener);
         verify(listener).onResponse(null);
     }
+
+    // --- Deleting an integration that has no detector (wazuh-indexer-plugins#1818) -------------
+
+    /**
+     * Records which Security Analytics actions were executed, answering the detector deletion with
+     * {@code status} and every other action with success.
+     *
+     * @param status what the detector deletion answers, or {@code null} for success.
+     * @return the names of the actions executed, in order.
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> executedWithDetectorDeleteAnswering(RestStatus status) {
+        List<String> executed = new ArrayList<>();
+        doAnswer(
+                        invocation -> {
+                            ActionType<?> action = invocation.getArgument(0);
+                            ActionListener<Object> listener = invocation.getArgument(2);
+                            executed.add(action.name());
+                            if (WDeleteDetectorAction.INSTANCE.name().equals(action.name())
+                                    && status != null) {
+                                listener.onFailure(
+                                        new OpenSearchStatusException("detector is not found", status));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                            return null;
+                        })
+                .when(this.client)
+                .execute(any(ActionType.class), any(), any());
+        return executed;
+    }
+
+    /**
+     * Most standard integrations have no detector: one is only built from enabled rules, and an
+     * integration that lists none never gets one. Chaining the log type deletion behind a detector
+     * that was never there left those integrations impossible to delete, so the reconciliation would
+     * report them as pending on every pass and never converge.
+     */
+    public void testDeleteIntegration_withNoDetector_stillDeletesTheLogType() {
+        List<String> executed = executedWithDetectorDeleteAnswering(RestStatus.NOT_FOUND);
+        AtomicBoolean ok = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> ok.set(true), e -> ok.set(false)));
+
+        assertTrue("the deletion must be reported as done", ok.get());
+        assertEquals(
+                "the detector is tried first, then the log type",
+                List.of(WDeleteDetectorAction.INSTANCE.name(), WDeleteIntegrationAction.INSTANCE.name()),
+                executed);
+    }
+
+    /** A detector deletion that fails for any other reason still holds the log type back. */
+    public void testDeleteIntegration_detectorDeletionFailing_doesNotDeleteTheLogType() {
+        List<String> executed = executedWithDetectorDeleteAnswering(RestStatus.INTERNAL_SERVER_ERROR);
+        AtomicBoolean failed = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> failed.set(false), e -> failed.set(true)));
+
+        assertTrue("the failure must reach the caller", failed.get());
+        assertEquals(
+                "the log type must not be deleted behind a detector that failed",
+                List.of(WDeleteDetectorAction.INSTANCE.name()),
+                executed);
+    }
+
+    /** With a detector present, the order is unchanged: detector first, log type second. */
+    public void testDeleteIntegration_withDetector_deletesBothInOrder() {
+        List<String> executed = executedWithDetectorDeleteAnswering(null);
+        AtomicBoolean ok = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> ok.set(true), e -> ok.set(false)));
+
+        assertTrue(ok.get());
+        assertEquals(
+                List.of(WDeleteDetectorAction.INSTANCE.name(), WDeleteIntegrationAction.INSTANCE.name()),
+                executed);
+    }
+
 }

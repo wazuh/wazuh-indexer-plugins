@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionType;
@@ -29,6 +30,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.search.SearchHit;
@@ -117,25 +119,46 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         String source = space.toString();
         if (Space.STANDARD.equals(space)) {
-            // Delete detector first, then delete integration on success.
+            // Delete detector first, then delete integration on success. An integration that has no
+            // detector is not a failure: most do not have one, because one is only built from
+            // enabled rules, and chaining the log type behind a detector that was never there would
+            // leave the integration undeletable.
             this.deleteDetector(
                     id,
                     ActionListener.wrap(
                             detectorResponse -> {
                                 log.debug(Constants.D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION, id);
-                                this.executeAsync(
-                                        WDeleteIntegrationAction.INSTANCE,
-                                        new WDeleteIntegrationRequest(
-                                                id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
-                                        listener);
+                                this.deleteIntegrationOnly(id, source, listener);
                             },
-                            listener::onFailure));
+                            e -> {
+                                if (ExceptionsHelper.status(e) == RestStatus.NOT_FOUND) {
+                                    log.debug(Constants.D_LOG_SAP_INTEGRATION_HAD_NO_DETECTOR, id);
+                                    this.deleteIntegrationOnly(id, source, listener);
+                                    return;
+                                }
+                                listener.onFailure(e);
+                            }));
         } else {
             this.executeAsync(
                     WDeleteIntegrationAction.INSTANCE,
                     new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
                     listener);
         }
+    }
+
+    /**
+     * Deletes the Security Analytics integration alone, without touching its detector.
+     *
+     * @param id the content-manager id of the integration.
+     * @param source the space name.
+     * @param listener receives the outcome.
+     */
+    private void deleteIntegrationOnly(
+            String id, String source, ActionListener<? extends ActionResponse> listener) {
+        this.executeAsync(
+                WDeleteIntegrationAction.INSTANCE,
+                new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
+                listener);
     }
 
     /**

@@ -144,11 +144,7 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
         assertFalse(needsRetry);
         assertEquals(SyncPass.SwapOutcome.SWAPPED, pass.swapOutcome(IOCS));
         assertEquals(
-                List.of(
-                        "load iocs",
-                        "before switch iocs",
-                        "update iocs 777591->803322",
-                        "post-sync iocs updated=true"),
+                List.of("load iocs", "update iocs 777591->803322", "post-sync iocs updated=true"),
                 this.events);
         LocalConsumer document = this.consumersIndex.documents.get(IOCS);
         assertEquals(PRO_IOCS, document.getResource());
@@ -223,12 +219,9 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
 
         assertFalse(needsRetry);
         verify(this.consumer.consumerService, never()).getRemoteConsumer();
-        assertEquals(
-                List.of("load file iocs test.zip", "before switch iocs", "post-sync iocs updated=true"),
-                this.events);
+        assertEquals(List.of("load file iocs test.zip", "post-sync iocs updated=true"), this.events);
         assertEquals(
                 List.of("running 1000/1000", "running 2000/2000", "ready 2000/2000"), this.writtenStates());
-        assertTrue(this.consumer.swapPerformed());
     }
 
     /**
@@ -246,7 +239,6 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
         assertFalse(needsRetry);
         assertEquals(List.of("load file iocs test.zip", "post-sync iocs updated=false"), this.events);
         assertEquals(List.of("running 1000/1000", "ready 1000/1000"), this.writtenStates());
-        assertFalse(this.consumer.swapPerformed());
     }
 
     /**
