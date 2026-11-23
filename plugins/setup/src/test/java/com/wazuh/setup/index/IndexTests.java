@@ -105,7 +105,7 @@ public class IndexTests extends OpenSearchTestCase {
         doReturn(actionFuture).when(this.client).execute(any(), any());
 
         // Call createTemplate with a real template file that exists
-        this.index.createTemplate("templates/ism-config");
+        this.index.createTemplate("templates/settings");
 
         // Verify that client.execute was called
         verify(this.client).execute(any(), any());

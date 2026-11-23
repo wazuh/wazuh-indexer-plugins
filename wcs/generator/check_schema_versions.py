@@ -25,6 +25,8 @@ Rules, per template:
     `compat_version` keeps its previous value.
   * If `schema_version` changed without any change to the template, a warning is reported.
   * Templates that did not change are not checked.
+  * The ISM configuration template (`ism-config.json`) is not checked: the ISM plugin versions
+    that mapping itself through its own `_meta.schema_version`, so it carries no Wazuh versions.
 
 The classification is reported per template, in the GitHub job summary when run in a
 workflow (`GITHUB_STEP_SUMMARY`) and on standard output otherwise.
@@ -32,7 +34,8 @@ workflow (`GITHUB_STEP_SUMMARY`) and on standard output otherwise.
 Usage:
     python3 check_schema_versions.py [--base <git ref>] [--version <x.y.z>]
 
-    --base      git ref to compare against (default: origin/<BASE_BRANCH> or origin/main)
+    --base      git ref to compare against (default: origin/<BASE_BRANCH> or origin/main); the
+                templates are read at the merge base of HEAD and this ref, as GitHub's diff does
     --version   release the branch targets (default: the "version" of VERSION.json)
 """
 
@@ -55,12 +58,17 @@ from stamp_schema_versions import (
 
 TEMPLATES_DIR = os.path.join(RESOURCES_PATH, "templates")
 
+# Templates left out of the schema versioning, relative to the templates directory.
+EXCLUDED_TEMPLATES = frozenset({"ism-config.json"})
+
 # Field parameters that OpenSearch lets a mapping update change on an existing field. A change
 # to any other parameter of an existing field needs a new index.
 UPDATABLE_FIELD_PARAMETERS = frozenset({"ignore_above", "search_analyzer", "meta"})
 
 # Index settings that cannot be changed on an open index. Written without the "index." prefix.
 # Everything else in the shipped templates is dynamic and reaches an existing index in place.
+# The prefixes cover the analysis chain (custom analyzers and normalizers), the codec options,
+# soft deletes, index sorting and the store type.
 STATIC_SETTINGS = frozenset(
     {
         "codec",
@@ -71,7 +79,7 @@ STATIC_SETTINGS = frozenset(
         "shard.check_on_startup",
     }
 )
-STATIC_SETTING_PREFIXES = ("soft_deletes.", "sort.", "store.")
+STATIC_SETTING_PREFIXES = ("analysis.", "codec.", "soft_deletes.", "sort.", "store.")
 
 # Mapping keys handled on their own; every other top-level mapping key (dynamic, date_detection,
 # numeric_detection, dynamic_date_formats) is updatable.
@@ -96,6 +104,23 @@ def git_show(root, ref, path):
     return json.loads(result.stdout)
 
 
+def fork_point(root, base_ref):
+    """Return the merge base of HEAD and base_ref, the commit GitHub diffs a pull request against.
+
+    A change that reached the base branch after this branch was cut is not part of the pull
+    request, so comparing with the tip of the base branch would misreport it.
+    """
+    result = subprocess.run(
+        ["git", "-C", root, "merge-base", "HEAD", base_ref],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.exit(f"Error: cannot find the merge base of HEAD and {base_ref}: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
 def read_versions(template):
     """Return (version, schema_version, compat_version) as stored in a template, any may be None."""
     meta = template.get("template", {}).get("mappings", {}).get(META_KEY, {})
@@ -115,6 +140,8 @@ def list_templates(root, modules):
         for name in sorted(files):
             if name.endswith(".json"):
                 path = os.path.relpath(os.path.join(current, name), root)
+                if os.path.relpath(os.path.join(current, name), templates_dir) in EXCLUDED_TEMPLATES:
+                    continue
                 templates.setdefault(path, None)
     return dict(sorted(templates.items()))
 
@@ -152,6 +179,10 @@ def flatten_fields(mappings):
         for name, rule in entry.items():
             path = rule.get("path_match")
             if isinstance(path, str):
+                # Several rules can share a path and differ in match_mapping_type: keep each apart.
+                conditions = {k: v for k, v in rule.items() if k not in ("path_match", "mapping")}
+                if conditions:
+                    path = f"{path} {json.dumps(conditions, sort_keys=True)}"
                 add_leaf(path, rule.get("mapping", {}))
             else:
                 fields[f"dynamic_template:{name}"] = rule
@@ -316,7 +347,7 @@ def main():
     args = parser.parse_args()
 
     root = repository_root()
-    base = args.base or f"origin/{os.environ.get('BASE_BRANCH', 'main')}"
+    base = fork_point(root, args.base or f"origin/{os.environ.get('BASE_BRANCH', 'main')}")
     if args.version:
         target_version = args.version
     else:

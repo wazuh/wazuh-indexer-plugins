@@ -131,7 +131,9 @@ public class IndexTemplateTests extends OpenSearchTestCase {
     /**
      * Verifies that every index template shipped with the plugin declares its schema versions. The
      * Setup plugin refuses to start on a template without them, so a template added to the resources
-     * without going through the schema generator would take the node down.
+     * without going through the schema generator would take the node down. The ISM configuration
+     * template is the exception: the ISM plugin versions that mapping itself through its own {@code
+     * _meta.schema_version}, so it carries no Wazuh versions.
      *
      * @throws Exception if the templates directory cannot be listed or a template cannot be read.
      */
@@ -142,7 +144,11 @@ public class IndexTemplateTests extends OpenSearchTestCase {
 
         List<Path> files;
         try (Stream<Path> walk = Files.walk(templates)) {
-            files = walk.filter(path -> path.toString().endsWith(".json")).sorted().toList();
+            files =
+                    walk.filter(path -> path.toString().endsWith(".json"))
+                            .filter(path -> !path.getFileName().toString().equals("ism-config.json"))
+                            .sorted()
+                            .toList();
         }
         assertFalse("no templates found under " + templates, files.isEmpty());
 

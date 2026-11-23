@@ -133,6 +133,24 @@ class FlattenTests(unittest.TestCase):
         self.assertEqual(fields["host.name"], {"type": "keyword"})
         self.assertIn("dynamic_template:strings", fields)
 
+    def test_dynamic_templates_sharing_a_path_are_kept_apart(self):
+        rules = [
+            {"longs": {"path_match": "value", "match_mapping_type": "long", "mapping": {"type": "long"}}},
+            {"strings": {"path_match": "value", "match_mapping_type": "string", "mapping": {"type": "keyword"}}},
+        ]
+        fields = check.flatten_fields({"dynamic_templates": rules})
+        self.assertEqual(len(fields), 2)
+        self.assertEqual(
+            {v["type"] for v in fields.values()},
+            {"long", "keyword"},
+        )
+        changed = copy.deepcopy(rules)
+        changed[0]["longs"]["mapping"]["type"] = "integer"
+        _changed, breaking, _compatible = check.classify(
+            template(fields={}, dynamic_templates=rules), template(fields={}, dynamic_templates=changed)
+        )
+        self.assertTrue(breaking)
+
     def test_settings_prefix(self):
         flat = check.flatten_settings(
             {
@@ -206,6 +224,17 @@ class ClassifyTests(unittest.TestCase):
         head = template(settings={"index": {"number_of_shards": "1", "codec": "best_compression"}})
         _, breaking, _ = check.classify(base, head)
         self.assertEqual(breaking, ["static setting changed: codec"])
+
+    def test_analysis_and_codec_options_are_static(self):
+        self.assertTrue(check.is_static_setting("analysis.normalizer.lowercase.type"))
+        self.assertTrue(check.is_static_setting("codec.compression_level"))
+        self.assertFalse(check.is_static_setting("refresh_interval"))
+        base = template(settings={"index": {"number_of_shards": "1"}})
+        head = template(
+            settings={"index": {"number_of_shards": "1", "analysis": {"normalizer": {"lc": {"type": "custom"}}}}}
+        )
+        _, breaking, _ = check.classify(base, head)
+        self.assertEqual(breaking, ["static setting changed: analysis.normalizer.lc.type"])
 
     def test_dynamic_setting_is_compatible(self):
         head = template(settings={"index": {"number_of_shards": "1", "refresh_interval": "5s"}})

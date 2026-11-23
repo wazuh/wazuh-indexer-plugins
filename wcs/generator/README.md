@@ -170,7 +170,7 @@ The generator copies `_meta` into the mappings of the generated template, and `s
 "_meta": { "schema_version": 50300, "compat_version": 50200 }
 ```
 
-An index carrying `schema_version: 50200` can be upgraded in place to this template; one carrying `50000` or `50100` must be rebuilt. The Setup plugin refuses to start on a template without the two fields, so hand-written templates under `plugins/setup/src/main/resources/templates/` must declare them too.
+An index carrying `schema_version: 50200` can be upgraded in place to this template; one carrying `50000` or `50100` must be rebuilt. The Setup plugin refuses to start on a template without the two fields, so hand-written templates under `plugins/setup/src/main/resources/templates/` must declare them too. The one exception is `ism-config.json`: the ISM plugin versions the mapping of `.opendistro-ism-config` itself through its own `_meta.schema_version`, and only updates it when the version it ships is higher, so that template carries no Wazuh versions and the check skips it.
 
 **When to change them.** The release the branch targets is the `version` of `VERSION.json`.
 
