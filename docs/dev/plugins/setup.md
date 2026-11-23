@@ -417,7 +417,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
-- **Deletion age (floor)**: 1 day after the rollover
+- **Deletion age (floor)**: 1 hour after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -425,7 +425,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once 1 day has passed since the index rolled over (`min_rollover_age`)
+   - Transition Condition: Transitions to `delete` once 1 hour has passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index

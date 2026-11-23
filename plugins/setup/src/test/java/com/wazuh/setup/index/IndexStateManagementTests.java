@@ -275,7 +275,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         JsonUtils utils = new JsonUtils();
         Map<String, Map<String, String>> expected =
                 Map.of(
-                        IndexStateManagement.EVENTS_POLICY, Map.of("min_rollover_age", "1d"),
+                        IndexStateManagement.EVENTS_POLICY, Map.of("min_rollover_age", "1h"),
                         IndexStateManagement.RAW_EVENTS_POLICY, Map.of("min_rollover_age", "4h"),
                         IndexStateManagement.FINDINGS_POLICY, Map.of("min_rollover_age", "90d"),
                         IndexStateManagement.METRICS_POLICY, Map.of("min_rollover_age", "30d"),
