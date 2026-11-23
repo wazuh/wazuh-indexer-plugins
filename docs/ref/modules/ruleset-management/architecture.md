@@ -37,7 +37,7 @@ sequenceDiagram
     end
 ```
 
-Enrichment is fire-and-forget: it never blocks the monitor run that produced the raw finding, and failures are logged without propagating to the caller. Concurrency is bounded so that heavy finding volume can't overload the transport layer; findings that arrive while the concurrency limit is reached are queued and processed as capacity frees up.
+Enrichment is fire-and-forget: it never blocks the monitor run that produced the raw finding, and failures are logged without propagating to the caller. A triggering event that is not found, or whose read fails for a transient reason, is read again on the following flushes; only an event that does not exist or keeps failing leaves its findings out, and each such event is logged with its cause. Concurrency is bounded so that heavy finding volume can't overload the transport layer; findings that arrive while the concurrency limit is reached are queued and processed as capacity frees up.
 
 ## Detector provisioning
 
