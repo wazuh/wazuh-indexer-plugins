@@ -162,10 +162,9 @@ public class StateIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * A concrete index named after the alias (a cluster created before this change, or an index a
-     * write auto-created under the alias name) is migrated: "-a" is created, writes are blocked,
-     * every document is copied and counted, and the index is replaced by the alias in one request.
-     * Both steps are recorded.
+     * A concrete index named after the alias, from a cluster created before this change, is migrated:
+     * "-a" is created, writes are blocked, every document is copied and counted, and the index is
+     * replaced by the alias in one request. Both steps are recorded.
      */
     public void testCreateIndexMigratesAConcreteIndex() {
         doReturn(true).when(this.metadata).hasIndex(ALIAS);

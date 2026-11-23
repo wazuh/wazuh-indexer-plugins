@@ -648,7 +648,7 @@ Unlike the content indices, the state templates keep their original names (`stat
 
 ### Migration of a concrete index
 
-A cluster created before this change has a concrete index named `<name>`. The two classes differ in what they do with one: `ContentIndex` deletes it, because it can only be a squatter auto-created by an early write and its content is downloaded again; `StateIndex` migrates it, because it holds the state of every agent. `StateIndex.migrate()` runs once, from `createIndex()`, in four steps:
+A cluster created before this change has a concrete index named `<name>`. The two classes differ in what they do with one: `ContentIndex` deletes it, because it can only be a squatter auto-created by an early write of the Content Manager itself and its content is downloaded again; `StateIndex` migrates it, because it can only be the index an earlier build created, holding the state of every agent. The Wazuh server cannot have created it: the user it writes with has no permission to create indices, so a state write that arrives before the alias exists is rejected rather than auto-creating anything. `StateIndex.migrate()` runs once, from `createIndex()`, in four steps:
 
 1. Create `<name>-a` from the shipped template, without the alias (the concrete index still owns the name).
 2. Set `index.blocks.write` on `<name>`, so the copy is exact and can be verified.
@@ -657,7 +657,7 @@ A cluster created before this change has a concrete index named `<name>`. The tw
 
 Steps 1 and 3 are recorded as `alias_migration_target_created` and `alias_migration_copied` in the index's record in `.wazuh-setup-status` (see [Schema drift detection](#schema-drift-detection)), through the `SetupStatusIndex` that `SetupPlugin` injects into every index. A migration interrupted by a restart resumes after the last recorded step: the target is not created twice and a verified copy is not repeated. A copy recorded but found short on resume is run again. The record is overwritten by the drift detection once the alias exists, which drops the step.
 
-Writes to `<name>` are rejected from step 2 until the alias exists. An auto-created squatter index under a state index name follows the same migration path, since it cannot be told apart from a legitimate concrete index; a document of it that the strict mapping rejects fails the copy, and the migration stops with the concrete index intact.
+Writes to `<name>` are rejected from step 2 until the alias exists. A document the strict mapping of `<name>-a` rejects fails the copy, and the migration stops with the concrete index intact.
 
 ### Testing
 
