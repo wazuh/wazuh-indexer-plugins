@@ -55,6 +55,7 @@ public abstract class Index implements IndexInitializer {
     Client client;
     ClusterService clusterService;
     JsonUtils jsonUtils;
+    SetupStatusIndex statusIndex;
 
     // Properties.
     protected String index;
@@ -108,6 +109,16 @@ public abstract class Index implements IndexInitializer {
      */
     public void setUtils(JsonUtils jsonUtils) {
         this.jsonUtils = jsonUtils;
+    }
+
+    /**
+     * Sets the index holding the per-index schema version records, which a multi-step operation on
+     * this index records its progress in.
+     *
+     * @param statusIndex the setup status index.
+     */
+    public void setStatusIndex(SetupStatusIndex statusIndex) {
+        this.statusIndex = statusIndex;
     }
 
     /**
@@ -209,16 +220,25 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Sanitizes a template path to obtain the template name. Removes the "templates/" prefix and
-     * converts remaining slashes to hyphens.
+     * Returns the name the index template is stored under in the cluster. By default it is the
+     * template path without the "templates/" prefix and with slashes turned into hyphens, so {@code
+     * templates/streams/alerts} is stored as {@code streams-alerts}.
      *
      * @param templatePath the template path (e.g., "templates/streams/alerts")
      * @return the template name (e.g., "streams-alerts")
      */
-    private String getTemplateName(String templatePath) {
+    protected String templateName(String templatePath) {
         templatePath = templatePath.replaceFirst("^templates/", "");
         return templatePath.replace("/", "-");
     }
+
+    /**
+     * Adjusts the shipped template before it is stored, for instance to narrow its index patterns to
+     * this index. Does nothing by default.
+     *
+     * @param indexTemplate the parsed template, modified in place.
+     */
+    protected void customizeTemplate(IndexTemplate indexTemplate) {}
 
     /**
      * Returns whether the index exists.
@@ -275,13 +295,14 @@ public abstract class Index implements IndexInitializer {
      */
     public void createTemplate(String template) {
         // Get the template name
-        String templateName = this.getTemplateName(template);
+        String templateName = this.templateName(template);
 
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
             IndexTemplate indexTemplate = this.loadTemplate(template);
             indexTemplate.validateSchemaVersions(templateName);
+            this.customizeTemplate(indexTemplate);
 
             // Create a V2 template (ComposableIndexTemplate)
             String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());

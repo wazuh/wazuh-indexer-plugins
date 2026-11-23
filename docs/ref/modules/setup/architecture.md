@@ -24,6 +24,21 @@ The marker transitions once per boot:
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
 
+### Alias-backed indices
+
+The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. Readers and writers use `<name>` as before; the names seen by the Wazuh server, the dashboard and the API do not change. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at.
+
+A cluster created before the stateful indices were alias-backed has a concrete index named `<name>`. The plugin migrates it once, at the first boot after the upgrade:
+
+1. `<name>-a` is created from the shipped template.
+2. Writes to `<name>` are blocked, so the copy is exact.
+3. Every document is copied to `<name>-a`, and the document counts of both are compared. The concrete index is never deleted before they match.
+4. `<name>` is deleted and the alias created in a single atomic request, so no write can create a concrete index under that name in between.
+
+Writes to `<name>` are rejected from step 2 until the alias exists. Each completed step is recorded in the index's record in `.wazuh-setup-status` (see [Schema versions](#schema-versions)), so a migration interrupted by a restart resumes after the last step it completed.
+
+For the content indices, a concrete index at the alias name can only come from a write that reached the name before the alias existed, which OpenSearch auto-created with dynamic mappings; it is deleted and its content downloaded again.
+
 ### Schema versions
 
 Every index template carries two release numbers in its `mappings._meta`: `schema_version`, the release that last changed the template, and `compat_version`, the oldest `schema_version` whose indices can still be upgraded in place. A release number is the release version with one digit for the major and two for each of the minor and the patch, so 5.0.0 is `50000` and 5.2.1 is `50201`. An index inherits the `_meta` of the template it is created from, so its own `schema_version` says which template it was built with.

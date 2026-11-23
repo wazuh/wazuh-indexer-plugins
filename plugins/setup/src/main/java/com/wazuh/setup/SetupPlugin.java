@@ -218,6 +218,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setClient(client);
                     index.setClusterService(clusterService);
                     index.setUtils(utils);
+                    index.setStatusIndex(this.setupStatusIndex);
                 });
 
         // Privileged access to the AI assistant's providers
