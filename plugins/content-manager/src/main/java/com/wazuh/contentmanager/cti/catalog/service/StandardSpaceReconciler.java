@@ -579,7 +579,11 @@ class StandardSpaceReconciler {
                         .search(
                                 new SearchRequest(index)
                                         .source(builder)
-                                        .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN))
+                                        .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN)
+                                        // A partial read is not a smaller inventory, it is a wrong one:
+                                        // on the content side the documents a failed shard holds would
+                                        // look like resources CTI no longer publishes, and be deleted.
+                                        .allowPartialSearchResults(false))
                         .actionGet(readTimeout());
 
         TotalHits total = response.getHits().getTotalHits();
@@ -636,7 +640,13 @@ class StandardSpaceReconciler {
             }
             SearchResponse response =
                     this.client
-                            .search(new SearchRequest(index).source(builder).indicesOptions(options))
+                            .search(
+                                    new SearchRequest(index)
+                                            .source(builder)
+                                            .indicesOptions(options)
+                                            // See wholeIndex: a partial page would end the read early
+                                            // and the documents never read would be taken for deleted.
+                                            .allowPartialSearchResults(false))
                             .actionGet(readTimeout());
             SearchHit[] hits = response.getHits().getHits();
             for (SearchHit hit : hits) {
