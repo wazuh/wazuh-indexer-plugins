@@ -71,6 +71,15 @@ services:
       SPLUNK_START_ARGS: --accept-license --run-as-root
       # The Wazuh app: indexes, sourcetypes, search macros, search limits and dashboards.
       SPLUNK_APPS_URL: /tmp/apps/wazuh_integration.tgz
+    # Replaces the image's check, which runs `splunk btool` as the container user (root). During
+    # the first start that can create /opt/splunk/var/log owned by root before splunkd's own user
+    # does, and `splunk start` then fails with "Could not open log file ... (13)".
+    healthcheck:
+      test: ["CMD-SHELL", "grep -qE '^(running|started)$$' \"$$CONTAINER_ARTIFACT_DIR/splunk-container.state\" && curl -ksf --max-time 30 https://localhost:8089/ > /dev/null"]
+      interval: 30s
+      timeout: 30s
+      start_period: 3m
+      retries: 5
 
   # =================================
   # Logstash
