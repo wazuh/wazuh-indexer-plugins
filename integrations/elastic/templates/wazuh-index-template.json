@@ -16,6 +16,8 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
+          "error.message",
+          "message",
           "wazuh.agent.host.architecture",
           "wazuh.agent.id",
           "wazuh.agent.name",
@@ -24,7 +26,8 @@
           "wazuh.cluster.node",
           "wazuh.schema.version"
         ],
-        "refresh_interval": "2s"
+        "refresh_interval": "2s",
+        "translog.durability": "async"
       },
       "mapping.nested_fields.limit": 50,
       "mapping.total_fields.limit": 1000
@@ -270,6 +273,15 @@
         {
           "wcs_check_name": {
             "path_match": "check.name",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_check_previous_result": {
+            "path_match": "check.previous.result",
             "mapping": {
               "ignore_above": 4096,
               "type": "keyword"
@@ -2317,8 +2329,7 @@
           "wcs_error_message": {
             "path_match": "error.message",
             "mapping": {
-              "ignore_above": 4096,
-              "type": "keyword"
+              "type": "match_only_text"
             }
           }
         },
@@ -20580,6 +20591,9 @@
                   "properties": {}
                 }
               }
+            },
+            "previous": {
+              "properties": {}
             }
           }
         },
@@ -22075,14 +22089,13 @@
           }
         },
         "@timestamp": {
-          "type": "date"
+          "type": "date_nanos"
         },
         "labels": {
           "type": "object"
         },
         "message": {
-          "ignore_above": 4096,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "tags": {
           "ignore_above": 4096,
