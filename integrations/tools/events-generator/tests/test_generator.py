@@ -233,6 +233,13 @@ def test_custom_stream_of_findings(samples):
     assert copy_id == finding_id, "the copy keeps the id of the finding"
 
 
+def test_custom_ratio_from_the_environment(monkeypatch):
+    monkeypatch.setenv("WAZUH_CUSTOM_RATIO", "1")
+    assert run.parse_args(["--dry-run"]).custom_ratio == 1.0
+    monkeypatch.delenv("WAZUH_CUSTOM_RATIO")
+    assert run.parse_args(["--dry-run"]).custom_ratio == 0.2
+
+
 def test_dry_run_flushes_delayed_findings_at_the_end(capsys):
     run.main(["--dry-run", "--count", "5", "--time", "0", "--findings-ratio", "1", "--findings-delay", "0.05",
               "--categories", "security", "--seed", "3"])

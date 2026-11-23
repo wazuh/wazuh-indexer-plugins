@@ -121,6 +121,8 @@ services:
       - WAZUH_CUSTOM_STREAM=${WAZUH_CUSTOM_STREAM}
       # What the custom data stream receives: events, or findings (Amazon Security Lake).
       - WAZUH_CUSTOM_KIND=${WAZUH_CUSTOM_KIND:-events}
+      # Share of them the custom data stream receives.
+      - WAZUH_CUSTOM_RATIO=${WAZUH_CUSTOM_RATIO:-0.2}
     command: ["-a", "wazuh.indexer", "--ca", "/certs/root-ca.pem"]
     volumes:
       - ./certs/root-ca.pem:/certs/root-ca.pem:ro

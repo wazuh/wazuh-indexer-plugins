@@ -114,7 +114,9 @@ class Source:
         target = {"findings": "wazuh-findings-v5-*", "events": "wazuh-events-v5-*", "custom": CUSTOM_STREAM}[kind]
         body = {"size": MAX_DOCUMENTS, "track_total_hits": True, "_source": False,
                 "query": {"range": {"@timestamp": {"gte": iso(start), "lt": iso(end)}}}}
-        r = requests.post(f"{self.url}/{target}/_search", json=body, auth=self.auth, verify=False, timeout=60)
+        # The custom data stream only exists after its first document.
+        r = requests.post(f"{self.url}/{target}/_search?ignore_unavailable=true", json=body, auth=self.auth,
+                          verify=False, timeout=60)
         r.raise_for_status()
         hits = complete(r.json()["hits"], f"{kind} in the Wazuh indexer")
         return {h["_id"]: h["_index"][len(".ds-"):].rsplit("-", 1)[0] for h in hits}
@@ -234,7 +236,10 @@ INTEGRATIONS_CONFIG = {
     "elastic": {"destination": lambda c: SearchDestination("https://localhost:9201", ("elastic", ENV["ELASTIC_PASSWORD"]))},
     "opensearch": {"destination": lambda c: SearchDestination("https://localhost:9201", ("admin", ENV["OPENSEARCH_ADMIN_PASSWORD"]))},
     "splunk": {"destination": lambda c: SplunkDestination(c)},
-    "amazon-security-lake": {"destination": lambda c: SecurityLakeDestination(c), "env": {"WAZUH_CUSTOM_KIND": "findings"},
+    # The custom data stream gets findings, a few per scenario, so it gets all of them: with a share,
+    # the custom scenario often has none to compare.
+    "amazon-security-lake": {"destination": lambda c: SecurityLakeDestination(c),
+                             "env": {"WAZUH_CUSTOM_KIND": "findings", "WAZUH_CUSTOM_RATIO": "1"},
                              "kinds": SECURITY_LAKE_KINDS},
 }
 

@@ -274,8 +274,9 @@ def parse_args(argv=None):
              "Default: $WAZUH_CUSTOM_STREAM, or none.",
     )
     parser.add_argument(
-        "--custom-ratio", default=0.2, type=float,
-        help="Probability of an event (or finding) being also indexed into the custom data stream. Default: 0.2.",
+        "--custom-ratio", default=float(os.environ.get("WAZUH_CUSTOM_RATIO") or 0.2), type=float,
+        help="Probability of an event (or finding) being also indexed into the custom data stream. "
+             "Default: $WAZUH_CUSTOM_RATIO or 0.2.",
     )
     parser.add_argument(
         "--custom-kind", default=os.environ.get("WAZUH_CUSTOM_KIND") or "events", choices=("events", "findings"),
