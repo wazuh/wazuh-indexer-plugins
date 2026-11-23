@@ -25,6 +25,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
+import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
@@ -32,6 +35,8 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 
 import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
@@ -106,6 +111,104 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
+     * Index name getter.
+     *
+     * @return the name of the index, data stream or alias this instance manages.
+     */
+    public String getIndexName() {
+        return this.index;
+    }
+
+    /**
+     * Returns whether the index takes part in the schema versioning: its template carries the {@code
+     * schema_version} and {@code compat_version} the Setup plugin compares on every boot.
+     *
+     * @return true by default.
+     */
+    public boolean isVersioned() {
+        return true;
+    }
+
+    /**
+     * Reads the index template this index is created from.
+     *
+     * @return the parsed template.
+     * @throws IOException if the template resource cannot be read or parsed.
+     * @throws IllegalArgumentException if the template resource does not exist, which is a packaging
+     *     defect.
+     */
+    protected IndexTemplate loadTemplate() throws IOException {
+        return this.loadTemplate(this.template);
+    }
+
+    /**
+     * Reads an index template shipped with the plugin.
+     *
+     * @param template path of the template resource, without the .json extension.
+     * @return the parsed template.
+     * @throws IOException if the template resource cannot be read or parsed.
+     * @throws IllegalArgumentException if the template resource does not exist, which is a packaging
+     *     defect.
+     */
+    protected IndexTemplate loadTemplate(String template) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (InputStream is =
+                this.getClass().getClassLoader().getResourceAsStream(template + ".json")) {
+            if (is == null) {
+                throw new IllegalArgumentException(
+                        "Index template resource [" + template + ".json] not found");
+            }
+            return mapper.readValue(is, IndexTemplate.class);
+        }
+    }
+
+    /**
+     * Resolves the concrete index that holds the data right now: the index itself, the write index of
+     * a data stream, or the write index behind an alias.
+     *
+     * @return the metadata of the live index, or null when the name resolves to nothing.
+     */
+    public IndexMetadata resolveLiveIndex() {
+        IndexAbstraction abstraction =
+                this.clusterService.state().metadata().getIndicesLookup().get(this.index);
+        if (abstraction == null) {
+            return null;
+        }
+        IndexMetadata writeIndex = abstraction.getWriteIndex();
+        if (writeIndex != null) {
+            return writeIndex;
+        }
+        List<IndexMetadata> indices = abstraction.getIndices();
+        return indices == null || indices.isEmpty() ? null : indices.getFirst();
+    }
+
+    /**
+     * Reads the schema version the live index carries in its mapping {@code _meta}, inherited from
+     * the template it was created with.
+     *
+     * @return the installed schema version, or {@code 0} when the index does not exist or carries no
+     *     version.
+     */
+    public long getInstalledSchemaVersion() {
+        IndexMetadata liveIndex = this.resolveLiveIndex();
+        if (liveIndex == null) {
+            log.warn(
+                    "Index [{}] resolves to no concrete index. Its schema version is unknown.", this.index);
+            return 0;
+        }
+        MappingMetadata mapping = liveIndex.mapping();
+        if (mapping == null) {
+            return 0;
+        }
+        Object meta = mapping.sourceAsMap().get(IndexTemplate.META_KEY);
+        if (!(meta instanceof Map)) {
+            return 0;
+        }
+        Object version = ((Map<?, ?>) meta).get(IndexTemplate.SCHEMA_VERSION_KEY);
+        return version instanceof Number ? ((Number) version).longValue() : 0;
+    }
+
+    /**
      * Sanitizes a template path to obtain the template name. Removes the "templates/" prefix and
      * converts remaining slashes to hyphens.
      *
@@ -177,8 +280,7 @@ public abstract class Index implements IndexInitializer {
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
-            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
-            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+            IndexTemplate indexTemplate = this.loadTemplate(template);
             indexTemplate.validateSchemaVersions(templateName);
 
             // Create a V2 template (ComposableIndexTemplate)

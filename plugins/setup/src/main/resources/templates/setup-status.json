@@ -23,6 +23,24 @@
         },
         "timestamp": {
           "type": "date"
+        },
+        "index": {
+          "type": "keyword"
+        },
+        "installed": {
+          "type": "long"
+        },
+        "shipped": {
+          "type": "long"
+        },
+        "compat": {
+          "type": "long"
+        },
+        "step": {
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
         }
       },
       "_meta": {
