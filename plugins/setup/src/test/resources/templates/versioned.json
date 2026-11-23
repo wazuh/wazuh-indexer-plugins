@@ -1,0 +1,26 @@
+{
+  "index_patterns": [
+    "versioned*"
+  ],
+  "priority": 1,
+  "version": 50300,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": "1"
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "name": {
+          "type": "keyword"
+        }
+      },
+      "_meta": {
+        "schema_version": 50300,
+        "compat_version": 50200
+      }
+    }
+  }
+}

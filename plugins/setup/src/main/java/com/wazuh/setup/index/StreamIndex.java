@@ -39,7 +39,6 @@ import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +83,7 @@ public class StreamIndex extends WazuhIndex {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
-            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+            IndexTemplate indexTemplate = this.loadTemplate(template);
             indexTemplate.validateSchemaVersions(templateName);
 
             // Dynamically set the index patterns to match this specific index

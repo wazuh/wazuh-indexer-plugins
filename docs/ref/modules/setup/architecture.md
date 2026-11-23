@@ -12,17 +12,49 @@ The back-off time is configurable. Head to [Configuration](./configuration.md) f
 
 ### Readiness marker
 
-The plugin persists its initialization state in the hidden, single-document `.wazuh-setup-status` index. Other plugins (currently Content Manager) read this marker to defer their own startup work until Setup has finished creating its indices, avoiding races where a dependent index template doesn't exist yet.
+The plugin persists its initialization state in the hidden `.wazuh-setup-status` index, in the document with id `setup-status`. Other plugins (currently Content Manager) read this marker to defer their own startup work until Setup has finished creating its indices and every index is at the shipped schema version, avoiding races where a dependent index template doesn't exist yet or an index is still being upgraded.
 
 The marker transitions once per boot:
 
 | Value     | Meaning                                                                                                                                                                          |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `running` | Index initialization is in progress (set at the start of index initialization, overwriting any marker left over from a previous boot).                                          |
-| `ready`   | All index templates, indices and data streams have been created successfully.                                                                                                    |
-| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices).                                                               |
+| `running` | Index initialization is in progress (set at the start of index initialization, overwriting any marker left over from a previous boot), or at least one index still needs a schema upgrade (see [Schema versions](#schema-versions)). |
+| `ready`   | All index templates, indices and data streams have been created successfully, and every index is at the shipped schema version.                                                  |
+| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices, or while detecting the schema version of one of them; the log names the index). |
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
+
+### Schema versions
+
+Every index template carries two release numbers in its `mappings._meta`: `schema_version`, the release that last changed the template, and `compat_version`, the oldest `schema_version` whose indices can still be upgraded in place. A release number is the release version with one digit for the major and two for each of the minor and the patch, so 5.0.0 is `50000` and 5.2.1 is `50201`. An index inherits the `_meta` of the template it is created from, so its own `schema_version` says which template it was built with.
+
+A stored template only applies to indices created afterwards. After a package upgrade the existing indices keep the mappings and settings of the previous version, so at every initialization, after the templates are written and the indices created, the plugin compares the `schema_version` of every index it manages against the shipped template and classifies it:
+
+| Status             | Condition                                                   | Meaning                                                               |
+| ------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `up_to_date`       | installed version equals the shipped `schema_version`       | Nothing to do. An index newer than the shipped template (a downgrade, which is not supported) is reported the same way and left alone. |
+| `upgrade_in_place` | installed version is at least the shipped `compat_version`  | The shipped mappings and dynamic settings can be applied to the index. |
+| `rebuild_required` | installed version is below the shipped `compat_version`, or the index carries no version (`0`) | The index must be rebuilt from the shipped template.                  |
+
+The installed version is read from the live index: the index itself, the write index of a data stream, or the write index behind a content alias. Detection reads version metadata only; it never compares the live mappings or settings against the shipped files.
+
+The result is stored in `.wazuh-setup-status`, one document per managed index, with the index name as document id:
+
+```json
+{
+  "index": "wazuh-states-sca",
+  "installed": 50000,
+  "shipped": 50300,
+  "compat": 50200,
+  "status": "upgrade_in_place",
+  "step": "mappings_updated",
+  "updated_at": "2026-11-17T10:00:00Z"
+}
+```
+
+`step` is the last step an upgrade in progress completed; it is absent when no upgrade is in progress. Detection keeps the step of an index that is still pending, so an upgrade interrupted by a restart resumes where it stopped, and drops it once the index is up to date. Each index that is not up to date is also reported in the log, with its installed and shipped versions and its status.
+
+The marker is set to `ready` only when every record is `up_to_date`; while any index is pending it stays `running`. The ISM configuration index (`.opendistro-ism-config`) has no record: the ISM plugin versions that mapping itself. The `.wazuh-setup-status` index is the one exception to "a stored template only applies to indices created afterwards": it holds the records of the running version, so the plugin pushes the shipped mappings to it on every boot before writing them.
 
 ### Replica configuration
 

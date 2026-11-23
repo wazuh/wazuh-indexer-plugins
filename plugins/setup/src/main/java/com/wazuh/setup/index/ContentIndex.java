@@ -32,7 +32,6 @@ import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 import com.wazuh.setup.model.IndexTemplate;
@@ -90,8 +89,7 @@ public class ContentIndex extends WazuhIndex {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
-            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
+            IndexTemplate indexTemplate = this.loadTemplate(template);
             indexTemplate.validateSchemaVersions(templateName);
 
             // Dynamically set the index patterns to match every concrete index behind the alias

@@ -173,6 +173,17 @@ public class IndexStateManagement extends Index {
     }
 
     /**
+     * The ISM plugin versions the mapping of this index itself, through its own {@code
+     * _meta.schema_version}, so the index is left out of the Wazuh schema versioning.
+     *
+     * @return false.
+     */
+    @Override
+    public boolean isVersioned() {
+        return false;
+    }
+
+    /**
      * Creates an index.
      *
      * @param index Name of the index to create.
