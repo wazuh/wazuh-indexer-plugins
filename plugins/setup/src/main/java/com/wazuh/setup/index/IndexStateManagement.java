@@ -188,6 +188,10 @@ public class IndexStateManagement extends Index {
                 ObjectMapper mapper = new ObjectMapper();
                 InputStream is =
                         this.getClass().getClassLoader().getResourceAsStream(this.template + ".json");
+                // The ISM plugin versions the mapping of this index itself, through its own
+                // _meta.schema_version, and only updates it when the one it ships is higher.
+                // Stamping the Wazuh schema versions here would block those updates, so this
+                // template is left out of the schema versioning.
                 IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
                 CreateIndexRequest request =

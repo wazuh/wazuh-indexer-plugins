@@ -13,6 +13,10 @@
       }
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "dynamic": "false",
       "properties": {
         "document": {
@@ -208,5 +212,6 @@
         }
       }
     }
-  }
+  },
+  "version": 50000
 }

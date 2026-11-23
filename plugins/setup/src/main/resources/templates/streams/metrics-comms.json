@@ -24,6 +24,10 @@
       "plugins.index_state_management.policy_id": "stream-metrics-policy"
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "date_detection": false,
       "dynamic": "strict",
       "properties": {
@@ -176,5 +180,6 @@
         }
       }
     }
-  }
+  },
+  "version": 50000
 }

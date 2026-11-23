@@ -99,13 +99,16 @@ def convert_template(input_data):
     # 4. Sort templates alphabetically for consistent output
     dynamic_templates = sorted(dynamic_templates, key=lambda x: list(x.keys())[0])
 
-    # 5. Overwrite the mappings block in the output
+    # 5. Overwrite the mappings block in the output. The mapping metadata (the schema versions
+    # stamped by stamp_schema_versions.py) is carried over untouched.
     template_block["mappings"] = {
         "date_detection": mappings.get("date_detection", False),
         "dynamic": mappings.get("dynamic"),
         "dynamic_templates": dynamic_templates,
         "properties": static_props
     }
+    if "_meta" in mappings:
+        template_block["mappings"]["_meta"] = mappings["_meta"]
 
     return output, False
 

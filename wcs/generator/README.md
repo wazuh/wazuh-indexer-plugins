@@ -13,6 +13,8 @@ The generation of the Wazuh Common Schema is automated using a set of scripts an
 - [count_and_update_total_fields.sh](./count_and_update_total_fields.sh): counts fields in a generated index template and proposes (or applies with --apply) an updated mapping.total_fields.limit rounded up to the next 500.
 - [convert_to_dynamic_templates.py](./convert_to_dynamic_templates.py): converts a generated index template's monolithic static `properties` block into a `dynamic_templates` array, so fields are mapped lazily on first ingest instead of all at once. Used to keep the field mapping count of the `wazuh-events` and `wazuh-findings` data streams (`stateless/events/main` and `stateless/events/findings` modules) under the `mapping.total_fields.limit`, since those streams define far more fields than any single document actually uses. `generate_schema.sh` runs it automatically for those two modules; see "Dynamic templates" below.
 - [generate_default_query_fields.py](./generate_default_query_fields.py): rewrites a module's `index.query.default_field` from the mapping the same template declares, so the list cannot name a field the index does not have, a field no text term can match, or an entry with stray whitespace. `generate_schema.sh` runs it automatically for every regenerated module; see "Default query fields" below.
+- [stamp_schema_versions.py](./stamp_schema_versions.py): writes the `schema_version` and `compat_version` a module declares in `fields/mapping-settings.json` into its generated template, as the template's `version` and under `mappings._meta`. `generate_schema.sh` runs it automatically for every regenerated module; see "Schema versions" below.
+- [check_schema_versions.py](./check_schema_versions.py): compares every generated template with the base branch, classifies the change as compatible or breaking, and fails when the schema versions do not match. Run by the GitHub workflow on every pull request; see "Schema versions" below.
 
 ### Requirements
 
@@ -133,6 +135,58 @@ is how to assert in CI that no list has drifted from its mapping:
 python3 wcs/generator/generate_default_query_fields.py all --check
 ```
 
+### Schema versions
+
+The Setup plugin creates the indices from these templates on the first boot of a cluster, and on later boots, after a package upgrade, it has to tell which of the existing indices no longer match the template that ships. A stored template only affects indices created afterwards, and a text comparison of live mappings against shipped ones cannot be trusted, so every template carries two version numbers instead, and every index created from it inherits them in its mapping metadata.
+
+Each module declares them under `_meta` in `fields/mapping-settings.json`, next to the rest of its mapping behaviour:
+
+```json
+{
+  "dynamic": "strict",
+  "date_detection": false,
+  "_meta": {
+    "schema_version": 50000,
+    "compat_version": 50000
+  }
+}
+```
+
+- `schema_version` is the release that last changed the mappings or settings of the template.
+- `compat_version` is the oldest `schema_version` whose indices can still be upgraded in place. It is equal to `schema_version` when the last change was breaking.
+
+Both are release numbers: one digit for the major and two digits each for the minor and the patch, so that numeric order matches release order. A template that does not change in a release keeps its previous values.
+
+| Release | major | minor | patch | number |
+|---|---|---|---|---|
+| 5.0.0 | 5 | 00 | 00 | 50000 |
+| 5.2.0 | 5 | 02 | 00 | 50200 |
+| 5.2.1 | 5 | 02 | 01 | 50201 |
+| 5.10.14 | 5 | 10 | 14 | 51014 |
+
+The generator copies `_meta` into the mappings of the generated template, and `stamp_schema_versions.py` completes it with the native `version` field of the template, which the generator does not produce, so the template ends up carrying both:
+
+```json
+"_meta": { "schema_version": 50300, "compat_version": 50200 }
+```
+
+An index carrying `schema_version: 50200` can be upgraded in place to this template; one carrying `50000` or `50100` must be rebuilt. The Setup plugin refuses to start on a template without the two fields, so hand-written templates under `plugins/setup/src/main/resources/templates/` must declare them too. The one exception is `ism-config.json`: the ISM plugin versions the mapping of `.opendistro-ism-config` itself through its own `_meta.schema_version`, and only updates it when the version it ships is higher, so that template carries no Wazuh versions and the check skips it.
+
+**When to change them.** The release the branch targets is the `version` of `VERSION.json`.
+
+- If the change touches the mappings or settings of the module, set `schema_version` to the number of the release the branch targets. If an earlier change in the same release cycle already set it, leave it: two changes in one cycle carry the same number.
+- If the change is breaking, set `compat_version` to the same number. Breaking means: a field removed, a field type changed, any other non-updatable parameter of an existing field changed, an analyzer or normalizer changed, a static index setting changed (`number_of_shards`, `codec`), or the index patterns or the data stream flag changed.
+- If the change only adds fields, multi-fields or dynamic templates, or changes a dynamic setting (`refresh_interval`, `number_of_replicas`, `query.default_field`, the field limits, the ISM policy), leave `compat_version` as it is.
+
+`check_schema_versions.py` enforces these rules on every pull request. It diffs each regenerated template against the base branch, classifies the change, and fails when the versions do not match: a changed template without the target `schema_version`, a breaking change without the matching `compat_version`, a compatible change that moved `compat_version`, or a template whose stamped versions differ from its `mapping-settings.json` because it was not regenerated. A version change without a template change is only a warning. The classification of every template is written to the job summary. To run it locally, from the repository root, against the branch the pull request targets:
+
+```bash
+python3 wcs/generator/check_schema_versions.py --base origin/5.0.0
+python3 -m unittest discover -s wcs/generator/tests
+```
+
+Two builds of the same unreleased version carry the same numbers, so a template change between a release candidate and the final release, or between two nightly builds, is not detected: upgrades between pre-release builds are not supported.
+
 ### Uploading templates to the Indexer
 
 You can either upload the index template using cURL or the UI (dev tools).
@@ -151,11 +205,12 @@ Notes:
 
 The easiest way to create a new module is to take an existing one as a base. Copy a similar module and renaming it. Then, edit the `fields` files to match the new module fields.
 
-The name of the folder will be the name of the module to be passed to the script. All 3 files are required.
+The name of the folder will be the name of the module to be passed to the script. All 4 files are required.
 
 - `fields/subset.yml`: This file contains the subset of ECS fields to be used for the module.
 - `fields/template-settings-legacy.json`: This file contains the legacy template settings for the module.
 - `fields/template-settings.json`: This file contains the composable template settings for the module.
+- `fields/mapping-settings.json`: This file contains the mapping behaviour of the module (`dynamic`, `date_detection`) and, under `_meta`, its `schema_version` and `compat_version`, both set to the release that adds it (see "Schema versions" above).
 - `fields/custom`: folder containg custom fields for the module. This folder is optional.
 
 > [!IMPORTANT]
@@ -176,7 +231,7 @@ The [run_event_generators.sh](../scripts/run_event_generators.sh) script can be 
 
 ## GitHub Workflow
 
-The schema generation is automated using a GitHub Workflow, defined in the [5_builderpackage_schema.yml](../../.github/workflows/5_builderpackage_schema.yml) file.
+The schema generation is automated using a GitHub Workflow, defined in the [5_builderpackage_schema.yml](../../.github/workflows/5_builderpackage_schema.yml) file. After regenerating the modified modules it runs `check_schema_versions.py` (see "Schema versions" above) and pushes the regenerated templates to the pull request branch only if the check passes.
 
 ## Troubleshooting
 
