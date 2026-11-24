@@ -16,29 +16,22 @@
  */
 package com.wazuh.setup.index;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
-import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
-import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.DataStream;
 import org.opensearch.cluster.metadata.IndexMetadata;
-import org.opensearch.common.compress.CompressedXContent;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.index.Index;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -73,62 +66,25 @@ public class StreamIndex extends WazuhIndex {
     }
 
     /**
-     * Overrides createTemplate to apply dynamic properties specific to stream indices.
+     * Every data stream gets its own template, named after the stream, since several streams share
+     * one shipped template (the event categories).
      *
-     * @param template name of the index template to create.
+     * @param templatePath the template path.
+     * @return the stream name plus {@code -template}.
      */
     @Override
-    public void createTemplate(String template) {
-        String templateName = this.index + "-template";
+    protected String templateName(String templatePath) {
+        return this.index + "-template";
+    }
 
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            IndexTemplate indexTemplate = this.loadTemplate(template);
-            indexTemplate.validateSchemaVersions(templateName);
-
-            // Dynamically set the index patterns to match this specific index
-            indexTemplate.setIndexPatterns(List.of(this.index + "*"));
-
-            String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
-            CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
-            Settings settings = this.templateSettings(template, templateName, indexTemplate);
-            ComposableIndexTemplate composableTemplate =
-                    indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
-
-            PutComposableIndexTemplateAction.Request request =
-                    new PutComposableIndexTemplateAction.Request(templateName)
-                            .indexTemplate(composableTemplate)
-                            .create(false);
-
-            this.client
-                    .execute(PutComposableIndexTemplateAction.INSTANCE, request)
-                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-        } catch (IOException e) {
-            log.error(
-                    "Error reading index template from filesystem [{}]. Caused by: {}",
-                    template,
-                    e.toString());
-        } catch (IllegalArgumentException e) {
-            // A template without its schema versions is a packaging defect, not a transient
-            // failure: no retry, and the initialization fails naming the template.
-            log.error("Invalid index template [{}]: {}", template, e.getMessage());
-            throw e;
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", templateName);
-        } catch (Exception e) {
-            if (this.templateCreationAttempts
-                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
-                log.error(
-                        "Initialization of index template [{}] finally failed. The setup stops with status [{}].",
-                        templateName,
-                        SetupStatusIndex.SETUP_STATUS_FAILED);
-                throw e;
-            }
-            log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
-            this.templateCreationAttempts++;
-            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
-            this.createTemplate(template);
-        }
+    /**
+     * Narrows the index patterns to this stream.
+     *
+     * @param indexTemplate the parsed template, modified in place.
+     */
+    @Override
+    protected void customizeTemplate(IndexTemplate indexTemplate) {
+        indexTemplate.setIndexPatterns(List.of(this.index + "*"));
     }
 
     /**

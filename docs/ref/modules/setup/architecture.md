@@ -26,6 +26,12 @@ The marker transitions once per boot:
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
 
+### Alias-backed indices
+
+The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. The Wazuh server, the dashboard and the API read and write through `<name>` and never address the concrete index. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at.
+
+A concrete index at the alias name cannot coexist with the alias. For the content indices it can only come from a write that reached the name before the alias existed, which OpenSearch auto-created with dynamic mappings; it is deleted and its content downloaded again. For the stateful indices it is not expected at all: the plugin creates the alias before any writer can reach the name, and the user the Wazuh server writes with cannot create indices. An empty one is deleted so the alias can take the name. One that holds documents is kept, since it is the state of every agent and nothing re-sends it, and the initialization fails naming it; the marker is set to `failed` until the index is deleted or reindexed by hand.
+
 ### Schema versions
 
 Every index template carries two release numbers in its `mappings._meta`: `schema_version`, the release that last changed the template, and `compat_version`, the oldest `schema_version` whose indices can still be upgraded in place. A release number is the release version with one digit for the major and two for each of the minor and the patch, so 5.0.0 is `50000` and 5.2.1 is `50201`. An index inherits the `_meta` of the template it is created from, so its own `schema_version` says which template it was built with.

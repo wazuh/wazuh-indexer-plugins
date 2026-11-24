@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -26,8 +27,11 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -37,9 +41,28 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>This class tracks the synchronization status of a specific CTI consumer. It stores
  * local/remote offsets, the time its content was last updated and the consumer metadata persisted
  * in `.wazuh-cti-consumers`.
+ *
+ * <p>It also carries the nodes that failed to load the consumer's content into their Engine (only
+ * the ruleset consumer has any). That state is written by the Engine content loader, not by the
+ * synchronization, so it is kept apart from the synchronization phases: {@link
+ * #getPendingSyncPhases()} never lists {@link #PHASE_ENGINE_LOAD}, and {@link #toXContent} adds it
+ * to {@code pending_sync_phases} exactly while some node has a failure recorded.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
+
+    /**
+     * Entry of {@code pending_sync_phases} listed while some node failed to load the consumer's
+     * content into its Engine. A persisted contract read by the dashboard and the AI assistant, like
+     * the synchronization phase names, so it is a constant of its own.
+     */
+    public static final String PHASE_ENGINE_LOAD = "engine_load";
+
+    /** Field holding the Engine load failure shown to clients and the per-node failures. */
+    static final String KEY_ENGINE_LOAD_ERROR = "engine_load_error";
+
+    /** Sub-field of {@link #KEY_ENGINE_LOAD_ERROR} holding the failure of each node, by node id. */
+    static final String KEY_NODES = "nodes";
 
     /** Represents whether the consumer is safe to query, currently syncing, or failed to sync. */
     public enum Status {
@@ -88,11 +111,23 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     @JsonProperty("is_public")
     private boolean isPublic;
 
-    @JsonProperty("pending_sync_phases")
     private List<String> pendingSyncPhases = Collections.emptyList();
+
+    /** Failures to load the content into the Engine, by node id, sorted by id. */
+    private Map<String, EngineLoadFailure> engineLoadFailures = Collections.emptyMap();
 
     @JsonProperty(Constants.KEY_UPDATED_AT)
     private String updatedAt;
+
+    /**
+     * The {@code engine_load_error} object as stored. Only its {@code nodes} are read back: the
+     * fields shown to clients are derived from them on every write.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static final class StoredEngineLoadError {
+        @JsonProperty(KEY_NODES)
+        private Map<String, EngineLoadFailure> nodes;
+    }
 
     /** Default constructor. */
     public LocalConsumer() {
@@ -213,8 +248,66 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.status = status;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
-        this.pendingSyncPhases =
-                pendingSyncPhases != null ? pendingSyncPhases : Collections.emptyList();
+        this.pendingSyncPhases = LocalConsumer.withoutEngineLoad(pendingSyncPhases);
+    }
+
+    /**
+     * Returns the synchronization phases of {@code phases}: {@link #PHASE_ENGINE_LOAD} is derived
+     * from the recorded Engine load failures, never taken from a phase list.
+     *
+     * @param phases The phase names, or {@code null}.
+     * @return The phases without {@link #PHASE_ENGINE_LOAD}, or an empty list.
+     */
+    private static List<String> withoutEngineLoad(List<String> phases) {
+        if (phases == null || phases.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (!phases.contains(PHASE_ENGINE_LOAD)) {
+            return phases;
+        }
+        return phases.stream().filter(phase -> !PHASE_ENGINE_LOAD.equals(phase)).toList();
+    }
+
+    /**
+     * Sets the synchronization phases read from {@code pending_sync_phases}, leaving out {@link
+     * #PHASE_ENGINE_LOAD}.
+     *
+     * @param phases The stored phase names.
+     */
+    @JsonProperty("pending_sync_phases")
+    private void setPendingSyncPhases(List<String> phases) {
+        this.pendingSyncPhases = LocalConsumer.withoutEngineLoad(phases);
+    }
+
+    /**
+     * Sets the Engine load failures read from {@code engine_load_error.nodes}.
+     *
+     * @param stored The stored {@code engine_load_error} object, or {@code null}.
+     */
+    @JsonProperty(KEY_ENGINE_LOAD_ERROR)
+    private void setStoredEngineLoadError(StoredEngineLoadError stored) {
+        this.engineLoadFailures = LocalConsumer.sortedFailures(stored != null ? stored.nodes : null);
+    }
+
+    /**
+     * Copies a failure map into an unmodifiable map sorted by node id, dropping null entries.
+     *
+     * @param failures The failures by node id, or {@code null}.
+     * @return The sorted copy, or an empty map.
+     */
+    private static Map<String, EngineLoadFailure> sortedFailures(
+            Map<String, EngineLoadFailure> failures) {
+        if (failures == null || failures.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, EngineLoadFailure> sorted = new TreeMap<>();
+        failures.forEach(
+                (nodeId, failure) -> {
+                    if (nodeId != null && failure != null) {
+                        sorted.put(nodeId, failure);
+                    }
+                });
+        return Collections.unmodifiableMap(sorted);
     }
 
     /**
@@ -263,10 +356,53 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * Gets the names of SAP sync sub-phases still owed a retry.
      *
      * @return The pending phase names (e.g. "integrations", "rules", "detectors"), or an empty list
-     *     if none are pending.
+     *     if none are pending. Never {@link #PHASE_ENGINE_LOAD}, which is not a synchronization
+     *     phase: see {@link #getEngineLoadFailures()}.
      */
     public List<String> getPendingSyncPhases() {
         return this.pendingSyncPhases;
+    }
+
+    /**
+     * Gets the nodes that failed to load the consumer's content into their Engine and have not loaded
+     * it since.
+     *
+     * @return The failures by node id, sorted by id; empty when every node loaded the content.
+     */
+    @JsonIgnore
+    public Map<String, EngineLoadFailure> getEngineLoadFailures() {
+        return this.engineLoadFailures;
+    }
+
+    /**
+     * Gets the Engine load failure shown to clients: the most recent one among the nodes that are
+     * still failing. Ties go to the lowest node id, so every writer derives the same one.
+     *
+     * @return The failure, or {@code null} when no node is failing.
+     */
+    @JsonIgnore
+    public EngineLoadFailure getEngineLoadError() {
+        EngineLoadFailure latest = null;
+        for (EngineLoadFailure failure : this.engineLoadFailures.values()) {
+            if (latest == null || failure.failedAtInstant().isAfter(latest.failedAtInstant())) {
+                latest = failure;
+            }
+        }
+        return latest;
+    }
+
+    /**
+     * Returns a copy of this consumer with the given Engine load failures, in place of its own. Every
+     * write of the ruleset consumer document takes them from the stored document, since only the
+     * Engine content loader changes them.
+     *
+     * @param failures The failures by node id, or {@code null} for none.
+     * @return The copy.
+     */
+    public LocalConsumer withEngineLoadFailures(Map<String, EngineLoadFailure> failures) {
+        LocalConsumer copy = this.withUpdatedAt(this.updatedAt);
+        copy.engineLoadFailures = LocalConsumer.sortedFailures(failures);
+        return copy;
     }
 
     /**
@@ -301,6 +437,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                         this.remoteOffset,
                         this.pendingSyncPhases);
         copy.updatedAt = updatedAt;
+        copy.engineLoadFailures = this.engineLoadFailures;
         return copy;
     }
 
@@ -324,6 +461,8 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 + ", updatedAt='"
                 + this.updatedAt
                 + '\''
+                + ", engineLoadFailures="
+                + this.engineLoadFailures
                 + ", context='"
                 + this.context
                 + '\''
@@ -346,6 +485,11 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     /**
      * Serializes the consumer properties into an XContentBuilder.
      *
+     * <p>While some node has an Engine load failure recorded, {@code pending_sync_phases} also lists
+     * {@link #PHASE_ENGINE_LOAD}, and {@code engine_load_error} holds the failure from {@link
+     * #getEngineLoadError()} plus every node's failure under {@code nodes}. Both are left out
+     * otherwise.
+     *
      * @param builder The builder to write to.
      * @param params Parameters for the XContent generation (unused here).
      * @return The builder with the consumer fields appended.
@@ -353,6 +497,12 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        List<String> phases = this.pendingSyncPhases;
+        EngineLoadFailure engineLoadError = this.getEngineLoadError();
+        if (engineLoadError != null) {
+            phases = new ArrayList<>(this.pendingSyncPhases);
+            phases.add(PHASE_ENGINE_LOAD);
+        }
         builder
                 .startObject()
                 .field("name", this.name)
@@ -363,9 +513,21 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .field("status", this.status != null ? this.status.toString() : Status.READY.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
-                .field("pending_sync_phases", this.pendingSyncPhases);
+                .field("pending_sync_phases", phases);
         if (this.updatedAt != null) {
             builder.field(Constants.KEY_UPDATED_AT, this.updatedAt);
+        }
+        if (engineLoadError != null) {
+            builder.startObject(KEY_ENGINE_LOAD_ERROR);
+            engineLoadError.writeFields(builder);
+            builder.startObject(KEY_NODES);
+            for (Map.Entry<String, EngineLoadFailure> entry : this.engineLoadFailures.entrySet()) {
+                builder.startObject(entry.getKey());
+                entry.getValue().writeFields(builder);
+                builder.endObject();
+            }
+            builder.endObject();
+            builder.endObject();
         }
         builder.endObject();
 

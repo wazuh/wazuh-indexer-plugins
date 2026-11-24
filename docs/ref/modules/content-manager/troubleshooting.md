@@ -58,6 +58,23 @@ Every sync checks that each integration with enabled rules has its detector. Whe
 
 Wait for the next scheduled sync, or trigger one on demand as shown in [Sync not running](#sync-not-running). If the warning repeats with the same integrations, look in the log for the error that keeps their detectors from being created, for example missing `wazuh-events-v5-*` source indices. The check is skipped while `plugins.content_manager.catalog.create_detectors` is `false`.
 
+### The ruleset consumer lists `engine_load`
+
+The ruleset consumer is `ready` with equal offsets, but `pending_sync_phases` lists `engine_load`: the content is synced, and the engine of at least one node is not running it. The dashboard shows the ruleset feed as **Retry pending**. `engine_load_error` tells which node failed and why:
+
+```bash
+curl -sk -u admin:<password> "https://localhost:9200/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset?filter_path=_source.pending_sync_phases,_source.engine_load_error"
+```
+
+The node keeps retrying the load on its own, after 5 seconds and then with a delay that doubles up to 5 minutes, and the entry is removed as soon as its engine accepts the space. On that node, the log shows each failed attempt as `Engine load for standard space returned status [...]`.
+
+#### Resolution
+
+- `reason` `refused`: the engine rejected the policy built from the content, and `message` names the asset it could not build. An engine older or newer than the content is a usual cause, for example `Operation builder 'kvdb_get' not found` when the content still uses a helper the engine renamed. Update the content, with a scheduled sync or one triggered as shown in [Sync not running](#sync-not-running), or align the engine and Indexer versions on that node.
+- `reason` `unreachable`: the engine of that node is not running or its socket cannot be used. See ["Cannot reach the Wazuh Engine: its API socket is not available"](#cannot-reach-the-wazuh-engine-its-api-socket-is-not-available) and [Socket file not found](#socket-file-not-found).
+
+A node that leaves the cluster is no longer listed. If it rejoins and its engine still fails, it is listed again.
+
 ### Sync not running
 
 Content is not being updated despite having a valid subscription.
@@ -256,7 +273,8 @@ Example output:
 - `updated_at`: when a sync last changed the consumer's content. A sync that finds nothing new leaves it as it is.
 - `last_checked_at` (on the `cti:catalog:global` document): when Wazuh CTI last answered a request for changes. If it is much older than the sync interval (`plugins.content_manager.catalog.sync_interval`), either the sync job is not running (see [Sync not running](#sync-not-running)) or the Indexer cannot reach Wazuh CTI: look for the CTI API entries in the [logs](#log-monitoring).
 - `local_offset == 0`: Content has never been synced (snapshot required). With status `running` during a plan change, none of the new plan's content is live yet: it is being prepared (see [Every consumer shows `running` after a plan change](#every-consumer-shows-running-after-a-plan-change)).
-- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management and are retried on the next scheduled sync. They are recorded before the content changes and the ones that succeeded are removed when the sync ends, so a sync cut by a restart leaves them all listed. Empty means nothing is owed; a sync with nothing pending still recreates the detectors if any are missing (see [No detectors while the ruleset consumer is in sync](#no-detectors-while-the-ruleset-consumer-is-in-sync)). For the IoC consumer, it lists `ioc_load` while the IoC type hashes and the load of the IoCs into the engine are still owed: a sync cut by a restart or a failure leaves it listed, and the next sync runs it even without new CTI content.
+- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management and are retried on the next scheduled sync. They are recorded before the content changes and the ones that succeeded are removed when the sync ends, so a sync cut by a restart leaves them all listed. Empty means nothing is owed; a sync with nothing pending still recreates the detectors if any are missing (see [No detectors while the ruleset consumer is in sync](#no-detectors-while-the-ruleset-consumer-is-in-sync)). For the IoC consumer, it lists `ioc_load` while the IoC type hashes and the load of the IoCs into the engine are still owed: a sync cut by a restart or a failure leaves it listed, and the next sync runs it even without new CTI content. For the ruleset consumer, it also lists `engine_load` while the engine of some node refuses the `standard` space or cannot be reached (see [The ruleset consumer lists `engine_load`](#the-ruleset-consumer-lists-engine_load)).
+- `engine_load_error`: present only while `engine_load` is listed. It tells why the last load failed: `reason` (`refused` or `unreachable`), the engine's `message`, the `node` that failed and `failed_at`; `nodes` holds the failure of each failing node.
 
 ### Check sync job
 

@@ -220,6 +220,9 @@ public class Constants {
             "Failed to persist pending sync phases for [{}]: {}";
     public static final String D_LOG_CONSUMER_PHASES_OWED_RECORDED =
             "Consumer [{}] content is about to change; pending sync phases recorded as {}";
+    public static final String D_LOG_CONSUMER_WRITE_CONFLICT =
+            "Consumer [{}] document changed while it was being written (attempt {}); writing it again "
+                    + "on top of that change.";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -417,6 +420,19 @@ public class Constants {
     public static final String D_LOG_ENGINE_SPACE_REFUSED_UNCHANGED =
             "Engine refused the {} space at this content hash; skipping it until the scheduled retry "
                     + "or a content change.";
+    // Engine load result recorded in the ruleset consumer document
+    public static final String ENGINE_LOAD_CALL_FAILED_MESSAGE =
+            "The load request could not be sent to the Engine.";
+    public static final String D_LOG_ENGINE_LOAD_RESULT_RECORDED =
+            "Engine load result of node [{}] recorded in consumer [{}]: {}";
+    public static final String D_LOG_ENGINE_LOAD_RESULT_UNCHANGED =
+            "Engine load result of node [{}] already recorded in consumer [{}]: {}";
+    public static final String D_LOG_ENGINE_LOAD_RESULT_DOC_ABSENT =
+            "Consumer [{}] document not present; the Engine load result of node [{}] is not recorded.";
+    public static final String W_LOG_ENGINE_LOAD_RESULT_FAILED =
+            "Could not record the Engine load result in consumer [{}], retrying in [{}]: {}";
+    public static final String D_LOG_ENGINE_LOAD_RESULT_NODE_STOPPING =
+            "Node is shutting down; the Engine load result is not recorded: {}";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =

@@ -506,6 +506,10 @@ public abstract class AbstractConsumerService {
      * Read failures and an absent document are treated as "nothing pending" rather than propagated,
      * so a transient read error never permanently wedges a retry.
      *
+     * <p>{@link LocalConsumer#PHASE_ENGINE_LOAD} is never among them: it records the Engine load
+     * failures of the ruleset, which the Engine content loader owns, and every write of the document
+     * keeps it as stored (see {@link ConsumersIndex#setConsumer(LocalConsumer, boolean)}).
+     *
      * @return The pending phase names, or an empty list if none are pending or the document is
      *     absent/unreadable.
      */

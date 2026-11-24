@@ -193,7 +193,7 @@ The policy hash is an aggregate SHA-256 computed from the individual hashes of t
 - Changes to the enrichment types list
 - Reordering of the filters list
 
-The engine load is best-effort: if the Engine is unreachable or refuses the policy, the error is logged but the operation (sync or REST update) still succeeds. The node retries the load on its own, after 5 seconds and then with a delay that doubles up to 5 minutes, until the Engine accepts it.
+The engine load is best-effort: if the Engine is unreachable or refuses the policy, the error is logged but the operation (sync or REST update) still succeeds. The node retries the load on its own, after 5 seconds and then with a delay that doubles up to 5 minutes, until the Engine accepts it. Until then, the ruleset consumer document in `.wazuh-cti-consumers` lists `engine_load` in `pending_sync_phases`, with the reason in `engine_load_error` (see [Index structure](#index-structure)).
 
 Each node loads a space into its Engine one load at a time. A change to the standard space, whether by CTI sync or a REST update, is broadcast to every node, and each node reloads the spaces whose hash changed. A change that arrives while a reload is running makes that reload check the spaces once more when it ends, so it is never left out. All the policies a node sends to its Engine, including the validations of a promotion, are sent one after the other, because the Engine fails two loads of the same space that overlap.
 
@@ -411,6 +411,34 @@ The offsets tell how far the content is synced. `local_offset` is the offset of 
 For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management. A sync records all of them before it changes the content, by a snapshot, incremental changes or a swap, and removes the ones that succeeded when it ends. A phase that fails stays listed, and a sync cut by a restart or an exception keeps all of them; they are retried on the next scheduled sync, even without new CTI content. A sync that resumes them after a cut also re-applies the user's overrides and reloads the `standard` space into the engines, which the cut sync may not have reached. A sync with nothing pending also checks that each integration with enabled rules has its detector, and syncs all three phases again when any is missing.
 
 For the IoC consumer, `pending_sync_phases` holds `ioc_load`, the storing of the IoC type hashes and the export of the IoCs to the engine. It is recorded before the content changes and removed once both finish, so a sync cut before them, by a restart or a failure, has the next sync run them even without new CTI content. The engine's answer does not keep it listed: the node running the sync may have no engine.
+
+For the ruleset consumer, `pending_sync_phases` also lists `engine_load` while some node failed to load the `standard` space into its engine and has not loaded it since. It is not a sync phase: each node records the answer of its own engine, and the sync keeps the entry as it is. `engine_load_error` then tells why:
+
+```json
+"pending_sync_phases": ["engine_load"],
+"engine_load_error": {
+  "failed_at": "2026-11-24T07:57:05.132Z",
+  "reason": "refused",
+  "message": "Failed to create the testing environment: Error building decoder decoder/syslog/0 from integration 'wazuh-core': In stage 'normalize' builder for block 'map' failed with error: Operation builder 'kvdb_get' not found",
+  "node": "node-1",
+  "nodes": {
+    "Gf3oK2V-TICClAf1Mqpfgg": {
+      "failed_at": "2026-11-24T07:57:05.132Z",
+      "reason": "refused",
+      "message": "Failed to create the testing environment: Error building decoder decoder/syslog/0 from integration 'wazuh-core': In stage 'normalize' builder for block 'map' failed with error: Operation builder 'kvdb_get' not found",
+      "node": "node-1"
+    }
+  }
+}
+```
+
+- `reason`: `refused` when the engine read the policy and rejected it (a 4xx answer), `unreachable` when it could not be reached or failed (a 5xx answer, or a missing or unusable socket).
+- `message`: the engine's error, cut to 1024 characters.
+- `node`: the name of the node that failed. With several failing nodes, the top-level fields show the most recent failure.
+- `failed_at`: when that node started failing this way. Retries that fail the same way leave it as it is.
+- `nodes`: the failure of each failing node, by node ID. It is stored but not indexed.
+
+A node's failure is removed when its engine accepts the space, including a space whose content went back to the version the engine already holds, which the node sends again. It is also removed when the node leaves the cluster: the elected cluster manager drops the failures of departed nodes, and a node that rejoins and fails again is listed again. The document is written only when a node starts failing, fails in another way or loads the space again. The load itself is retried by the node, as described in [Standard policy Engine loading](#standard-policy-engine-loading), not by the next sync.
 
 Two timestamps, in UTC with millisecond precision, tell when the content last changed and when Wazuh CTI was last asked for changes:
 
