@@ -28,6 +28,8 @@ The events, raw events and findings streams acknowledge a write before it is syn
 
 ### Stateful indices
 
+Each stateful index is an alias over a concrete index named `<name>-a` (or `<name>-b` after a rebuild). The Wazuh server, the dashboard and the API read and write through `<name>`; the alias is what lets a breaking schema change be applied by rebuilding the data into the spare slot and switching the alias atomically. See [Alias-backed indices](architecture.md#alias-backed-indices).
+
 | Index                                       | Description                                                                                                                                                                                                   |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `wazuh-agent-config`                        | Most recent configuration reported by each agent, per module. The existing document is overwritten on each report, so no history is kept.                                                                      |

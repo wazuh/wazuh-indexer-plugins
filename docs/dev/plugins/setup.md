@@ -19,6 +19,8 @@ classDiagram
     class IndexStateManagement
     class WazuhIndex
     <<abstract>> WazuhIndex
+    class AliasedIndex
+    <<abstract>> AliasedIndex
     class StateIndex
     class StreamIndex
     class ContentIndex
@@ -27,9 +29,10 @@ classDiagram
     IndexInitializer <|-- Index : implements
     Index <|-- IndexStateManagement
     Index <|-- WazuhIndex
-    WazuhIndex <|-- StateIndex
+    WazuhIndex <|-- AliasedIndex
     WazuhIndex <|-- StreamIndex
-    WazuhIndex <|-- ContentIndex
+    AliasedIndex <|-- StateIndex
+    AliasedIndex <|-- ContentIndex
 
     %% Schemas
     class IndexInitializer {
@@ -64,16 +67,22 @@ classDiagram
         +StreamIndex(String index, String template, String alias)
         +createIndex(String index)
     }
-    class StateIndex {
-    }
-    class ContentIndex {
+    class AliasedIndex {
         +String SUFFIX_A
-        +ContentIndex(String index, String template)
         +getPhysicalName() String
         +createIndex(String index)
-        +createTemplate(String template)
-        -deleteSquatterIndex(String alias) void
-        -ensureAlias(String alias, String physicalName) void
+        #customizeTemplate(IndexTemplate template) void
+        #onConcreteIndexAtAliasName(String alias)* void
+        #aliasExists(String alias) bool
+    }
+    class StateIndex {
+        +StateIndex(String index, String template)
+        #onConcreteIndexAtAliasName(String alias) void
+    }
+    class ContentIndex {
+        +ContentIndex(String index, String template)
+        #templateName(String templatePath) String
+        #onConcreteIndexAtAliasName(String alias) void
     }
 ```
 
@@ -184,7 +193,7 @@ Edit the constructor of the `SetupPlugin` class located at: `/plugins/setup/src/
 Add the template and index entry to the `indices` map. There are three kinds of indices:
 
 - **Stream index**. Stream indices contain time-based events of any kind (alerts, statistics, logs...). These are created as Data Streams.
-- **Stateful index**. Stateful indices represent the most recent information of a subject (active vulnerabilities, installed packages, open ports, ...). These indices are different from Stream indices as they do not contain timestamps. The information is not based on time, as they always represent the most recent state.
+- **Stateful index**. Stateful indices represent the most recent information of a subject (active vulnerabilities, installed packages, open ports, ...). These indices are different from Stream indices as they do not contain timestamps. The information is not based on time, as they always represent the most recent state. They are alias-backed: see [State indices](#state-indices) below.
 - **Content index**. Content indices hold the CTI catalog content the Content Manager downloads. They are not addressed by their own name: see [Threat intel content indices](#threat-intel-content-indices) below.
 
 ```java
@@ -629,6 +638,22 @@ The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `
 
 ---
 
+## State indices
+
+### Why the alias
+
+A state index is never addressed by its own name either. `StateIndex` extends `AliasedIndex`, the class that holds the alias topology shared with the content indices: the concrete index is `<name>-a`, a write alias `<name>` points at it, and `customizeTemplate()` rewrites the template's `index_patterns` to `<name>*` so the template covers both slots and the alias name. A breaking schema change can then be applied by rebuilding the data into the spare `<name>-b` slot and swapping the alias in one atomic action, instead of deleting the only copy of the data and reindexing it while writes are blocked. `AliasedIndex.createIndex()` does nothing once the alias exists, whichever slot it points at.
+
+The state templates are stored under the default name derived from their path (`states-sca`, `states-inventory-packages`, ...); only the content indices override `templateName()` to `<name>-template`.
+
+### A concrete index at the alias name
+
+The two classes differ in what they do with a concrete index found at the alias name, through `onConcreteIndexAtAliasName()`. `ContentIndex` deletes it, because it can only be a squatter auto-created by an early write of the Content Manager itself and its content is downloaded again. `StateIndex` does not expect one: the alias is created before any writer can reach the name, and the user the Wazuh server writes with has no permission to create indices, so a state write that arrives before the alias exists is rejected rather than auto-creating anything. It counts the documents of the index. An empty one is deleted and `<name>-a` is created with the alias as on a fresh cluster. One that holds documents is the state of every agent, which nothing re-sends, so it is kept and an `AliasedIndex.ConcreteIndexAtAliasName` exception names it; `AliasedIndex.createIndex()` does not retry that one, unlike any other failure, and `SetupPlugin` sets the marker to `failed`. The operator deletes the index, or reindexes it into `<name>-a` by hand, and restarts.
+
+### Testing
+
+`StateIndexTests` covers the fresh creation, the alias on the alternate slot, the template name and patterns, the deletion of an empty concrete index and the refusal of a populated one, with mocked clients. `StateIndicesIT` checks the topology on the gradle cluster: the `-a` indices, the aliases with `is_write_index`, the template patterns, and a write through the alias landing in the concrete index.
+
 ## Threat intel content indices
 
 ### Overview
@@ -659,13 +684,13 @@ The module is `wcs/content/vulnerabilities`. `ignore_malformed` and `dynamic` ar
 
 ### Why the alias
 
-A content index is never addressed by its own name. `ContentIndex` creates the concrete index as
-`<name>-a` and points a write alias named `<name>` at it. The Content Manager needs that
+A content index is never addressed by its own name. `ContentIndex` extends `AliasedIndex`, which
+creates the concrete index as `<name>-a` and points a write alias named `<name>` at it. The Content Manager needs that
 indirection: when the content source changes (a plan upgrade or downgrade), it rebuilds the whole
 catalog into a hidden `<name>-b` shadow index and swaps the alias in a single atomic action, so
 readers never see a partially populated index. The two slots alternate on each swap.
 
-`ContentIndex.createTemplate()` therefore rewrites the template's `index_patterns` to `<name>*`,
+`AliasedIndex.customizeTemplate()` therefore rewrites the template's `index_patterns` to `<name>*`,
 whatever the shipped JSON declares. That covers the live slot, the shadow slot and — as a last line
 of defence — the alias name itself.
 
@@ -707,8 +732,8 @@ means something created the index before the template existed.
 If a write reaches the alias name before anything creates the alias, OpenSearch auto-creates a
 concrete index called `<name>` with dynamic mappings. Every keyword the schema declares becomes a
 `text` field, which has no doc_values and so cannot be aggregated or sorted on, and the index
-occupies the name the alias needs. `ContentIndex.createIndex()` deletes such an index before
-creating `<name>-a`. The Content Manager then finds the index empty with a non-zero local offset and
+occupies the name the alias needs. `ContentIndex.onConcreteIndexAtAliasName()` deletes such an
+index before `<name>-a` is created. The Content Manager then finds the index empty with a non-zero local offset and
 resets the offset, so the content is downloaded again on the same synchronization pass.
 
 ### Where the mappings live
