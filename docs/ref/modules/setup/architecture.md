@@ -64,6 +64,24 @@ The result is stored in `.wazuh-setup-status`, one document per managed index, w
 
 The marker is set to `ready` only when every record is `up_to_date`; while any index is pending it stays `running`. The ISM configuration index (`.opendistro-ism-config`) has no record: the ISM plugin versions that mapping itself. The `.wazuh-setup-status` index is the one exception to "a stored template only applies to indices created afterwards": it holds the records of the running version, so the plugin pushes the shipped mappings to it on every boot before writing them.
 
+### Schema upgrades
+
+Right after the detection, in the same initialization, the plugin upgrades the pending indices as far as it can without copying data. The marker is written only afterwards, so the plugins that wait for it see the upgraded indices.
+
+An index in `upgrade_in_place` receives three requests, in this order, addressed to its public name: the index itself, the index behind a content alias, or every backing index of a data stream.
+
+1. The shipped mappings, without their `_meta`. OpenSearch merges them into the live mapping, which only accepts additive changes. A field whose type differs is a conflict the versioning missed: the request is rejected, the index is recorded as `rebuild_required`, and nothing else is changed on it.
+2. The dynamic settings of the shipped template. A setting the node knows as static (`index.number_of_shards`, `index.codec`, ...) cannot be changed on an existing index and is left out; a change to one of them is breaking by definition. Every other setting of the template is applied, which also resets a dynamic setting an operator changed by hand to the shipped value.
+3. The shipped `schema_version` and `compat_version`, written into the `_meta` of the live mapping. This is what the detection reads, so it goes last: an upgrade interrupted before it is still detected as pending on the next boot.
+
+The first two steps are recorded in the index's record as `mappings_updated` and `settings_updated`, and an interrupted upgrade resumes after the last one recorded. The record ends `up_to_date` with the shipped version as the installed one.
+
+A data stream in `rebuild_required` is rolled over once instead. The new write index is created from the stored template, so it carries the shipped mappings, settings and versions, and it is registered with the stream's ISM policy the same way the first backing index is at creation. The previous backing indices keep their definition until the policy deletes them: a data stream is never reindexed. ISM finds the previous write index already rolled over and moves it towards deletion on the policy's usual schedule, as after a rollover it performed itself (see [Retention](./retention.md)).
+
+Any other index in `rebuild_required` (a state, content or internal index) stays pending and is reported in the log; the marker stays `running`. Rebuilding those indices is not automated by this version.
+
+A step that fails for another reason, such as a timeout, is logged with the index name. Its record keeps the last step completed, the upgrade of the other indices goes on, and the failed one is retried on the next boot.
+
 ### Replica configuration
 
 During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.

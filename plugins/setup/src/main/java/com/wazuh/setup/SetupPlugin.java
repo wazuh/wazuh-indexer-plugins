@@ -62,6 +62,7 @@ import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.InternalIndexReplicas;
 import com.wazuh.setup.index.SchemaDriftDetector;
+import com.wazuh.setup.index.SchemaUpgrader;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
@@ -299,6 +300,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                                         new SchemaDriftDetector(
                                                                         SetupPlugin.this.indices, SetupPlugin.this.setupStatusIndex)
                                                                 .detect();
+                                                records =
+                                                        new SchemaUpgrader(
+                                                                        SetupPlugin.this.indices, SetupPlugin.this.setupStatusIndex)
+                                                                .upgrade(records);
                                                 List<String> pending =
                                                         records.stream()
                                                                 .filter(IndexRecord::isPending)

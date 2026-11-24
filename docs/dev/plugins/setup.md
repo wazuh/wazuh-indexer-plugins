@@ -25,10 +25,14 @@ classDiagram
     class StreamIndex
     class ContentIndex
     class SetupConfig
+    class SchemaDriftDetector
+    class SchemaUpgrader
 
     %% Relations
     Index --> SetupConfig : template overrides
     IndexStateManagement --> SetupConfig : replaced policies
+    SchemaDriftDetector ..> Index : reads
+    SchemaUpgrader ..> Index : upgrades
     IndexInitializer <|-- Index : implements
     Index <|-- IndexStateManagement
     Index <|-- WazuhIndex
@@ -149,6 +153,22 @@ sequenceDiagram
     end
     SchemaDriftDetector-->>SetupPlugin: records
     deactivate SchemaDriftDetector
+
+    participant SchemaUpgrader
+    SetupPlugin->>SchemaUpgrader: upgrade(records)
+    activate SchemaUpgrader
+    loop i..n pending records
+        alt upgrade_in_place
+            SchemaUpgrader->>Index: applyShippedMappings(), applyShippedSettings(), stampShippedVersion()
+        else rebuild_required on a data stream
+            SchemaUpgrader->>StreamIndex: rollover()
+        end
+        Index-)Client: put mapping / update settings / rollover
+        Client--)Index: response
+        SchemaUpgrader-)Client: index the record of i in .wazuh-setup-status
+    end
+    SchemaUpgrader-->>SetupPlugin: records
+    deactivate SchemaUpgrader
     alt every record is up_to_date
         SetupPlugin-)Client: marker = ready
     else
@@ -162,10 +182,28 @@ sequenceDiagram
 Every template carries its `schema_version` and `compat_version` under `mappings._meta` (see the [schema versions](../../../wcs/generator/README.md#schema-versions) of the WCS generator), and every index inherits them when it is created. After the indices are initialized, `SchemaDriftDetector` reads the version the live index of each managed `Index` carries (`Index::getInstalledSchemaVersion()`, which resolves a data stream or a content alias to its write index), classifies it against the shipped template with `SchemaStatus::classify()`, and stores an `IndexRecord` per index in `.wazuh-setup-status` through `SetupStatusIndex`. The readiness marker is written as `ready` only when no record is pending.
 
 - An `Index` whose `isVersioned()` returns false is skipped. `IndexStateManagement` does, because the ISM plugin versions the mapping of `.opendistro-ism-config` itself through its own `_meta.schema_version`.
-- The `step` of a pending record survives the detection, so an upgrade interrupted by a restart resumes from the last step it recorded. The upgrade steps themselves are implemented separately and read these records.
+- The `step` of a pending record survives the detection, so an upgrade interrupted by a restart resumes from the last step it recorded. The upgrade itself follows: see [Schema upgrade](#schema-upgrade).
 - `SetupStatusIndex` pushes the shipped mappings to its own index on every boot, before any record is written: its mapping is strict, and the index outlives upgrades, so a record field added by a newer version would otherwise be rejected.
 
 See [Architecture](../../ref/modules/setup/architecture.md#schema-versions) for the record layout and the statuses.
+
+## Schema upgrade
+
+`SchemaUpgrader` takes the records the detection wrote and upgrades every pending index it can without copying data, writing the records as it goes. `SetupPlugin` runs it right after the detection and computes the readiness marker from the records it returns.
+
+An `upgrade_in_place` record drives three `Index` methods, in this order, each addressed to the index's public name so OpenSearch resolves a content alias to the index behind it and a data stream to every backing index:
+
+1. `applyShippedMappings()` sends the template's mappings without their `_meta` in a `PutMappingRequest`. OpenSearch merges them, and rejects a field whose type changed with an `IllegalArgumentException` (or a `MapperException`): the upgrader records the index as `rebuild_required` and touches nothing else on it.
+2. `applyShippedSettings()` sends the dynamic settings of the template in an `UpdateSettingsRequest`. `Index.dynamicSettings()` loads the template's settings into a `Settings` object with the `index.` prefix normalized and drops every key that `IndexScopedSettings.DEFAULT_SCOPED_SETTINGS` knows as static; a key the node does not know, such as the ISM `policy_id`, is kept and validated by OpenSearch.
+3. `stampShippedVersion()` sends only the template's `_meta`, so the index reads as up to date from then on. The steps 1 and 2 are recorded as `Index.STEP_MAPPINGS_UPDATED` and `Index.STEP_SETTINGS_UPDATED` and skipped on resume.
+
+A `rebuild_required` record on a `StreamIndex` calls `rollover()`: a `RolloverRequest` on the stream, a check that it was performed, and `registerWithISM()` for the new write index, as at creation. The record is then rewritten from the version the new write index carries. On any other index class the record is left pending with a warning.
+
+Any other exception from a step is caught per index: it is logged, the record keeps the last step written, and the loop goes on with the next index.
+
+### Testing
+
+`SchemaUpgraderTests` covers the sequence and its records, the mapping conflict, the two resume points, a failed settings update, the rollover of a stream and the untouched cases, with a mocked client and a cluster state built from `IndexMetadata`, against the `templates/upgradable.json` test resource (50300, compatible from 50200, static and dynamic settings). `SchemaUpgradeIT` exercises on the gradle cluster the OpenSearch operations the upgrade relies on: a mapping update addressed to a data stream reaches every backing index without rolling it over, a dynamic settings update through a state index name is applied while a static one is rejected, a mapping update through a content alias reaches the physical index, and a rollover creates a write index at the shipped version that ISM manages like the previous one. The upgrade itself only runs at boot on an index created from an older template, which the gradle cluster cannot produce.
 
 ## JavaDoc
 

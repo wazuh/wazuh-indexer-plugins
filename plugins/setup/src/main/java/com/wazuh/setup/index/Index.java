@@ -23,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.metadata.IndexAbstraction;
@@ -30,11 +32,15 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.compress.CompressedXContent;
+import org.opensearch.common.settings.IndexScopedSettings;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +61,17 @@ public abstract class Index implements IndexInitializer {
 
     /** Value of {@code index.auto_expand_replicas} when the replica count is fixed. */
     private static final String AUTO_EXPAND_DISABLED = "false";
+
+    /** Upgrade step recorded once the shipped mappings have been merged into the live index. */
+    public static final String STEP_MAPPINGS_UPDATED = "mappings_updated";
+
+    /**
+     * Upgrade step recorded once the shipped dynamic settings have been applied to the live index.
+     */
+    public static final String STEP_SETTINGS_UPDATED = "settings_updated";
+
+    /** Prefix every index setting is stored under. */
+    private static final String INDEX_SETTINGS_PREFIX = "index.";
 
     // Dependencies.
     Client client;
@@ -339,6 +356,103 @@ public abstract class Index implements IndexInitializer {
      * @param indexTemplate the parsed template, modified in place.
      */
     protected void customizeTemplate(IndexTemplate indexTemplate) {}
+
+    /**
+     * Merges the shipped mappings, without their {@code _meta}, into the live index: the index
+     * itself, the index behind an alias, or every backing index of a data stream. OpenSearch only
+     * accepts additive changes: a field whose type differs from the live one is rejected and the
+     * mapping is left as it was.
+     *
+     * @throws IOException if the shipped template cannot be read.
+     * @throws IllegalArgumentException if the shipped mappings conflict with the live ones.
+     */
+    public void applyShippedMappings() throws IOException {
+        Map<String, Object> mappings = new HashMap<>(this.loadTemplate().getMappings());
+        mappings.remove(IndexTemplate.META_KEY);
+        this.putMapping(mappings);
+        log.info("Shipped mappings merged into [{}].", this.index);
+    }
+
+    /**
+     * Applies the dynamic settings of the shipped template to the live index: the index itself, the
+     * index behind an alias, or every backing index of a data stream. Static settings cannot be
+     * changed on an existing index and are left out; see {@link #dynamicSettings(IndexTemplate,
+     * String)}.
+     *
+     * @throws IOException if the shipped template cannot be read.
+     */
+    public void applyShippedSettings() throws IOException {
+        Settings dynamic = Index.dynamicSettings(this.loadTemplate(), this.index);
+        if (dynamic.isEmpty()) {
+            log.debug("The shipped template of [{}] carries no dynamic setting to apply.", this.index);
+            return;
+        }
+        this.client
+                .admin()
+                .indices()
+                .updateSettings(new UpdateSettingsRequest(this.index).settings(dynamic))
+                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+        log.info("Shipped dynamic settings applied to [{}]: {}", this.index, dynamic.keySet());
+    }
+
+    /**
+     * Writes the schema versions of the shipped template into the {@code _meta} of the live index,
+     * which is what {@link #getInstalledSchemaVersion()} reads. This is the last step of an upgrade
+     * in place: once written, the index is reported up to date.
+     *
+     * @throws IOException if the shipped template cannot be read.
+     */
+    public void stampShippedVersion() throws IOException {
+        Map<String, Object> versions = this.loadTemplate().getSchemaVersions();
+        this.putMapping(Map.of(IndexTemplate.META_KEY, versions));
+        log.info(
+                "Index [{}] stamped with schema version {}.",
+                this.index,
+                versions.get(IndexTemplate.SCHEMA_VERSION_KEY));
+    }
+
+    /**
+     * Sends a mapping update to the live index.
+     *
+     * @param mappings the mapping to merge.
+     * @throws IOException if the mapping cannot be serialized.
+     */
+    private void putMapping(Map<String, Object> mappings) throws IOException {
+        String source = new ObjectMapper().writeValueAsString(mappings);
+        this.client
+                .admin()
+                .indices()
+                .putMapping(new PutMappingRequest(this.index).source(source, XContentType.JSON))
+                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+    }
+
+    /**
+     * Keeps the settings of a template that can be changed on an existing index. A setting the node
+     * knows as static ({@code index.number_of_shards}, {@code index.codec}, ...) is dropped: a change
+     * to it is breaking by definition and is applied by a rebuild. A setting the node does not know,
+     * such as one registered by another plugin, is kept and validated by the update.
+     *
+     * @param template the shipped template.
+     * @param index the index the settings are for, named in the log.
+     * @return the dynamic settings, with the {@code index.} prefix normalized.
+     */
+    static Settings dynamicSettings(IndexTemplate template, String index) {
+        Settings shipped =
+                Settings.builder()
+                        .loadFromMap(template.getSettings())
+                        .normalizePrefix(INDEX_SETTINGS_PREFIX)
+                        .build();
+        Settings.Builder dynamic = Settings.builder();
+        for (String key : shipped.keySet()) {
+            Setting<?> setting = IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.get(key);
+            if (setting != null && !setting.isDynamic()) {
+                log.debug("Setting [{}] of [{}] is static and is not applied in place.", key, index);
+                continue;
+            }
+            dynamic.copy(key, shipped);
+        }
+        return dynamic.build();
+    }
 
     /**
      * Returns whether the index exists.
