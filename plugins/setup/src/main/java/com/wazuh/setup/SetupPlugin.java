@@ -59,10 +59,12 @@ import com.wazuh.setup.index.ContentIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.InternalIndexReplicas;
+import com.wazuh.setup.index.SchemaDriftDetector;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
+import com.wazuh.setup.model.IndexRecord;
 import com.wazuh.setup.rest.RestDeleteAiAssistantProviderAction;
 import com.wazuh.setup.rest.RestDeleteAiAssistantSessionAction;
 import com.wazuh.setup.rest.RestGetAiAssistantSettingsAction;
@@ -278,7 +280,28 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                                             try {
                                                 SetupPlugin.this.indices.forEach(Index::initialize);
-                                                SetupPlugin.this.setupStatusIndex.markReady();
+                                                // The marker says ready only when every index is at the
+                                                // shipped schema version. While one still needs an
+                                                // upgrade it stays running, so the plugins that wait
+                                                // for it keep waiting.
+                                                List<IndexRecord> records =
+                                                        new SchemaDriftDetector(
+                                                                        SetupPlugin.this.indices, SetupPlugin.this.setupStatusIndex)
+                                                                .detect();
+                                                List<String> pending =
+                                                        records.stream()
+                                                                .filter(IndexRecord::isPending)
+                                                                .map(IndexRecord::index)
+                                                                .toList();
+                                                if (pending.isEmpty()) {
+                                                    SetupPlugin.this.setupStatusIndex.markReady();
+                                                } else {
+                                                    log.warn(
+                                                            "Setup stays [{}]: {} indices need a schema upgrade: {}",
+                                                            SetupStatusIndex.SETUP_STATUS_RUNNING,
+                                                            pending.size(),
+                                                            pending);
+                                                }
                                             } catch (Exception e) {
                                                 log.error("Setup initialization failed: {}", e.getMessage(), e);
                                                 SetupPlugin.this.setupStatusIndex.markFailed();

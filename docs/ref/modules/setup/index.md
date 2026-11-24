@@ -57,7 +57,7 @@ These indices support the plugin's own operation rather than storing Wazuh data 
 
 | Index                     | Description                                                                                                          |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `.wazuh-setup-status`      | Hidden, single-document index recording the plugin's initialization state (`running`, `ready`, or `failed`). See [Architecture](architecture.md#readiness-marker). |
+| `.wazuh-setup-status`      | Hidden index recording the plugin's initialization state (`running`, `ready`, or `failed`) and, per managed index, the schema version it carries and whether it needs an upgrade. See [Readiness marker](architecture.md#readiness-marker) and [Schema versions](architecture.md#schema-versions). |
 | `.wazuh-settings`          | Stores cluster-wide Wazuh settings managed through the [API reference](api-reference.md), such as the Engine's raw-event indexing flag. |
 | `.wazuh-internal-state` | Hidden system index holding the AI assistant's providers configuration, assistant-wide settings and field policy, plus Content Manager's internal state. Reachable only through the plugin's administrative AI assistant API. |
 | ISM policy config index    | Internal OpenSearch Index State Management configuration index used to register the plugin's rollover policies.       |
