@@ -47,7 +47,7 @@ fields_to_check=(
 # Check mappings ensuring all fields are present
 for index in "${indices[@]}"; do
     echo "Checking index: $index"
-    mapping=$(curl -s "http://localhost:9200/$index/_mapping" | jq -r ".[\"$index\"].mappings.properties")
+    mapping=$(curl -s "http://localhost:9200/$index/_mapping" | jq -r ".[].mappings.properties")
     for field in "${fields_to_check[@]}"; do
         if ! echo "$mapping" | jq -e ".$field" > /dev/null; then
             echo "Field '$field' is missing in index '$index'"

@@ -170,8 +170,9 @@ public class StateIndexTests extends OpenSearchTestCase {
         doReturn(true).when(this.metadata).hasIndex(ALIAS);
         this.counts.put(ALIAS, 42L);
 
-        IllegalStateException e =
-                expectThrows(IllegalStateException.class, () -> this.stateIndex.createIndex(ALIAS));
+        AliasedIndex.ConcreteIndexAtAliasName e =
+                expectThrows(
+                        AliasedIndex.ConcreteIndexAtAliasName.class, () -> this.stateIndex.createIndex(ALIAS));
 
         assertTrue(e.getMessage(), e.getMessage().contains("[" + ALIAS + "]"));
         assertTrue(e.getMessage(), e.getMessage().contains("42 documents"));

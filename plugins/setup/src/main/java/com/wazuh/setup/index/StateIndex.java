@@ -58,14 +58,14 @@ public class StateIndex extends AliasedIndex {
      * initialization fails naming it.
      *
      * @param alias the public alias name, which is also the name of the concrete index.
-     * @throws IllegalStateException if the concrete index holds documents.
+     * @throws ConcreteIndexAtAliasName if the concrete index holds documents.
      */
     @Override
     protected void onConcreteIndexAtAliasName(String alias) {
         long timeout = PluginSettings.getTimeout(this.clusterService.getSettings());
         long documents = this.count(alias, timeout);
         if (documents > 0) {
-            throw new IllegalStateException(
+            throw new ConcreteIndexAtAliasName(
                     "["
                             + alias
                             + "] is a concrete index holding "

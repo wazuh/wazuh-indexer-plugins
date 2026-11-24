@@ -54,6 +54,19 @@ public abstract class AliasedIndex extends WazuhIndex {
     /** Suffix of the concrete index this class creates and points the public alias at. */
     public static final String SUFFIX_A = "-a";
 
+    /** Thrown when the alias name is taken by a concrete index the subclass refuses to remove. */
+    public static class ConcreteIndexAtAliasName extends IllegalStateException {
+
+        /**
+         * Default constructor.
+         *
+         * @param message the reason, which names the index.
+         */
+        public ConcreteIndexAtAliasName(String message) {
+            super(message);
+        }
+    }
+
     /**
      * Constructor.
      *
@@ -125,7 +138,7 @@ public abstract class AliasedIndex extends WazuhIndex {
                     index);
         } catch (ResourceAlreadyExistsException e) {
             log.debug("Index {} already exists. Skipping.", physicalName);
-        } catch (IllegalStateException e) {
+        } catch (ConcreteIndexAtAliasName e) {
             // The name is taken by an index the subclass refuses to remove. Not a transient failure:
             // no retry, and the initialization fails naming the index.
             log.error("Cannot create the alias [{}]: {}", index, e.getMessage());
@@ -153,7 +166,7 @@ public abstract class AliasedIndex extends WazuhIndex {
      * are created as on a fresh cluster.
      *
      * @param alias the public alias name, which is also the name of the concrete index.
-     * @throws IllegalStateException if the index is kept, which fails the initialization.
+     * @throws ConcreteIndexAtAliasName if the index is kept, which fails the initialization.
      */
     protected abstract void onConcreteIndexAtAliasName(String alias);
 
