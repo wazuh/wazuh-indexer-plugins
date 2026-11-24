@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.wazuh.contentmanager.cti.catalog.model.EngineLoadFailure;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -87,6 +88,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
     private EngineService engine;
     private SpaceService spaceService;
     private ThreadPool threadPool;
+    private EngineLoadReporter reporter;
     private EngineContentLoader loader;
 
     @Override
@@ -98,11 +100,13 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.engine = mock(EngineService.class);
         this.spaceService = mock(SpaceService.class);
         this.threadPool = mock(ThreadPool.class);
+        this.reporter = mock(EngineLoadReporter.class);
         // Run the (normally forked) blocking Engine call on the calling thread so each
         // reloadIfChanged() finishes synchronously; schedule() is left returning null, which the
         // loader treats as "watchdog could not be armed".
         when(this.threadPool.generic()).thenReturn(OpenSearchExecutors.newDirectExecutorService());
-        this.loader = new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
+        this.loader =
+                new EngineContentLoader(this.engine, this.spaceService, this.threadPool, this.reporter);
 
         // Default: every space has no policy (skipped). Individual tests override per space so an
         // untouched tracked space is a fast no-op.
@@ -665,7 +669,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
     /** An unavailable Engine is reported to the listener and does not wedge the guard. */
     public void testListenerFailsWhenEngineUnavailable() {
         EngineContentLoader nullEngineLoader =
-                new EngineContentLoader(null, this.spaceService, this.threadPool);
+                new EngineContentLoader(null, this.spaceService, this.threadPool, this.reporter);
 
         AtomicReference<Exception> failure = new AtomicReference<>();
         nullEngineLoader.reloadIfChanged(ActionListener.wrap(v -> {}, failure::set));
@@ -709,6 +713,133 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
                         })
                 .when(this.engine)
                 .promoteAsync(any(), any());
+    }
+
+    /** Answers every promote by failing the Engine call with {@code failure}. */
+    private void promoteFails(Exception failure) {
+        doAnswer(
+                        inv -> {
+                            ActionListener<RestResponse> l = inv.getArgument(1);
+                            l.onFailure(failure);
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(), any());
+    }
+
+    /** A space the Engine accepts is reported as loaded. */
+    public void testLoadIsReported() {
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.okPromote();
+
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter).loaded(STANDARD);
+        verify(this.reporter, never()).failed(any(), any(), any());
+    }
+
+    /** A 4xx is reported as refused, with the Engine's message. */
+    public void testRefusedLoadIsReported() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter).failed(STANDARD, EngineLoadFailure.REASON_REFUSED, "engine says 400");
+        verify(this.reporter, never()).loaded(any());
+    }
+
+    /**
+     * A 5xx, which the Engine client also uses for a socket it cannot reach, is reported as
+     * unreachable.
+     */
+    public void testUnreachableEngineIsReported() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(500);
+
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter).failed(STANDARD, EngineLoadFailure.REASON_UNREACHABLE, "engine says 500");
+    }
+
+    /**
+     * An Engine call that fails with an exception is reported as unreachable, with a fixed message
+     * rather than the exception's text.
+     */
+    public void testFailedEngineCallIsReportedWithAFixedMessage() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.promoteFails(new IllegalStateException("rejected execution of task on /internal/path"));
+
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter)
+                .failed(
+                        STANDARD,
+                        EngineLoadFailure.REASON_UNREACHABLE,
+                        Constants.ENGINE_LOAD_CALL_FAILED_MESSAGE);
+    }
+
+    /** A call cut by this node stopping is not an Engine failure, and is not reported. */
+    public void testCallCutByShutdownIsNotReported() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.promoteFails(new NodeClosedException((DiscoveryNode) null));
+
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter, never()).failed(any(), any(), any());
+        verify(this.reporter, never()).loaded(any());
+    }
+
+    /** Passes that find the space unchanged make no Engine call and report nothing more. */
+    public void testUnchangedSpaceIsNotReportedAgain() {
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.okPromote();
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        verify(this.reporter, times(1)).loaded(STANDARD);
+    }
+
+    /** A refused space skipped until its retry makes no Engine call and reports nothing more. */
+    public void testSkippedRefusedSpaceIsNotReportedAgain() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(1)).promoteAsync(any(), any());
+        verify(this.reporter, times(1)).failed(any(), any(), any());
+    }
+
+    /**
+     * A space that goes back to the hash already loaded after a failed load, for example because a
+     * refused change was reverted, is sent again rather than skipped as unchanged: its recorded
+     * failure is cleared by the Engine's answer. Once loaded, it is skipped again.
+     */
+    public void testRevertToTheLoadedHashIsSentAgain() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.okPromote();
+        this.loader.reloadIfChanged();
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-2"));
+        this.promoteAnswers(400);
+        this.loader.reloadIfChanged();
+        verify(this.reporter).failed(STANDARD, EngineLoadFailure.REASON_REFUSED, "engine says 400");
+
+        this.stubPolicy(STANDARD, EngineContentLoaderTests.policyWithHash(STANDARD, "std-1"));
+        this.okPromote();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(3)).promoteAsync(any(), any());
+        verify(this.reporter, times(2)).loaded(STANDARD);
     }
 
     /**

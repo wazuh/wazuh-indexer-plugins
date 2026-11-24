@@ -32,9 +32,11 @@ import org.opensearch.threadpool.ThreadPool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.wazuh.contentmanager.cti.catalog.model.EngineLoadFailure;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -67,6 +69,10 @@ import com.wazuh.contentmanager.utils.TransientFailures;
  * the same hash: the Engine would refuse it again, and each pass would rebuild the whole payload on
  * every cluster-state update, of which a starting node fires many. Once loaded, every later call is
  * a cheap in-memory comparison.
+ *
+ * <p>The outcome of each Engine call is handed to an {@link EngineLoadReporter}, which records the
+ * failures of the {@code standard} space in the ruleset consumer document, where clients read the
+ * state of the CTI ruleset.
  *
  * <p>The reload is fully asynchronous: the index reads are chained through {@link ActionListener}
  * callbacks instead of being awaited on a pool thread, and the tracked spaces are walked one at a
@@ -119,6 +125,7 @@ public class EngineContentLoader {
     private final EngineService engine;
     private final SpaceService spaceService;
     private final ThreadPool threadPool;
+    private final EngineLoadReporter reporter;
 
     /**
      * Set when a space failed to load during the current pass: the Engine refused the payload, could
@@ -150,6 +157,14 @@ public class EngineContentLoader {
      * restart sends every space.
      */
     private final Map<String, String> refusedHashes = new ConcurrentHashMap<>();
+
+    /**
+     * Spaces whose last Engine call failed. Such a space is sent again even at the hash already
+     * loaded, as when a refused change is reverted, so that the failure recorded for it is cleared by
+     * an answer of the Engine rather than assumed gone. In-memory only: after a restart every space
+     * is sent anyway.
+     */
+    private final Set<String> failedSpaces = ConcurrentHashMap.newKeySet();
 
     /**
      * Relative time of the first deferral of the current not-ready streak, or {@link #NOT_DEFERRING}
@@ -198,12 +213,17 @@ public class EngineContentLoader {
      * @param spaceService the space service used to read the content hash and build the payload.
      * @param threadPool the thread pool used to offload the blocking Engine call off the caller
      *     thread and to arm the in-flight watchdog.
+     * @param reporter records the result of each Engine call in the ruleset consumer document.
      */
     public EngineContentLoader(
-            EngineService engine, SpaceService spaceService, ThreadPool threadPool) {
+            EngineService engine,
+            SpaceService spaceService,
+            ThreadPool threadPool,
+            EngineLoadReporter reporter) {
         this.engine = engine;
         this.spaceService = spaceService;
         this.threadPool = threadPool;
+        this.reporter = reporter;
     }
 
     /**
@@ -479,9 +499,10 @@ public class EngineContentLoader {
      * Reloads a single space into the local Engine. Package-private for tests.
      *
      * <p>Reads the space's aggregate hash from {@link Constants#INDEX_POLICIES}; if there is no
-     * policy yet, no usable hash, or the hash matches what is already loaded for this space, it does
-     * nothing. Otherwise it builds the space's engine payload and promotes it, recording the new hash
-     * only on a 200 OK so a non-OK response is retried.
+     * policy yet, no usable hash, or the hash matches what is already loaded for this space and the
+     * last Engine call for it did not fail, it does nothing. Otherwise it builds the space's engine
+     * payload and promotes it, recording the new hash only on a 200 OK so a non-OK response is
+     * retried.
      *
      * <p>A space still at the hash the Engine refused is skipped while a retry is scheduled, and
      * counts as a failed load so the run keeps the retry backoff: the retry sends it again.
@@ -507,7 +528,8 @@ public class EngineContentLoader {
                                 listener.onResponse(null);
                                 return;
                             }
-                            if (desiredHash.equals(this.loadedHashes.get(space))) {
+                            if (desiredHash.equals(this.loadedHashes.get(space))
+                                    && !this.failedSpaces.contains(space)) {
                                 log.debug(Constants.D_LOG_ENGINE_SPACE_UNCHANGED, space);
                                 listener.onResponse(null);
                                 return;
@@ -568,6 +590,12 @@ public class EngineContentLoader {
      * again: it is recorded in {@link #refusedHashes} and the retry is scheduled right away, so the
      * passes until then skip the space.
      *
+     * <p>Every answer is handed to the {@link EngineLoadReporter}: a 200 as loaded, a 4xx as refused,
+     * and any other answer, or a call that failed for a reason other than this node stopping, as
+     * unreachable. The Engine client answers a missing socket, a timeout or an I/O error with its own
+     * 500, so those arrive as answers too. Skipped spaces and failed index reads are not Engine calls
+     * and report nothing.
+     *
      * @param space the space name.
      * @param desiredHash the hash to record once the Engine accepts the payload.
      * @param payload the space's engine payload.
@@ -584,18 +612,37 @@ public class EngineContentLoader {
                                 this.loadedHashes.put(space, desiredHash);
                                 this.refusedHashes.remove(space);
                                 log.info(Constants.I_LOG_ENGINE_SPACE_LOADED, space);
+                                this.failedSpaces.remove(space);
+                                this.reporter.loaded(space);
                             } else {
                                 log.warn(
                                         Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS, space, status, response.getMessage());
                                 this.passFailed = true;
-                                if (status >= 400 && status < 500) {
+                                boolean refused = status >= 400 && status < 500;
+                                if (refused) {
                                     this.refusedHashes.put(space, desiredHash);
                                     this.scheduleRetry();
                                 }
+                                this.failedSpaces.add(space);
+                                this.reporter.failed(
+                                        space,
+                                        refused
+                                                ? EngineLoadFailure.REASON_REFUSED
+                                                : EngineLoadFailure.REASON_UNREACHABLE,
+                                        response.getMessage());
                             }
                             listener.onResponse(null);
                         },
-                        listener::onFailure));
+                        e -> {
+                            if (!NodeShutdown.isShutdownFailure(e)) {
+                                this.failedSpaces.add(space);
+                                this.reporter.failed(
+                                        space,
+                                        EngineLoadFailure.REASON_UNREACHABLE,
+                                        Constants.ENGINE_LOAD_CALL_FAILED_MESSAGE);
+                            }
+                            listener.onFailure(e);
+                        }));
     }
 
     /**

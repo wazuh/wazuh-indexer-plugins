@@ -16,12 +16,15 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.get.GetRequest;
@@ -29,20 +32,30 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.cluster.routing.Preference;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.UnaryOperator;
 
+import com.wazuh.contentmanager.cti.catalog.model.EngineLoadFailure;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
@@ -63,6 +76,27 @@ public class ConsumersIndex {
 
     /** Path of the index mapping file */
     private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";
+
+    /**
+     * Attempts at a conditional write of a consumer document when another writer keeps changing the
+     * stored document between the read and the write.
+     */
+    static final int MAX_WRITE_ATTEMPTS = 5;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** Outcome of {@link #updateEngineLoadFailures}. */
+    public enum EngineLoadUpdate {
+        /** The consumer document does not exist, so there was nothing to record into. */
+        ABSENT,
+        /** The document already held the failures to record: nothing was written. */
+        UNCHANGED,
+        /** The document was written with the new failures. */
+        WRITTEN
+    }
+
+    /** A consumer document as stored, with the sequence number and primary term it was read at. */
+    private record StoredConsumer(LocalConsumer consumer, long seqNo, long primaryTerm) {}
 
     private final Client client;
     private final PluginSettings pluginSettings;
@@ -117,19 +151,41 @@ public class ConsumersIndex {
         String id = consumer.getType();
         WriteRequest.RefreshPolicy refreshPolicy =
                 lightweight ? WriteRequest.RefreshPolicy.NONE : WriteRequest.RefreshPolicy.IMMEDIATE;
-        IndexRequest request =
-                new IndexRequest()
-                        .index(INDEX_NAME)
-                        .id(id)
-                        .source(consumer.toXContent())
-                        .setRefreshPolicy(refreshPolicy);
-
-        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        if (!ConsumersIndex.holdsEngineLoadState(id)) {
+            IndexRequest request =
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .id(id)
+                            .source(consumer.toXContent())
+                            .setRefreshPolicy(refreshPolicy);
+            return this.client
+                    .index(request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        }
+        for (int attempt = 1; ; attempt++) {
+            IndexRequest request =
+                    this.keepingEngineLoadState(consumer, this.readStored(id))
+                            .setRefreshPolicy(refreshPolicy);
+            try {
+                return this.client
+                        .index(request)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                if (attempt >= MAX_WRITE_ATTEMPTS || !ConsumersIndex.isVersionConflict(e)) {
+                    throw e;
+                }
+                log.debug(Constants.D_LOG_CONSUMER_WRITE_CONFLICT, id, attempt);
+            }
+        }
     }
 
     /**
      * Persists several consumer documents in one request. A single refresh makes them visible
      * together, so a reader never sees some of them changed and the others not.
+     *
+     * <p>The ruleset consumer document keeps the Engine load state it has stored, as in {@link
+     * #setConsumer(LocalConsumer, boolean)}. If another writer changed that document between its read
+     * and the bulk request, it is written again on its own, on top of that change.
      *
      * @param consumers The consumers to persist.
      * @throws ExecutionException If the client failed to execute the request.
@@ -146,18 +202,173 @@ public class ConsumersIndex {
             throw new RuntimeException("Index not ready");
         }
         BulkRequest request = new BulkRequest().setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        Map<String, LocalConsumer> byId = new HashMap<>();
         for (LocalConsumer consumer : consumers) {
-            request.add(
-                    new IndexRequest()
-                            .index(INDEX_NAME)
-                            .id(consumer.getType())
-                            .source(consumer.toXContent()));
+            String id = consumer.getType();
+            byId.put(id, consumer);
+            if (ConsumersIndex.holdsEngineLoadState(id)) {
+                request.add(this.keepingEngineLoadState(consumer, this.readStored(id)));
+            } else {
+                request.add(new IndexRequest().index(INDEX_NAME).id(id).source(consumer.toXContent()));
+            }
         }
         BulkResponse response =
                 this.client.bulk(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        if (response.hasFailures()) {
-            throw new IllegalStateException(response.buildFailureMessage());
+        if (!response.hasFailures()) {
+            return;
         }
+        List<LocalConsumer> conflicted = new ArrayList<>();
+        for (BulkItemResponse item : response.getItems()) {
+            if (!item.isFailed()) {
+                continue;
+            }
+            if (item.getFailure().getStatus() != RestStatus.CONFLICT
+                    || !ConsumersIndex.holdsEngineLoadState(item.getId())) {
+                throw new IllegalStateException(response.buildFailureMessage());
+            }
+            conflicted.add(byId.get(item.getId()));
+        }
+        for (LocalConsumer consumer : conflicted) {
+            log.debug(Constants.D_LOG_CONSUMER_WRITE_CONFLICT, consumer.getType(), 1);
+            this.setConsumer(consumer);
+        }
+    }
+
+    /**
+     * Changes the Engine load failures recorded in a consumer document, and nothing else. The stored
+     * document is read and written back with its sequence number, so a concurrent write of the
+     * document, by the synchronization or by another node, is never lost: a conflict reads it again
+     * and reapplies {@code change}, up to {@link #MAX_WRITE_ATTEMPTS} times.
+     *
+     * @param type The consumer type identifier used as the document id.
+     * @param change Computes the failures to record from the ones stored. Called once per attempt, so
+     *     it must not have side effects.
+     * @return Whether the document was absent, already held the result of {@code change}, or was
+     *     written.
+     * @throws ExecutionException If the client failed to execute a request, including when every
+     *     attempt conflicted.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If a request exceeded the configured client timeout.
+     * @throws IOException If the stored document cannot be parsed or the new one built.
+     */
+    public EngineLoadUpdate updateEngineLoadFailures(
+            String type, UnaryOperator<Map<String, EngineLoadFailure>> change)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        for (int attempt = 1; ; attempt++) {
+            StoredConsumer stored = this.readStored(type);
+            if (stored == null) {
+                return EngineLoadUpdate.ABSENT;
+            }
+            Map<String, EngineLoadFailure> current = stored.consumer().getEngineLoadFailures();
+            Map<String, EngineLoadFailure> updated = change.apply(current);
+            if (current.equals(updated)) {
+                return EngineLoadUpdate.UNCHANGED;
+            }
+            IndexRequest request =
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .id(type)
+                            .source(stored.consumer().withEngineLoadFailures(updated).toXContent())
+                            .setIfSeqNo(stored.seqNo())
+                            .setIfPrimaryTerm(stored.primaryTerm())
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            try {
+                this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                return EngineLoadUpdate.WRITTEN;
+            } catch (ExecutionException e) {
+                if (attempt >= MAX_WRITE_ATTEMPTS || !ConsumersIndex.isVersionConflict(e)) {
+                    throw e;
+                }
+                log.debug(Constants.D_LOG_CONSUMER_WRITE_CONFLICT, type, attempt);
+            }
+        }
+    }
+
+    /**
+     * Returns whether documents of this consumer type carry Engine load state. Only the ruleset is
+     * loaded into the Engine by {@code EngineContentLoader}; the other consumers keep the plain
+     * write, with no read before it.
+     *
+     * @param type The consumer type identifier.
+     * @return {@code true} for the ruleset consumer.
+     */
+    private static boolean holdsEngineLoadState(String type) {
+        return Constants.CONSUMER_TYPE_RULESET.equals(type);
+    }
+
+    /**
+     * Builds the write of {@code consumer} that keeps the Engine load failures of the stored
+     * document. Only the Engine content loader changes them, through {@link
+     * #updateEngineLoadFailures}, so any copy the writer holds may be stale and is replaced. The
+     * write is conditional on the stored document not having changed since it was read; a new
+     * document is created only if there still is none.
+     *
+     * @param consumer The consumer to write.
+     * @param stored The stored document, or {@code null} if there is none.
+     * @return The index request, without a refresh policy.
+     * @throws IOException If the document cannot be built.
+     */
+    private IndexRequest keepingEngineLoadState(LocalConsumer consumer, StoredConsumer stored)
+            throws IOException {
+        IndexRequest request = new IndexRequest().index(INDEX_NAME).id(consumer.getType());
+        if (stored == null) {
+            return request.source(consumer.withEngineLoadFailures(null).toXContent()).create(true);
+        }
+        return request
+                .source(
+                        consumer.withEngineLoadFailures(stored.consumer().getEngineLoadFailures()).toXContent())
+                .setIfSeqNo(stored.seqNo())
+                .setIfPrimaryTerm(stored.primaryTerm());
+    }
+
+    /**
+     * Reads a consumer document with the sequence number and primary term needed to write it back
+     * conditionally. The read prefers the primary copy, whose sequence number is the one a
+     * conditional write is checked against.
+     *
+     * @param type The consumer type identifier used as the document id.
+     * @return The stored document, or {@code null} if it, or the index, does not exist.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the request exceeded the configured client timeout.
+     * @throws IOException If the document cannot be parsed.
+     */
+    private StoredConsumer readStored(String type)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        GetResponse response;
+        try {
+            response =
+                    this.client
+                            .get(
+                                    new GetRequest()
+                                            .index(INDEX_NAME)
+                                            .id(type)
+                                            .preference(Preference.PRIMARY_FIRST.type()))
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null) {
+                return null;
+            }
+            throw e;
+        }
+        if (response == null || !response.isExists()) {
+            return null;
+        }
+        return new StoredConsumer(
+                MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class),
+                response.getSeqNo(),
+                response.getPrimaryTerm());
+    }
+
+    /**
+     * Returns whether a failed write was refused because the stored document changed since it was
+     * read.
+     *
+     * @param e The failure.
+     * @return {@code true} for a version conflict.
+     */
+    private static boolean isVersionConflict(Exception e) {
+        return ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null;
     }
 
     /**
