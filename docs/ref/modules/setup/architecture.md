@@ -26,18 +26,9 @@ Writing the marker is best-effort: a failure to persist it is logged but never i
 
 ### Alias-backed indices
 
-The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. Readers and writers use `<name>` as before; the names seen by the Wazuh server, the dashboard and the API do not change. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at.
+The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. The Wazuh server, the dashboard and the API read and write through `<name>` and never address the concrete index. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at.
 
-A cluster created before the stateful indices were alias-backed has a concrete index named `<name>`. The plugin migrates it once, at the first boot after the upgrade:
-
-1. `<name>-a` is created from the shipped template.
-2. Writes to `<name>` are blocked, so the copy is exact.
-3. Every document is copied to `<name>-a`, and the document counts of both are compared. The concrete index is never deleted before they match.
-4. `<name>` is deleted and the alias created in a single atomic request, so no write can create a concrete index under that name in between.
-
-Writes to `<name>` are rejected from step 2 until the alias exists. Each completed step is recorded in the index's record in `.wazuh-setup-status` (see [Schema versions](#schema-versions)), so a migration interrupted by a restart resumes after the last step it completed.
-
-For the content indices, a concrete index at the alias name can only come from a write that reached the name before the alias existed, which OpenSearch auto-created with dynamic mappings; it is deleted and its content downloaded again.
+A concrete index at the alias name cannot coexist with the alias. For the content indices it can only come from a write that reached the name before the alias existed, which OpenSearch auto-created with dynamic mappings; it is deleted and its content downloaded again. For the stateful indices it is not expected at all: the plugin creates the alias before any writer can reach the name, and the user the Wazuh server writes with cannot create indices. An empty one is deleted so the alias can take the name. One that holds documents is kept, since it is the state of every agent and nothing re-sends it, and the initialization fails naming it; the marker is set to `failed` until the index is deleted or reindexed by hand.
 
 ### Schema versions
 

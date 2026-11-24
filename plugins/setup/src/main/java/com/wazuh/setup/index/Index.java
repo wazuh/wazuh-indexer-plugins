@@ -55,7 +55,6 @@ public abstract class Index implements IndexInitializer {
     Client client;
     ClusterService clusterService;
     JsonUtils jsonUtils;
-    SetupStatusIndex statusIndex;
 
     // Properties.
     protected String index;
@@ -109,16 +108,6 @@ public abstract class Index implements IndexInitializer {
      */
     public void setUtils(JsonUtils jsonUtils) {
         this.jsonUtils = jsonUtils;
-    }
-
-    /**
-     * Sets the index holding the per-index schema version records, which a multi-step operation on
-     * this index records its progress in.
-     *
-     * @param statusIndex the setup status index.
-     */
-    public void setStatusIndex(SetupStatusIndex statusIndex) {
-        this.statusIndex = statusIndex;
     }
 
     /**

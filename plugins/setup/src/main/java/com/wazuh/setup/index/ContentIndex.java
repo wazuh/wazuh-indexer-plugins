@@ -65,10 +65,9 @@ public class ContentIndex extends AliasedIndex {
      * holds is re-downloaded from CTI.
      *
      * @param alias the public alias name.
-     * @return false: the name is free and {@code <name>-a} still has to be created with the alias.
      */
     @Override
-    protected boolean onConcreteIndexAtAliasName(String alias) {
+    protected void onConcreteIndexAtAliasName(String alias) {
         log.warn(
                 "Found a concrete index named [{}], which is the name reserved for the public alias. "
                         + "It was auto-created with dynamic mappings and its fields cannot be aggregated on. "
@@ -79,6 +78,5 @@ public class ContentIndex extends AliasedIndex {
                 .indices()
                 .delete(new DeleteIndexRequest(alias))
                 .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-        return false;
     }
 }

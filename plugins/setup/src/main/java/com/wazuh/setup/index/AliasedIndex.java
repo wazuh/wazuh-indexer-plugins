@@ -46,7 +46,7 @@ import com.wazuh.setup.settings.PluginSettings;
  *
  * <p>A concrete index whose name is the alias name cannot coexist with the alias. What to do with
  * one is up to the subclass ({@link #onConcreteIndexAtAliasName(String)}): content indices delete
- * it, state indices migrate it.
+ * it, state indices delete it only when it is empty and refuse to go on otherwise.
  */
 public abstract class AliasedIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(AliasedIndex.class);
@@ -96,9 +96,8 @@ public abstract class AliasedIndex extends WazuhIndex {
     public void createIndex(String index) {
         String physicalName = this.getPhysicalName();
         try {
-            if (this.clusterService.state().metadata().hasIndex(index)
-                    && this.onConcreteIndexAtAliasName(index)) {
-                return;
+            if (this.clusterService.state().metadata().hasIndex(index)) {
+                this.onConcreteIndexAtAliasName(index);
             }
 
             if (this.aliasExists(index)) {
@@ -126,6 +125,11 @@ public abstract class AliasedIndex extends WazuhIndex {
                     index);
         } catch (ResourceAlreadyExistsException e) {
             log.debug("Index {} already exists. Skipping.", physicalName);
+        } catch (IllegalStateException e) {
+            // The name is taken by an index the subclass refuses to remove. Not a transient failure:
+            // no retry, and the initialization fails naming the index.
+            log.error("Cannot create the alias [{}]: {}", index, e.getMessage());
+            throw e;
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
@@ -145,14 +149,13 @@ public abstract class AliasedIndex extends WazuhIndex {
 
     /**
      * Handles a concrete index whose name equals the public alias name. It occupies the name the
-     * alias needs, so it must be gone, one way or another, when this method returns.
+     * alias needs, so when this method returns the name is free and the concrete index and the alias
+     * are created as on a fresh cluster.
      *
      * @param alias the public alias name, which is also the name of the concrete index.
-     * @return true when the handling left the alias in place, so there is nothing more to create;
-     *     false when the name is now free and the concrete index and the alias still have to be
-     *     created.
+     * @throws IllegalStateException if the index is kept, which fails the initialization.
      */
-    protected abstract boolean onConcreteIndexAtAliasName(String alias);
+    protected abstract void onConcreteIndexAtAliasName(String alias);
 
     /**
      * Returns whether the public alias exists, whichever concrete index it points at.

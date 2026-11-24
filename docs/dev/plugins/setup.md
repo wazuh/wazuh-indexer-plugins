@@ -72,17 +72,17 @@ classDiagram
         +getPhysicalName() String
         +createIndex(String index)
         #customizeTemplate(IndexTemplate template) void
-        #onConcreteIndexAtAliasName(String alias)* bool
+        #onConcreteIndexAtAliasName(String alias)* void
         #aliasExists(String alias) bool
     }
     class StateIndex {
-        +String STEP_TARGET_CREATED
-        +String STEP_COPIED
-        ~migrate(String alias) void
+        +StateIndex(String index, String template)
+        #onConcreteIndexAtAliasName(String alias) void
     }
     class ContentIndex {
         +ContentIndex(String index, String template)
         #templateName(String templatePath) String
+        #onConcreteIndexAtAliasName(String alias) void
     }
 ```
 
@@ -644,24 +644,15 @@ The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `
 
 A state index is never addressed by its own name either. `StateIndex` extends `AliasedIndex`, the class that holds the alias topology shared with the content indices: the concrete index is `<name>-a`, a write alias `<name>` points at it, and `customizeTemplate()` rewrites the template's `index_patterns` to `<name>*` so the template covers both slots and the alias name. A breaking schema change can then be applied by rebuilding the data into the spare `<name>-b` slot and swapping the alias in one atomic action, instead of deleting the only copy of the data and reindexing it while writes are blocked. `AliasedIndex.createIndex()` does nothing once the alias exists, whichever slot it points at.
 
-Unlike the content indices, the state templates keep their original names (`states-sca`, `states-inventory-packages`, ...): a cluster upgraded from an earlier build has those templates already, and a second template with the same patterns and priority would be rejected.
+The state templates are stored under the default name derived from their path (`states-sca`, `states-inventory-packages`, ...); only the content indices override `templateName()` to `<name>-template`.
 
-### Migration of a concrete index
+### A concrete index at the alias name
 
-A cluster created before this change has a concrete index named `<name>`. The two classes differ in what they do with one: `ContentIndex` deletes it, because it can only be a squatter auto-created by an early write of the Content Manager itself and its content is downloaded again; `StateIndex` migrates it, because it can only be the index an earlier build created, holding the state of every agent. The Wazuh server cannot have created it: the user it writes with has no permission to create indices, so a state write that arrives before the alias exists is rejected rather than auto-creating anything. `StateIndex.migrate()` runs once, from `createIndex()`, in four steps:
-
-1. Create `<name>-a` from the shipped template, without the alias (the concrete index still owns the name).
-2. Set `index.blocks.write` on `<name>`, so the copy is exact and can be verified.
-3. Reindex `<name>` into `<name>-a` and compare the document counts of both. The concrete index is never deleted before they match.
-4. Remove `<name>` and add the alias in a single `IndicesAliasesRequest` (`remove_index` plus `add`), which OpenSearch applies atomically, so no write can auto-create a concrete index under the alias name in between.
-
-Steps 1 and 3 are recorded as `alias_migration_target_created` and `alias_migration_copied` in the index's record in `.wazuh-setup-status` (see [Schema drift detection](#schema-drift-detection)), through the `SetupStatusIndex` that `SetupPlugin` injects into every index. A migration interrupted by a restart resumes after the last recorded step: the target is not created twice and a verified copy is not repeated. A copy recorded but found short on resume is run again. The record is overwritten by the drift detection once the alias exists, which drops the step.
-
-Writes to `<name>` are rejected from step 2 until the alias exists. A document the strict mapping of `<name>-a` rejects fails the copy, and the migration stops with the concrete index intact.
+The two classes differ in what they do with a concrete index found at the alias name, through `onConcreteIndexAtAliasName()`. `ContentIndex` deletes it, because it can only be a squatter auto-created by an early write of the Content Manager itself and its content is downloaded again. `StateIndex` does not expect one: the alias is created before any writer can reach the name, and the user the Wazuh server writes with has no permission to create indices, so a state write that arrives before the alias exists is rejected rather than auto-creating anything. It counts the documents of the index. An empty one is deleted and `<name>-a` is created with the alias as on a fresh cluster. One that holds documents is the state of every agent, which nothing re-sends, so it is kept and an `IllegalStateException` names it; `AliasedIndex.createIndex()` does not retry that one, and `SetupPlugin` sets the marker to `failed`. The operator deletes the index, or reindexes it into `<name>-a` by hand, and restarts.
 
 ### Testing
 
-`StateIndexTests` covers the fresh creation, the alias on the alternate slot, the migration sequence and its resume and failure paths with mocked clients. `StateIndicesIT` checks the topology on the gradle cluster: the `-a` indices, the aliases with `is_write_index`, the template patterns, and a write through the alias landing in the concrete index. The migration itself runs at boot and needs a restart, which the gradle cluster cannot do.
+`StateIndexTests` covers the fresh creation, the alias on the alternate slot, the template name and patterns, the deletion of an empty concrete index and the refusal of a populated one, with mocked clients. `StateIndicesIT` checks the topology on the gradle cluster: the `-a` indices, the aliases with `is_write_index`, the template patterns, and a write through the alias landing in the concrete index.
 
 ## Threat intel content indices
 
