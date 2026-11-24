@@ -30,6 +30,7 @@ import org.opensearch.threadpool.ThreadPool;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -79,7 +80,7 @@ public class EngineLoadReporter {
 
     /** ISO-8601 with milliseconds always present, as the other dates of the consumer document. */
     private static final DateTimeFormatter TIMESTAMP =
-            new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
+            new DateTimeFormatterBuilder().appendInstant(3).toFormatter(Locale.ROOT);
 
     /**
      * The result of one load: loaded, or failed with a reason and a message.
