@@ -25,5 +25,4 @@ splunk:
     enable: True
     ssl: True
     port: 8088
-    # hec.token is used only for ingestion (receiving Splunk events)
-    token: abcd1234
+    # The token comes from SPLUNK_HEC_TOKEN (docker/.env).

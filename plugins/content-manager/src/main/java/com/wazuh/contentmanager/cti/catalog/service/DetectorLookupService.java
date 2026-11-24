@@ -57,7 +57,7 @@ public class DetectorLookupService {
      * reference the constant from security-analytics because only its {@code commons} module is on
      * the compile classpath.
      */
-    private static final String DETECTORS_INDEX = ".opensearch-sap-detectors-config";
+    static final String DETECTORS_INDEX = ".opensearch-sap-detectors-config";
 
     private static final String CUSTOM_RULES_PATH = "detector.inputs.detector_input.custom_rules";
 

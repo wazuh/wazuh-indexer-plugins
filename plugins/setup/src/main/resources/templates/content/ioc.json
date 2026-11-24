@@ -29,6 +29,10 @@
       "plugins.index_state_management.rollover_alias": "wazuh-threatintel-enrichments"
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "date_detection": false,
       "dynamic": "strict_allow_templates",
       "dynamic_templates": [
@@ -129,5 +133,6 @@
         }
       }
     }
-  }
+  },
+  "version": 50000
 }

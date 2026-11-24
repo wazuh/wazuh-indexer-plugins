@@ -30,6 +30,10 @@
       "mapping.nested_fields.limit": 10
     },
     "mappings": {
+      "_meta": {
+        "compat_version": 50000,
+        "schema_version": 50000
+      },
       "date_detection": false,
       "dynamic": "strict",
       "properties": {
@@ -115,5 +119,6 @@
         }
       }
     }
-  }
+  },
+  "version": 50000
 }

@@ -1,4 +1,8 @@
 {
     "dynamic": "true",
-    "date_detection": false
+    "date_detection": false,
+    "_meta": {
+        "schema_version": 50000,
+        "compat_version": 50000
+    }
 }

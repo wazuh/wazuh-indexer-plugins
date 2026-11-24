@@ -42,7 +42,7 @@ Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Onl
 
 | Policy | Streams | Rollover | Deletion age (floor) |
 | --- | --- | --- | --- |
-| `stream-events-policy` | `wazuh-events-v5-<category>` | 20 GB / 200M docs | 1 day after the rollover |
+| `stream-events-policy` | `wazuh-events-v5-<category>` | 20 GB / 200M docs | 1 hour after the rollover |
 | `stream-raw-events-policy` | `wazuh-events-raw-v5` | 20 GB / 200M docs | 4 hours after the rollover |
 | `stream-findings-policy` | `wazuh-findings-v5-<category>` | 20 GB / 200M docs | 90 days after the rollover |
 | `stream-metrics-policy` | `wazuh-metrics-*` | 20 GB / 200M docs | 30 days after the rollover |
@@ -60,15 +60,15 @@ never fires first — at ~1 KB per event that would be 200 GB on a shard that ro
 
 Per active event category the cost is the write index (up to 20 GB) plus the rolled-over indices
 kept for the deletion age. Indices are deleted whole, so that is the ingest of the deletion age
-rounded up to a whole number of 20 GB indices, and at least one. The table uses the 1-day deletion
+rounded up to a whole number of 20 GB indices, and at least one. The table uses the 1-hour deletion
 age of `stream-events-policy`:
 
 | Events ingest | Active categories | Fill time | Primaries (ceiling) | With 1 replica | Retention |
 | --- | --- | --- | --- | --- | --- |
-| 10 GB/day | 3 | ~6 days | ~120 GB | ~240 GB | 1 to ~7 days |
-| 100 GB/day | 3 | ~14 h | ~180 GB | ~360 GB | 1 to ~1.6 days |
-| 1 TB/day | 4 | ~2 h | ~1.1 TB | ~2.2 TB | 1 to ~1.1 days |
-| 10 TB/day | 4 | ~12 min | ~10 TB | ~20 TB | ~1 day |
+| 10 GB/day | 3 | ~6 days | ~120 GB | ~240 GB | 1 hour to ~6 days |
+| 100 GB/day | 3 | ~14 h | ~120 GB | ~240 GB | 1 hour to ~15 h |
+| 1 TB/day | 4 | ~2 h | ~160 GB | ~320 GB | 1 hour to ~3 h |
+| 10 TB/day | 4 | ~12 min | ~560 GB | ~1.1 TB | ~1 hour |
 
 The ceiling is one deletion age of total event ingest plus up to 40 GB per active category (the
 write index and the rounding up to a whole index), doubled if a replica is allocated. A longer
@@ -83,7 +83,7 @@ The table assumes the default of one primary shard. The rollover condition is pe
 ISM never deletes a data stream's write index, and below 20 GB per primary shard the stream never
 rolls over. On a low-volume deployment the events and raw events streams therefore **retain their
 data indefinitely**: the backing index stays in the `hot` state on the `attempt_rollover` step
-with `condition_not_met`, and the 1-day and 4-hour deletion ages never apply.
+with `condition_not_met`, and the 1-hour and 4-hour deletion ages never apply.
 
 This is the designed behaviour — disk usage stays bounded — but it has a consequence worth
 stating plainly:

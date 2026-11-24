@@ -206,13 +206,21 @@ dependencies {
 
 // Registered-instance tests: own cluster, CTI Console URL pointed at a fake served by the test.
 def ctiConsoleTests = "com.wazuh.contentmanager.rest.it.SubscriptionEnvironmentIT"
+
+// Drives real sync passes against the CTI catalog: around ten minutes, which is past the cap the
+// test framework puts on one suite and more than a shared run should spend. Out of check, with a
+// task of its own.
+def standardSpaceTests = "com.wazuh.contentmanager.rest.it.StandardSpaceReconciliationIT"
 def ctiConsolePort = new ServerSocket(0, 0, InetAddress.loopbackAddress).withCloseable { it.localPort }
 
 task integTest(type: RestIntegTestTask) {
   description = "Run tests against a cluster"
   testClassesDirs = sourceSets.test.output.classesDirs
   classpath = sourceSets.test.runtimeClasspath
-  filter { excludeTestsMatching ctiConsoleTests }
+  filter {
+    excludeTestsMatching ctiConsoleTests
+    excludeTestsMatching standardSpaceTests
+  }
 }
 
 task ctiConsoleIntegTest(type: RestIntegTestTask) {
@@ -222,6 +230,13 @@ task ctiConsoleIntegTest(type: RestIntegTestTask) {
   filter { includeTestsMatching ctiConsoleTests }
   nonInputProperties.systemProperty('tests.cti_console.port', ctiConsolePort)
 }
+task standardSpaceIntegTest(type: RestIntegTestTask) {
+  description = "Run the standard space reconciliation test against a cluster; needs the CTI catalog"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  filter { includeTestsMatching standardSpaceTests }
+}
+
 tasks.named("check").configure { dependsOn(integTest, ctiConsoleIntegTest) }
 
 tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
@@ -229,7 +244,7 @@ tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("gener
 // Number of nodes to bring up for the integTest cluster. Override with -PnumNodes=N.
 def _numNodes = findProperty('numNodes') as Integer ?: 2
 
-tasks.matching { it.name in ['integTest', 'ctiConsoleIntegTest'] }.configureEach {
+tasks.matching { it.name in ['integTest', 'ctiConsoleIntegTest', 'standardSpaceIntegTest'] }.configureEach {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
   if (System.getProperty("test.debug") != null) {
     jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
@@ -275,7 +290,8 @@ tasks.matching { it.name in ['integTest', 'ctiConsoleIntegTest'] }.configureEach
   }
 }
 
-def integTestClusters = testClusters.matching { it.name in ['integTest', 'ctiConsoleIntegTest'] }
+def integTestClusters =
+        testClusters.matching { it.name in ['integTest', 'ctiConsoleIntegTest', 'standardSpaceIntegTest'] }
 integTestClusters.configureEach {
   // Enable memory tracking to diagnose OOM errors.
   jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'

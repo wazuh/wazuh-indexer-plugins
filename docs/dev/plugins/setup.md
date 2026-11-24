@@ -129,8 +129,34 @@ sequenceDiagram
     end
 
     deactivate Index
+
+    participant SchemaDriftDetector
+    SetupPlugin->>SchemaDriftDetector: detect()
+    activate SchemaDriftDetector
+    loop i..n versioned indices
+        SchemaDriftDetector->>Index: loadTemplate(), getInstalledSchemaVersion()
+        SchemaDriftDetector-)Client: get / index the record of i in .wazuh-setup-status
+        Client--)SchemaDriftDetector: response
+    end
+    SchemaDriftDetector-->>SetupPlugin: records
+    deactivate SchemaDriftDetector
+    alt every record is up_to_date
+        SetupPlugin-)Client: marker = ready
+    else
+        Note over SetupPlugin: marker stays running
+    end
     deactivate SetupPlugin
 ```
+
+## Schema drift detection
+
+Every template carries its `schema_version` and `compat_version` under `mappings._meta` (see the [schema versions](../../../wcs/generator/README.md#schema-versions) of the WCS generator), and every index inherits them when it is created. After the indices are initialized, `SchemaDriftDetector` reads the version the live index of each managed `Index` carries (`Index::getInstalledSchemaVersion()`, which resolves a data stream or a content alias to its write index), classifies it against the shipped template with `SchemaStatus::classify()`, and stores an `IndexRecord` per index in `.wazuh-setup-status` through `SetupStatusIndex`. The readiness marker is written as `ready` only when no record is pending.
+
+- An `Index` whose `isVersioned()` returns false is skipped. `IndexStateManagement` does, because the ISM plugin versions the mapping of `.opendistro-ism-config` itself through its own `_meta.schema_version`.
+- The `step` of a pending record survives the detection, so an upgrade interrupted by a restart resumes from the last step it recorded. The upgrade steps themselves are implemented separately and read these records.
+- `SetupStatusIndex` pushes the shipped mappings to its own index on every boot, before any record is written: its mapping is strict, and the index outlives upgrades, so a record field added by a newer version would otherwise be rejected.
+
+See [Architecture](../../ref/modules/setup/architecture.md#schema-versions) for the record layout and the statuses.
 
 ## JavaDoc
 
@@ -474,7 +500,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
-- **Deletion age (floor)**: 1 day after the rollover
+- **Deletion age (floor)**: 1 hour after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -482,7 +508,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once 1 day has passed since the index rolled over (`min_rollover_age`)
+   - Transition Condition: Transitions to `delete` once 1 hour has passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index

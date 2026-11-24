@@ -113,11 +113,6 @@ class TestConsumer extends AbstractConsumerService {
         return this.snapshotsDir;
     }
 
-    /** Returns whether a swap replaced this consumer's content. */
-    boolean swapPerformed() {
-        return this.shadowSwapPerformed;
-    }
-
     @Override
     protected String getConsumerType() {
         return this.type;
@@ -153,11 +148,6 @@ class TestConsumer extends AbstractConsumerService {
     @Override
     public List<String> missingTargetIndices() {
         return List.of();
-    }
-
-    @Override
-    protected void onBeforeAliasSwap() {
-        this.events.add("before switch " + this.type);
     }
 
     @Override

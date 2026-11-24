@@ -23,8 +23,31 @@
         },
         "timestamp": {
           "type": "date"
+        },
+        "index": {
+          "type": "keyword"
+        },
+        "installed": {
+          "type": "long"
+        },
+        "shipped": {
+          "type": "long"
+        },
+        "compat": {
+          "type": "long"
+        },
+        "step": {
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
         }
+      },
+      "_meta": {
+        "schema_version": 50000,
+        "compat_version": 50000
       }
     }
-  }
+  },
+  "version": 50000
 }

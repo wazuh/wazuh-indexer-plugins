@@ -1,0 +1,8 @@
+# Everyone can read the app. The search macros are shared with every app, so that searches
+# elsewhere can use `wazuh_findings` and `wazuh_events` too.
+[]
+access = read : [ * ], write : [ admin ]
+export = none
+
+[macros]
+export = system

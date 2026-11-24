@@ -504,12 +504,12 @@ public class SetupConfigTests extends OpenSearchTestCase {
         // The default policy is accepted as it ships, and with a valid age.
         this.writePolicy(EVENTS_POLICY, shipped);
         Assert.assertNotNull(this.load(enabled).customPolicy(EVENTS_POLICY));
-        this.writePolicy(EVENTS_POLICY, SetupConfigTests.edit(shipped, "\"1d\"", "\"7d\""));
+        this.writePolicy(EVENTS_POLICY, SetupConfigTests.edit(shipped, "\"1h\"", "\"7d\""));
         Assert.assertNotNull(this.load(enabled).customPolicy(EVENTS_POLICY));
 
         String[][] mistakes = {
             {
-                "\"min_rollover_age\": \"1d\"", "\"min_rollover_age\": \"7days\"", "failed to parse [7days]"
+                "\"min_rollover_age\": \"1h\"", "\"min_rollover_age\": \"7days\"", "failed to parse [7days]"
             },
             {"\"state_name\": \"delete\"", "\"state_name\": \"remove\"", "nonexistent state=remove"},
             {"\"default_state\": \"hot\"", "\"default_state\": \"warm\"", "valid default state"},

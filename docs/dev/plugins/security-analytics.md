@@ -20,13 +20,29 @@ Its input is the in-memory `Finding` the Alerting plugin publishes for every mat
 
 Enrichment is batch-oriented, not per-finding: `processQueue()` drains the internal `findingsQueue` in batches of up to `enriched_findings_enrich_batch_size` findings (default `100`, range 1–1000, dynamic) and acquires a single semaphore permit for the whole batch, not one permit per finding. The semaphore is an `AdjustableSemaphore` sized by `enriched_findings_max_in_flight` (default `5`, range 1–10, dynamic) — its permit count can be resized live via `setMaxInFlight()` when the setting changes, with no restart required. Batches that arrive while all permits are held stay queued in `findingsQueue` until a permit frees up.
 
-`findingsQueue` holds at most `enriched_findings_max_pending` findings (default `100000`, range 1–1000000, dynamic). `enrich()` reserves a place before queueing a finding and releases it when the finding is taken into a batch. Past the limit the finding is refused and counted (`getRejectedCount()`). The refusals are reported by the periodic flush: each flush that follows a refusal logs one `ERROR` with the number refused since the previous report and the running total, so every refusal is reported within one flush interval. When the node stops, the plugin closes the service, which reports the refusals no flush has reported yet and logs one `WARN` with what it still holds and discards: the findings waiting for enrichment, the enriched findings waiting to be written and the writes waiting for a retry. Each queued finding is the `Finding` Alerting published, about 1.7 KB with one matched rule, so the default bounds the queue at roughly 170 MB.
+`findingsQueue` holds at most `enriched_findings_max_pending` findings (default `100000`, range 1–1000000, dynamic). `enrich()` reserves a place before queueing a finding and releases it when the finding is taken into a batch. Past the limit the finding is refused and counted (`getRejectedCount()`). The refusals are reported by the periodic flush: each flush that follows a refusal logs one `ERROR` with the number refused since the previous report and the running total, so every refusal is reported within one flush interval. When the node stops, the plugin closes the service, which reports the refusals no flush has reported yet and logs one `WARN` with what it still holds and discards: the findings waiting for enrichment, the findings waiting to read their triggering events again, the enriched findings waiting to be written and the writes waiting for a retry. Each queued finding is the `Finding` Alerting published, about 1.7 KB with one matched rule, so the default bounds the queue at roughly 170 MB.
 
 Within a batch, per-finding completion is tracked with an `AtomicInteger remaining` counter; the batch's single permit is only released once every finding in the batch has completed (`onOneDone` callback).
 
 ### Batched triggering-event fetch
 
 Instead of one `GetRequest` per finding, the service fetches all triggering events for a batch in a single deduplicated `MultiGetRequest` (deduplicated by `index|docId`, since multiple findings in a batch can share the same source event). This is the core throughput optimization: it eliminates roughly `enrichBatchSize - 1` out of every `enrichBatchSize` round-trips to the event index under load. Rule-metadata lookups are unaffected by this batching and remain per-finding (see below).
+
+The `MultiGetRequest` uses the `_primary_first` preference: each event is read from its shard's primary, and from a replica only when the primary is unavailable. The detector matched the event, so it is in the index, but a replica that has not applied it yet answers that it does not exist.
+
+Each event of the batch is read, not found, or failed to read. The events of a finding that were read are enriched straight away. For the rest:
+
+- An event that was not found, or whose read failed for a transient reason, is read again. Transient reasons are the ones the write retries accept: a rejection, an unavailable or timed-out shard, a closing or disconnected node. The finding goes on a read retry queue with only the events still to read, and the next periodic flush puts it back on `findingsQueue`, so the flush interval is the backoff. A finding is read again at most `enriched_findings_max_retries` times, and at most `enriched_findings_max_pending_retries` findings wait. A transient failure also pauses the reads: no batch starts until the next periodic flush, so a node that is shedding load is not sent the rest of the queue one batch after another, which would spend the attempts of findings never read, and the findings that arrive in the meantime leave in fewer, fuller MultiGets.
+- An event still not found after those reads, or held by an index that no longer exists, does not exist. It is counted (`getMissingCount()`).
+- An event whose read failed for any other reason, ran out of attempts, or found the read retry queue full is given up on. It is counted (`getUnreadCount()`).
+
+Each MultiGet logs at most one line per outcome, listing at most 10 events as `<index>/<id>: <cause>`, where the cause is `not found` or the exception:
+
+| Level | Line | Meaning |
+| --- | --- | --- |
+| `WARN` | `Could not read N triggering events, reading them again on the next flush: ...` | The events go on the read retry queue. |
+| `WARN` | `N triggering events do not exist, so their findings are not written to the findings index (total so far: T): ...` | The findings these events triggered are missing from `wazuh-findings-v5-*`. |
+| `ERROR` | `Could not read N triggering events, so their findings are not written to the findings index (total so far: T): ...` | The same, for events that exist but could not be read. |
 
 ### Rule metadata cache
 
@@ -90,8 +106,9 @@ sequenceDiagram
     WS->>WS: Add to findingsQueue (refused past enriched_findings_max_pending)
     WS->>WS: processQueue() drains a batch (up to enrichBatchSize findings)
     WS->>WS: Acquire semaphore permit for the whole batch (max_in_flight)
-    WS->>SI: MultiGetRequest (deduplicated triggering events for the batch)
+    WS->>SI: MultiGetRequest (deduplicated triggering events for the batch, _primary_first)
     SI-->>WS: Event source maps
+    WS->>WS: Events not read: read retry queue (back to findingsQueue on the next flush) or given up
     loop For each finding in the batch
         WS->>WS: resolveCategory(wazuh.integration.category)
         alt Rule metadata cache hit
@@ -119,6 +136,8 @@ sequenceDiagram
 - **`plugins.security_analytics.enriched_findings_max_pending`** (default `100000`, range 1–1000000, dynamic) — maximum number of findings waiting in `findingsQueue`; past it, findings are refused and lost.
 - **`plugins.security_analytics.enriched_findings_flush_interval`** (default `5` seconds, range 1–60, dynamic) — interval between periodic flush runs.
 - **`plugins.security_analytics.enriched_findings_enrich_batch_size`** (default `100`, range 1–1000, dynamic) — number of findings drained from the queue per in-flight permit.
+- **`plugins.security_analytics.enriched_findings_max_retries`** (default `5`, range 0–20, dynamic) — maximum number of times a write that failed for a transient reason is resent, and a triggering event not read is read again, one attempt per periodic flush. `0` disables both.
+- **`plugins.security_analytics.enriched_findings_max_pending_retries`** (default `10000`, range 0–1000000, dynamic) — maximum number of writes waiting for a retry, and, separately, of findings waiting to read their triggering events again.
 - **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (default `10000`, minimum `0`, **static — requires a node restart**) — maximum number of rule-metadata entries cached in memory.
 - **Index operation type** (`CREATE`, not configurable) — prevents overwriting existing enriched findings.
 
