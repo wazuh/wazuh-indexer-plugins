@@ -404,7 +404,7 @@ The `config` package holds three classes:
 - `SetupPlugin.initialize()` runs the initialization. It initializes the setup status index first, reads the configuration, hands it to every other index with `setConfig()`, and initializes them. An invalid configuration throws before any other index is touched, and the caller marks the status as `failed`.
 - The file is parsed with `Settings.Builder.loadFromStream()`, the loader OpenSearch uses for `opensearch.yml`, so flat and nested keys are both accepted and no YAML dependency is added.
 - A key is valid if its template is one the plugin registers under `templates/streams`, `templates/states` or `templates/content`, and its setting is a `SupportedSetting`. The registered templates come from the indices of `SetupPlugin`, so a new template needs nothing else. The internal templates sit outside those folders and cannot be overridden.
-- A policy file is checked before anything is stored: a `policy` object and nothing else, `policy_id` equal to the default id, a `last_updated_time` that is not in the future (nor in any `ism_template` entry), and only the fields of `policy` in the mapping of `templates/ism-config.json`. That mapping is strict, so a field it does not list would fail the write. The list is read from the mapping, so a field added there is accepted with no other change.
+- A policy file is checked before anything is stored: a `policy` object and nothing else, `policy_id` equal to the default id, a `last_updated_time` that is not in the future (nor in any `ism_template` entry), at least one `ism_template` entry, because ISM attaches the policy to the backing indices a rollover creates through it, and only the fields of `policy` in the mapping of `templates/ism-config.json`. That mapping is strict, so a field it does not list would fail the write. The list is read from the mapping, so a field added there is accepted with no other change.
 - A policy file is then parsed with `Policy.parse()` of the Index Management plugin, the parser ISM reads a stored policy with. `indexPolicy()` stores a policy with a plain `IndexRequest`, so ISM validates nothing at that point, and one stored policy that ISM cannot parse makes it attach no policy to any new index: it reads every policy with an `ism_template` in one go, and the read fails as a whole. The parser gets the `NamedXContentRegistry` of the node, as in ISM.
 - If an index cannot be initialized while the file overrides settings of its template, `SetupPlugin.initialize()` adds the file and those overrides to the error (`SetupConfig.describeOverrides()`). The cluster can refuse a value the file accepts, such as a number of shards over the shard limit, and its error names no key.
 - `Index.templateSettings()` builds the settings of a template: the bundled ones, then `SetupConfig.templateOverrides()` on top. The three `createTemplate()` implementations (`Index`, `StreamIndex`, `ContentIndex`) call it. Precedence is the order the three levels are put in: all templates, then the group, then the template.
@@ -424,11 +424,11 @@ The same folder is a test resource folder. `SetupConfigFilesTests` loads the gen
 
 ### Adding a supported setting
 
-1. Add it to `SupportedSetting`, with the definition of the setting when its error message is usable, or with `oneOf()`. The value goes to the index template as it is written in the file, so the check must not accept a spelling that the indexer reads as something else
+1. Add it to `SupportedSetting`, with the definition of the setting when its error message is usable, or with a list of the accepted values. The value goes to the index template as it is written in the file, so the check must not accept a spelling that the indexer reads as something else
 2. Add it to `setupConfigSettings` in `gradle/setup-config.gradle`, with its default and its valid values, and describe it in the header the task writes.
 3. Add it to the table of [Customization](../../ref/modules/setup/customization.md#supported-settings).
 
-`SetupConfigFilesTests` fails until the first two agree.
+`SetupConfigFilesTests` fails until the first two agree, and for a setting checked against a list, until the valid values written in the second are the values of that list, in the same order.
 
 ---
 

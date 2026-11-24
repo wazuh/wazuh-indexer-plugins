@@ -218,9 +218,9 @@ Keep these fields of a policy file as they are:
 - `policy_id` must be the id of the default policy, which is also the name of the file. Otherwise the initialization fails.
 - `last_updated_time` must be present, and never in the future: ISM applies a policy only to the indices created after that time. A time in the future, here or in an `ism_template` entry, fails the initialization.
 - The file holds only the `policy` object, and the object only the fields a policy has: `policy_id`, `description`, `last_updated_time`, `schema_version`, `error_notification`, `default_state`, `states`, `ism_template` and `user`. Any other field fails the initialization, for example the `_id` and `_seq_no` of a policy copied from the ISM API.
-- `ism_template` holds the index patterns ISM uses to attach the policy to the backing indices that a rollover creates. With other patterns those indices are left without a policy, and nothing deletes them.
+- `ism_template` holds the index patterns ISM uses to attach the policy to the backing indices that a rollover creates. With other patterns those indices are left without a policy, and nothing deletes them. A file without `ism_template`, or with an empty one, fails the initialization.
 
-The plugin also reads each policy file with the parser of Index State Management before it creates anything, so a mistake in the states is found at the restart. An age such as `"7days"` instead of `"7d"`, a transition to a state that does not exist, or an action or a field that ISM does not know fails the initialization, with the reason ISM gives.
+The plugin also reads each policy file with the parser of Index State Management, with the rest of the configuration, so a mistake in the states is found at the restart. An age such as `"7days"` instead of `"7d"`, a transition to a state that does not exist, or an action or a field that ISM does not know fails the initialization, with the reason ISM gives.
 
 A policy read from its file no longer receives the changes that a new version makes to the default policy. The plugin logs a warning for each one at every initialization.
 
@@ -284,15 +284,15 @@ If an index exists and does not have the value of an override, the plugin also l
 
 ## Invalid configuration
 
-The plugin checks the whole configuration before it creates anything. The initialization stops if:
+The plugin checks the whole configuration right after it creates the [setup status](architecture.md#readiness-marker) index, which has to exist to record a `failed` status, and before anything else. The initialization stops if:
 
 - `setup.yml` exists but is not a file: a directory, or a link that points to nothing,
 - `setup.yml` is not valid YAML,
 - a key is unknown: a group, a template name, a setting or a policy id that does not exist,
 - a value has the wrong type or is out of range,
-- the policy file of a switch set to `true` is missing, is not valid JSON, does not keep the id of the default policy, holds a field a policy does not have, has no `last_updated_time` or one in the future, or is not a policy that Index State Management can read.
+- the policy file of a switch set to `true` is missing, is not valid JSON, does not keep the id of the default policy, holds a field a policy does not have, has no `last_updated_time` or one in the future, has no `ism_template`, or is not a policy that Index State Management can read.
 
-No index template, index, data stream or policy is created or updated, the [setup status](architecture.md#readiness-marker) is `failed`, and the error in the indexer log names the key or the file:
+No other index template, index, data stream or policy is created or updated, the setup status is `failed`, and the error in the indexer log names the key or the file:
 
 ```
 [ERROR][c.w.s.SetupPlugin] [node-1] Setup initialization failed: [templates.streams.events.settings.index.number_of_shards] in [/etc/wazuh-indexer/wazuh-indexer-setup/setup.yml]: invalid value: Failed to parse value [three] for setting [index.number_of_shards]

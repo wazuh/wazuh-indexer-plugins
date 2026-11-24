@@ -489,6 +489,16 @@ public final class SetupConfig {
                 ismTemplate instanceof List
                         ? (List<Object>) ismTemplate
                         : ismTemplate == null ? List.of() : List.of(ismTemplate);
+        // ISM attaches the policy to the backing index that a rollover creates through these
+        // templates, not through the policy_id setting of the index template. Without one, that index
+        // gets no policy and is never deleted.
+        if (entries.isEmpty()) {
+            throw new SetupConfigException(
+                    "policy file ["
+                            + file
+                            + "] has no [policy.ism_template]: the backing indices that a rollover"
+                            + " creates would get no policy, and would never be deleted");
+        }
         for (int i = 0; i < entries.size(); i++) {
             if (entries.get(i) instanceof Map
                     && ((Map<String, Object>) entries.get(i)).containsKey(LAST_UPDATED_TIME_FIELD)) {

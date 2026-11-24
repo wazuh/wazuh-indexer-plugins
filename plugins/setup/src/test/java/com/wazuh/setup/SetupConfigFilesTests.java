@@ -349,6 +349,39 @@ public class SetupConfigFilesTests extends OpenSearchTestCase {
     }
 
     /**
+     * The valid values written next to the keys of a setting that the plugin checks against a list
+     * are the values of that list, so a value added to or removed from {@link SupportedSetting}
+     * cannot leave the file announcing other values.
+     */
+    public void testListedValuesOfTheKeys() {
+        int checked = 0;
+        for (SupportedSetting setting : SupportedSetting.values()) {
+            List<String> values = setting.listedValues();
+            if (values.isEmpty()) {
+                continue;
+            }
+            checked++;
+            String expected =
+                    String.join(", ", values.subList(0, values.size() - 1)) + " or " + values.getLast();
+            Matcher line =
+                    Pattern.compile(
+                                    "(?m)^#templates\\.\\S+\\.settings\\."
+                                            + Pattern.quote(setting.key())
+                                            + ":[^#\\n]*# (.+)$")
+                            .matcher(this.keys);
+            int lines = 0;
+            while (line.find()) {
+                lines++;
+                // A key covering templates with different defaults adds them after the values.
+                Assert.assertEquals(
+                        line.group(), expected, line.group(1).split("\\. No single default here")[0]);
+            }
+            Assert.assertTrue("No key line for [" + setting.key() + "]", lines > 0);
+        }
+        Assert.assertTrue("No setting is checked against a list", checked > 0);
+    }
+
+    /**
      * A commented key is used by removing the "#" in front of it: the valid values that follow the
      * default on the line stay there as a comment, which the file reader ignores.
      *

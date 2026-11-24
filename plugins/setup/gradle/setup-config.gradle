@@ -132,6 +132,15 @@ tasks.register('generateSetupConfig') {
       }, text)
     }
 
+    // The stream templates that ship async durability: the only ones the durability example changes.
+    def asyncStreams = defaults.streams
+        .findAll { name, template -> template.values['index.translog.durability'].toString() == 'async' }
+        .keySet().sort()
+    if (asyncStreams.isEmpty()) {
+      throw new GradleException('No stream template ships index.translog.durability: async. Rewrite the durability example of setup.yml.')
+    }
+    def asyncStreamNames = asyncStreams.size() == 1 ? asyncStreams[0] : asyncStreams[0..-2].join(', ') + ' and ' + asyncStreams[-1]
+
     // ---- setup.yml
     def rule = '# ' + ('-' * 98)
     def text = new StringBuilder()
@@ -186,7 +195,7 @@ ${rule}
 # A stateful index that makes new documents searchable every 30 seconds, to save indexing work.
 #templates.states.inventory-services.settings.index.refresh_interval: 30s
 
-# Stream indices that sync every write to disk before acknowledging it, instead of every 5 seconds.
+${wrap("${asyncStreamNames.capitalize()} indices that sync every write to disk before acknowledging it, instead of every 5 seconds. The other stream templates already ship request.".toString(), ' ')}
 #templates.streams.*.settings.index.translog.durability: request
 
 # Your own retention for the events. First edit stream-events-policy.json, in this directory: the
@@ -224,7 +233,7 @@ ${rule}
 #       How often new documents become searchable. A time value such as 5s or 1m, or -1 to disable
 #       the periodic refresh.
 #   index.codec
-#       Compression of the stored data: default, best_compression, zstd or zstd_no_dict. It cannot
+#       Compression of the stored data: ${setupConfigSettings['index.codec'].values}. It cannot
 #       be changed on an open index.
 #   index.translog.durability
 #       request syncs every write to disk before acknowledging it. async syncs every 5 seconds, and

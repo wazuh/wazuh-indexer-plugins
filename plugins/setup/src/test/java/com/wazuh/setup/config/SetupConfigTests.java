@@ -547,6 +547,28 @@ public class SetupConfigTests extends OpenSearchTestCase {
     }
 
     /**
+     * A policy file must keep an ISM template, empty or not. ISM attaches the policy to the backing
+     * index that a rollover creates through it, so without one that index gets no policy and is never
+     * deleted. The error names the file and the field.
+     *
+     * @throws IOException if a file cannot be written.
+     */
+    public void testPolicyFileWithoutIsmTemplate() throws IOException {
+        String enabled = "policies.stream-events-policy.custom: true\n";
+        String file = this.directory.resolve(EVENTS_POLICY + ".json").toString();
+        String policy = SetupConfigTests.policy(EVENTS_POLICY);
+        String template =
+                ", \"ism_template\": [{\"index_patterns\": [\"wazuh-events-v5*\"], \"priority\": 0}]";
+
+        this.writePolicy(EVENTS_POLICY, SetupConfigTests.edit(policy, template, ""));
+        this.assertInvalid(enabled, file, "has no [policy.ism_template]");
+
+        this.writePolicy(
+                EVENTS_POLICY, SetupConfigTests.edit(policy, template, ", \"ism_template\": []"));
+        this.assertInvalid(enabled, file, "has no [policy.ism_template]");
+    }
+
+    /**
      * A time in the future in a policy file is rejected, and the error names the file and the field:
      * ISM would not attach the policy to the indices created until then. A time in microseconds is
      * the likely mistake.

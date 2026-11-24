@@ -47,19 +47,21 @@ public enum SupportedSetting {
     /** How often new documents become searchable. */
     REFRESH_INTERVAL(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING),
     /** Compression of the stored data. */
-    CODEC(
-            SupportedSetting.oneOf(
-                    "index.codec",
-                    "default",
-                    List.of("default", "best_compression", "zstd", "zstd_no_dict"))),
+    CODEC("index.codec", "default", List.of("default", "best_compression", "zstd", "zstd_no_dict")),
     /** When a write is synced to disk. */
-    TRANSLOG_DURABILITY(
-            SupportedSetting.oneOf("index.translog.durability", "request", List.of("request", "async")));
+    TRANSLOG_DURABILITY("index.translog.durability", "request", List.of("request", "async"));
 
     private final Setting<?> setting;
+    private final List<String> listedValues;
 
     SupportedSetting(Setting<?> setting) {
         this.setting = setting;
+        this.listedValues = List.of();
+    }
+
+    SupportedSetting(String key, String defaultValue, List<String> listedValues) {
+        this.setting = SupportedSetting.oneOf(key, defaultValue, listedValues);
+        this.listedValues = listedValues;
     }
 
     /**
@@ -69,6 +71,16 @@ public enum SupportedSetting {
      */
     public String key() {
         return this.setting.getKey();
+    }
+
+    /**
+     * Returns the values this setting accepts when it is checked against a list.
+     *
+     * @return the accepted values, written as they must be written, or an empty list when the setting
+     *     is checked with the definition of OpenSearch.
+     */
+    public List<String> listedValues() {
+        return this.listedValues;
     }
 
     /**
