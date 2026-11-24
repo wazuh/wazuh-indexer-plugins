@@ -150,7 +150,9 @@ public abstract class AliasedIndex extends WazuhIndex {
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of index [{}] finally failed. The node will shut down.", physicalName);
+                        "Initialization of index [{}] finally failed. The setup stops with status [{}].",
+                        physicalName,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", physicalName);

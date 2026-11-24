@@ -279,7 +279,7 @@ If an index exists and does not have the value of an override, the plugin also l
   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST "https://127.0.0.1:9200/wazuh-events-v5-security/_rollover"
   ```
 
-- **Shards and codec of a stateful index** need a new index: [reindex](https://docs.opensearch.org/3.6/api-reference/document-apis/reindex/) the existing one into an index created after the change.
+- **Shards and codec of a stateful index** need a new index. A stateful index is a write alias over `<name>-a`, or `<name>-b` after a rebuild (see [Alias-backed indices](architecture.md#alias-backed-indices)): create the spare slot after the change, so it takes the values of `setup.yml`, [reindex](https://docs.opensearch.org/3.6/api-reference/document-apis/reindex/) the current slot into it, and move the alias to it in one `_aliases` request.
 - **A policy** reaches the indices that exist through `change_policy`, as described in [Retention](retention.md#changing-a-policy).
 
 ## Invalid configuration

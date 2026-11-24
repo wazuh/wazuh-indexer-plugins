@@ -8,7 +8,7 @@ Before it creates them, the plugin reads its configuration file, `setup.yml`, wh
 
 ### Retry mechanism
 
-The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (back-off). If two consecutive faults occur during the initialization of the same index, the initialization process is halted, and the node is shut down. Proper logging is in place to notify administrators before the shutdown occurs.
+The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (back-off). If the fault persists after the last retry, the initialization stops and the [setup status](#readiness-marker) is set to `failed`. The node keeps running, and the log names the index, template or policy that failed.
 
 The back-off time is configurable. Head to [Configuration](./configuration.md) for more information.
 
