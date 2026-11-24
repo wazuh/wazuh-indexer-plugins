@@ -19,6 +19,7 @@ package com.wazuh.setup.config;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IOUtils;
 import org.opensearch.common.hash.MessageDigests;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -30,8 +31,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.wazuh.setup.utils.CapturingAppender;
@@ -167,7 +171,8 @@ public class SetupConfigTests extends OpenSearchTestCase {
 
         Files.createDirectory(file);
         this.assertNotAFile(file);
-        Files.delete(file);
+        // The test file system can add files to a new directory, so it is removed with its content.
+        IOUtils.rm(file);
 
         Files.createSymbolicLink(file, this.directory.resolve("absent.yml"));
         this.assertNotAFile(file);
@@ -182,6 +187,38 @@ public class SetupConfigTests extends OpenSearchTestCase {
         SetupConfig config =
                 SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY);
         Assert.assertEquals("3", config.templateOverrides(EVENTS).get("index.number_of_shards"));
+    }
+
+    /**
+     * A file in a directory the indexer cannot enter is an error, not an absent file: whether it
+     * exists cannot be told, and the defaults must not replace it silently.
+     *
+     * @throws IOException if the file or the permissions cannot be written.
+     */
+    public void testDirectoryThatCannotBeEntered() throws IOException {
+        Path file = this.directory.resolve(SetupConfig.FILE);
+        Files.writeString(
+                file,
+                "templates.streams.events.settings.index.number_of_shards: 3\n",
+                StandardCharsets.UTF_8);
+        Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(this.directory);
+        Files.setPosixFilePermissions(this.directory, PosixFilePermissions.fromString("rw-------"));
+        try {
+            LuceneTestCase.assumeFalse("root enters any directory", Files.isReadable(file));
+            SetupConfigException e =
+                    LuceneTestCase.expectThrows(
+                            SetupConfigException.class,
+                            () ->
+                                    SetupConfig.load(
+                                            this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY));
+            Assert.assertTrue(
+                    e.getMessage(),
+                    e.getMessage()
+                            .startsWith(
+                                    "[" + file + "] cannot be read, check the permissions of its directory: "));
+        } finally {
+            Files.setPosixFilePermissions(this.directory, permissions);
+        }
     }
 
     /**

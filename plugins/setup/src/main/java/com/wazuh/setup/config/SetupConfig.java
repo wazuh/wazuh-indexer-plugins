@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -111,9 +113,9 @@ public final class SetupConfig {
      * @param policies ids of the default ISM policies.
      * @param xContentRegistry registry of the node, which Index State Management reads a policy with.
      * @return the configuration.
-     * @throws SetupConfigException if the path is not a regular file, is not valid YAML, holds an
-     *     unknown key or an invalid value, or a policy file it selects is missing or invalid. The
-     *     message names the key or the file.
+     * @throws SetupConfigException if it cannot tell whether the file exists, or the path is not a
+     *     regular file, is not valid YAML, holds an unknown key or an invalid value, or a policy file
+     *     it selects is missing or invalid. The message names the key or the file.
      */
     public static SetupConfig load(
             Path directory,
@@ -121,8 +123,15 @@ public final class SetupConfig {
             Collection<String> policies,
             NamedXContentRegistry xContentRegistry) {
         Path file = directory.resolve(FILE);
-        if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
+        // Only a file known to be absent means no configuration. Files.exists() also answers false
+        // when it cannot tell, for example in a directory the indexer cannot enter.
+        try {
+            Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException e) {
             return new SetupConfig(file, null, Settings.EMPTY, Map.of());
+        } catch (IOException e) {
+            throw new SetupConfigException(
+                    "[" + file + "] cannot be read, check the permissions of its directory: " + e, e);
         }
         // Something is there, so a configuration was meant. A directory or a link to nothing is an
         // error, not an absent file: the defaults must not be applied silently in its place.

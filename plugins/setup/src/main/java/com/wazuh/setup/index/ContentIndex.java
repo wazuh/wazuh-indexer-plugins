@@ -129,8 +129,9 @@ public class ContentIndex extends WazuhIndex {
             if (this.templateCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of index template [{}] finally failed. The node will shut down.",
-                        templateName);
+                        "Initialization of index template [{}] finally failed. The setup stops with status [{}].",
+                        templateName,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
@@ -200,7 +201,9 @@ public class ContentIndex extends WazuhIndex {
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of index [{}] finally failed. The node will shut down.", physicalName);
+                        "Initialization of index [{}] finally failed. The setup stops with status [{}].",
+                        physicalName,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", physicalName);

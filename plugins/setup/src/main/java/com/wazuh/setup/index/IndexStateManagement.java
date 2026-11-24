@@ -28,6 +28,7 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +131,11 @@ public class IndexStateManagement extends Index {
                     .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
             log.info("ISM policy [{}] created", policy);
         } catch (IOException e) {
-            log.error("Failed to load the ISM policy from file: {}", e.getMessage());
+            // Only the bundled policy is read here, the policy files were read with the configuration.
+            // Like an invalid policy file, it fails the initialization: the indices that name the
+            // policy would otherwise never roll over nor be deleted.
+            throw new UncheckedIOException(
+                    "ISM policy [" + policy + "] bundled in the plugin cannot be read: " + e.getMessage(), e);
         } catch (ResourceAlreadyExistsException e) {
             log.error("Policy already exists, skipping creation: {}", e.getMessage());
         } catch (
@@ -139,7 +144,10 @@ public class IndexStateManagement extends Index {
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
-                log.error("Initialization of policy [{}] finally failed. The node will shut down.", policy);
+                log.error(
+                        "Initialization of policy [{}] finally failed. The setup stops with status [{}].",
+                        policy,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the policy [{}] timed out. Retrying...", policy);
@@ -247,7 +255,10 @@ public class IndexStateManagement extends Index {
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
-                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                log.error(
+                        "Initialization of index [{}] finally failed. The setup stops with status [{}].",
+                        index,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);

@@ -119,8 +119,9 @@ public class StreamIndex extends WazuhIndex {
             if (this.templateCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of index template [{}] finally failed. The node will shut down.",
-                        templateName);
+                        "Initialization of index template [{}] finally failed. The setup stops with status [{}].",
+                        templateName,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
@@ -149,7 +150,9 @@ public class StreamIndex extends WazuhIndex {
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of data stream [{}] finally failed. The node will shut down.", index);
+                        "Initialization of data stream [{}] finally failed. The setup stops with status [{}].",
+                        index,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the data stream [{}] timed out. Retrying...", index);

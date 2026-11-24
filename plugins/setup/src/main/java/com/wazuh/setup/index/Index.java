@@ -369,7 +369,10 @@ public abstract class Index implements IndexInitializer {
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
             if (this.indexCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
-                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                log.error(
+                        "Initialization of index [{}] finally failed. The setup stops with status [{}].",
+                        index,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
@@ -431,8 +434,9 @@ public abstract class Index implements IndexInitializer {
             if (this.templateCreationAttempts
                     >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
-                        "Initialization of index template [{}] finally failed. The node will shut down.",
-                        template);
+                        "Initialization of index template [{}] finally failed. The setup stops with status [{}].",
+                        template,
+                        SetupStatusIndex.SETUP_STATUS_FAILED);
                 throw e;
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", template);

@@ -287,6 +287,7 @@ If an index exists and does not have the value of an override, the plugin also l
 The plugin checks the whole configuration right after it creates the [setup status](architecture.md#readiness-marker) index, which has to exist to record a `failed` status, and before anything else. The initialization stops if:
 
 - `setup.yml` exists but is not a file: a directory, or a link that points to nothing,
+- the indexer cannot tell whether `setup.yml` exists, because it cannot enter the configuration directory,
 - `setup.yml` is not valid YAML,
 - a key is unknown: a group, a template name, a setting or a policy id that does not exist,
 - a value has the wrong type or is out of range,

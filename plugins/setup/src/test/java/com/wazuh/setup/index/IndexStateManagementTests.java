@@ -35,6 +35,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -143,19 +144,26 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     }
 
     /**
-     * Verifies that if the ISM policy file is missing or cannot be loaded, {@link
-     * IndexStateManagement#initialize()} handles the {@link IOException} without throwing it.
+     * Verifies that a bundled ISM policy that cannot be read fails {@link
+     * IndexStateManagement#initialize()} with an error naming the policy, with no retry and no other
+     * policy stored.
      *
      * @throws IOException if there is an error reading the policy file
      */
-    public void testPolicyFileMissing_LogsError() throws IOException {
+    public void testBundledPolicyThatCannotBeRead_FailsTheInitialization() throws IOException {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
-        // Mock all policy file reads to throw IOException
-        doThrow(new IOException("file not found")).when(jsonUtils).fromFile(anyString());
+        doThrow(new IOException("unexpected end of input")).when(this.jsonUtils).fromFile(anyString());
 
-        this.ismIndex.initialize();
+        UncheckedIOException e =
+                LuceneTestCase.expectThrows(UncheckedIOException.class, () -> this.ismIndex.initialize());
 
-        // Verifies that exception is caught and logged
+        Assert.assertEquals(
+                "ISM policy ["
+                        + IndexStateManagement.POLICIES.get(0)
+                        + "] bundled in the plugin cannot be read: unexpected end of input",
+                e.getMessage());
+        verify(this.jsonUtils, times(1)).fromFile(anyString());
+        verify(this.client, never()).index(any(IndexRequest.class));
     }
 
     /**
@@ -178,16 +186,6 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.ismIndex.initialize();
 
         // Verifies that exception is caught and logged
-    }
-
-    /**
-     * Verifies that IOException while reading a file is caught and logged.
-     *
-     * @throws IOException if there is an error reading the file
-     */
-    public void testFileIOException() throws IOException {
-        doThrow(new IOException("Test failed successfully")).when(this.jsonUtils).fromFile(anyString());
-        this.ismIndex.indexPolicy("test-template");
     }
 
     /**
