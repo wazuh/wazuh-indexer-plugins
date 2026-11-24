@@ -1,0 +1,3 @@
+# Configuration of the test cluster of SetupConfigInvalidIT, policy file case: the file is valid,
+# and the policy file it selects is one that Index State Management cannot read.
+policies.stream-events-policy.custom: true

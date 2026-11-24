@@ -1,7 +1,7 @@
 {
   "policy": {
     "policy_id": "stream-events-policy",
-    "description": "ISM policy for events data streams. Rolls over backing indices at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index 1 hour after it rolled over, so the previous index is always kept at least that long. Deployments that never fill a shard never roll over and retain events indefinitely. This is a Wazuh default policy: it is restored on every restart, so do not edit it. To change retention, create a custom policy and move the existing indices to it: https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/retention.html#creating-a-custom-policy",
+    "description": "ISM policy for events data streams. Rolls over backing indices at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index 1 hour after it rolled over, so the previous index is always kept at least that long. Deployments that never fill a shard never roll over and retain events indefinitely. This is a Wazuh default policy: it is restored on every restart, so do not edit it. To change it, edit the copy of this policy in the configuration directory of the setup plugin and set policies.stream-events-policy.custom to true in setup.yml: https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/customization.html#ism-policies",
     "last_updated_time": 1795392000000,
     "schema_version": 1,
     "default_state": "hot",

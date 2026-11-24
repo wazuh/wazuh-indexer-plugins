@@ -1,0 +1,351 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import groovy.json.JsonGenerator
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+// Generates the files the plugin installs in its configuration directory, <path.conf>/wazuh-indexer-setup:
+//   setup.yml           every supported key, commented out, with its default and its valid values, and examples
+//   <policy-id>.json    an editable copy of each default ISM policy
+//   README.md
+// They are generated from the bundled templates and policies, so the documented defaults cannot
+// drift from the real ones. SetupConfigFilesTests checks the result against the plugin's own reader.
+
+def setupConfigDirectory = 'wazuh-indexer-setup'
+def setupConfigOutput = layout.buildDirectory.dir('generated/setup-config')
+def setupConfigDocs = 'https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/customization.html'
+
+// Supported settings: the OpenSearch default used for a template that does not set them, and the
+// valid values written next to every key.
+def setupConfigSettings = [
+  'index.number_of_shards'      : [default: '1',       values: '1 to 1024'],
+  'index.number_of_replicas'    : [default: '1',       values: '0 or more, used only when auto_expand_replicas is false'],
+  'index.auto_expand_replicas'  : [default: 'false',   values: '"<min>-<max>", "<min>-all" or false'],
+  'index.refresh_interval'      : [default: '1s',      values: 'a time value such as 5s or 1m, or -1'],
+  'index.codec'                 : [default: 'default', values: 'default, best_compression, zstd or zstd_no_dict'],
+  'index.translog.durability'   : [default: 'request', values: 'request or async'],
+]
+
+// Template groups, in the order they are written.
+def setupConfigGroups = [
+  streams: 'Stream templates: data streams of events, findings, metrics and other time-based data.',
+  states : 'Stateful templates: indices holding the latest state of the agents (inventory, FIM, SCA, vulnerabilities).',
+  content: 'Content templates: indices holding the threat intelligence content.',
+]
+
+// Headings of two sections of setup.yml. SetupConfigFilesTests finds the sections by them.
+def setupConfigExamplesHeading = 'Examples'
+def setupConfigKeysHeading = 'Every key, with its default'
+
+// Sentence that ends the description of every default policy. The copies replace it and what follows.
+def setupConfigPolicyMarker = 'This is a Wazuh default policy:'
+
+tasks.register('generateSetupConfig') {
+  description = 'Generates setup.yml, the editable ISM policy copies and the README of the plugin configuration directory'
+  group = 'build'
+
+  def templatesDir = file('src/main/resources/templates')
+  def policiesDir = file('src/main/resources/policies')
+  inputs.dir(templatesDir)
+  inputs.dir(policiesDir)
+  inputs.file(file('gradle/setup-config.gradle'))
+  outputs.dir(setupConfigOutput)
+
+  doLast {
+    def slurper = new JsonSlurper()
+    def outputDir = new File(setupConfigOutput.get().asFile, setupConfigDirectory)
+    project.delete(outputDir)
+    outputDir.mkdirs()
+
+    // Flattens the nested settings of a template into "index.x.y" keys, as OpenSearch reads them.
+    def flatten
+    flatten = { Map map, String prefix, Map result ->
+      map.each { key, value ->
+        def path = prefix ? "${prefix}.${key}" : "${key}"
+        if (value instanceof Map) {
+          flatten(value, path, result)
+        } else {
+          result[path] = value
+        }
+      }
+      result
+    }
+    // Plain scalars stay unquoted; anything YAML could read differently (0-1, for example) is quoted.
+    def yaml = { String value ->
+      (value ==~ /-?\d+/ || value ==~ /[A-Za-z_][A-Za-z0-9_]*/ || value ==~ /\d+[a-z]+/) ? value : "\"${value}\""
+    }
+    def wrap = { String text, String indent ->
+      def lines = []
+      def line = new StringBuilder()
+      text.split(' ').each { word ->
+        if (line.length() + word.length() + indent.length() + 3 > 100) {
+          lines << "#${indent}${line.toString().trim()}"
+          line = new StringBuilder()
+        }
+        line.append(word).append(' ')
+      }
+      lines << "#${indent}${line.toString().trim()}"
+      lines.join('\n')
+    }
+
+    // ---- Defaults of every template of every group
+    def defaults = [:]
+    setupConfigGroups.keySet().each { group ->
+      defaults[group] = [:]
+      new File(templatesDir, group).listFiles().findAll { it.name.endsWith('.json') }.sort { it.name }.each { templateFile ->
+        def template = slurper.parse(templateFile)
+        def settings = flatten(template.template.settings as Map, '', [:])
+        def values = [:]
+        setupConfigSettings.each { key, setting ->
+          values[key] = settings.containsKey(key) ? "${settings[key]}" : setting.default
+        }
+        defaults[group][templateFile.name - '.json'] = [pattern: template.index_patterns[0], values: values]
+      }
+    }
+    // Writes commented keys, each followed by a comment, with the comments of a block aligned.
+    def keyLines = { List<List<String>> lines, StringBuilder text ->
+      def width = lines.collect { it[0].length() }.max() + 2
+      lines.each { text << it[0].padRight(width) << "# ${it[1]}\n" }
+    }
+    // A wildcard key shows a value only when every template it covers has the same default.
+    def wildcard = { String prefix, Collection<Map> covered, StringBuilder text ->
+      keyLines(setupConfigSettings.collect { key, setting ->
+        def values = covered.collect { it.values[key] }.unique().sort()
+        values.size() == 1 ?
+            ["#${prefix}.settings.${key}: ${yaml(values[0])}", setting.values] :
+            ["#${prefix}.settings.${key}:", "${setting.values}. No single default here: ${values.join(', ')}"]
+      }, text)
+    }
+
+    // The stream templates that ship async durability: the only ones the durability example changes.
+    def asyncStreams = defaults.streams
+        .findAll { name, template -> template.values['index.translog.durability'].toString() == 'async' }
+        .keySet().sort()
+    if (asyncStreams.isEmpty()) {
+      throw new GradleException('No stream template ships index.translog.durability: async. Rewrite the durability example of setup.yml.')
+    }
+    def asyncStreamNames = asyncStreams.size() == 1 ? asyncStreams[0] : asyncStreams[0..-2].join(', ') + ' and ' + asyncStreams[-1]
+
+    // ---- setup.yml
+    def rule = '# ' + ('-' * 98)
+    def text = new StringBuilder()
+    text << """\
+# Wazuh indexer setup plugin configuration
+#
+# This file customizes the index templates and the Index State Management (ISM) policies that the
+# setup plugin creates: the shards, replicas, refresh interval, compression and write durability of
+# the Wazuh indices, and their retention.
+#
+# Every key is listed below, commented out, with its default value and its valid values. Until a
+# key is uncommented, the plugin behaves as if this file did not exist.
+#
+# How to use it
+#   1. Find the key in the lists below, or pick one of the examples.
+#   2. Remove the "#" in front of the key and set its value.
+#   3. Restart the Wazuh indexer. In a cluster with several nodes, keep this file and the policy
+#      files identical on every cluster-manager-eligible node, and restart those nodes.
+#   A key can be set only once in the file.
+#
+# This file is read each time the plugin initializes the cluster, which happens when a node that has
+# just started is elected cluster manager.
+#
+# It changes the index templates, so it reaches the indices created afterwards. An index that exists
+# keeps its settings, and a data stream takes the new ones at its next rollover. Mappings, index
+# patterns and any setting not listed here always come from the plugin.
+#
+# Errors
+#   An unknown key, an invalid value or an invalid policy file stops the initialization before any
+#   index is created. The error in the indexer log names the key or the file. Fix it and restart
+#   the node.
+#
+# Documentation: ${setupConfigDocs}
+
+${rule}
+# ${setupConfigExamplesHeading}
+${rule}
+# To use an example, remove the "#" in front of its keys and restart the Wazuh indexer. The same
+# keys are listed again further down with their defaults: leave those commented, because a key can
+# be set only once.
+
+# Three data nodes: every events data stream gets three primary shards, and each shard a replica
+# on the two other nodes.
+#templates.streams.events.settings.index.number_of_shards: 3
+#templates.streams.events.settings.index.auto_expand_replicas: "0-2"
+
+# A fixed number of replicas for every index, instead of a number that follows the nodes of the
+# cluster.
+#templates.*.*.settings.index.auto_expand_replicas: false
+#templates.*.*.settings.index.number_of_replicas: 1
+
+# A stateful index that makes new documents searchable every 30 seconds, to save indexing work.
+#templates.states.inventory-services.settings.index.refresh_interval: 30s
+
+${wrap("${asyncStreamNames.capitalize()} indices that sync every write to disk before acknowledging it, instead of every 5 seconds. The other stream templates already ship request.".toString(), ' ')}
+#templates.streams.*.settings.index.translog.durability: request
+
+# Your own retention for the events. First edit stream-events-policy.json, in this directory: the
+# "min_rollover_age" of the transition to "delete" is how long an index is kept after it rolls
+# over, and "last_updated_time" must be the time of the edit in milliseconds (date +%s%3N). Leave
+# "policy_id" and "ism_template" as they are. Then:
+#policies.stream-events-policy.custom: true
+
+${rule}
+# Index template settings
+${rule}
+# Key format: templates.<group>.<name>.settings.<setting>
+#
+#   <group>   streams, states or content
+#   <name>    name of a template, or * for every template of the group
+#   templates.*.*  covers every template
+#
+# When several keys set the same setting for a template, the most specific one wins: the key with
+# the template name, then the key of its group, then the key for every template.
+#
+# Settings
+#
+#   index.number_of_shards
+#       Number of primary shards of each index. An integer from 1 to 1024. It cannot be changed on
+#       an index that exists. Every shard, primary or replica, counts against the shard limit of the
+#       cluster, 1000 for each data node by default, and the plugin creates about 50 indices from
+#       these templates at the first start.
+#   index.number_of_replicas
+#       Number of copies of each primary shard. An integer, 0 or more. It has no effect unless
+#       index.auto_expand_replicas is false.
+#   index.auto_expand_replicas
+#       Range the number of replicas follows as data nodes join and leave: "<min>-<max>",
+#       "<min>-all", or false to use index.number_of_replicas.
+#   index.refresh_interval
+#       How often new documents become searchable. A time value such as 5s or 1m, or -1 to disable
+#       the periodic refresh.
+#   index.codec
+#       Compression of the stored data: ${setupConfigSettings['index.codec'].values}. It cannot
+#       be changed on an open index.
+#   index.translog.durability
+#       request syncs every write to disk before acknowledging it. async syncs every 5 seconds, and
+#       an abrupt stop of the node can lose the acknowledged writes of the last seconds.
+#
+#   The values of index.codec and index.translog.durability are written in lower case, as above.
+
+${rule}
+# ${setupConfigKeysHeading}
+${rule}
+
+# Every template
+"""
+    wildcard('templates.*.*', defaults.values().collectMany { it.values() }, text)
+
+    setupConfigGroups.each { group, groupDescription ->
+      text << "\n${rule}\n${wrap(groupDescription, ' ')}\n${rule}\n"
+      if (group == 'content') {
+        text << wrap('The Content Manager creates these indices again with its own index.number_of_replicas, ' +
+            'index.auto_expand_replicas and index.codec, and the values of this file for those three settings ' +
+            'are then not applied. For ioc and vulnerabilities they never apply: their index is created again ' +
+            'each time their content is loaded, the first time included. For the others they apply until the ' +
+            'source of the content changes.', ' ') << '\n'
+      }
+      text << "\n# Every ${group} template\n"
+      wildcard("templates.${group}.*", defaults[group].values(), text)
+      defaults[group].each { name, template ->
+        text << "\n# ${name}: indices ${template.pattern}\n"
+        keyLines(template.values.collect { key, value ->
+          ["#templates.${group}.${name}.settings.${key}: ${yaml(value)}", setupConfigSettings[key].values]
+        }, text)
+      }
+    }
+
+    // ---- ISM policies
+    def policies = policiesDir.listFiles().findAll { it.name.endsWith('.json') }.sort { it.name }
+    text << """
+${rule}
+# ISM policies
+${rule}
+# Key format: policies.<policy-id>.custom
+#
+#   false   The plugin stores its default policy.
+#   true    The plugin stores the policy of the file <policy-id>.json of this directory instead,
+#           under the same policy id. Edit that file before enabling it.
+#
+# Each line shows the data streams of the policy and when the default policy deletes an index.
+#
+# A policy read from its file no longer receives the changes that new versions make to the default
+# policy. An index that exists keeps the policy version it started with, so a change of policy
+# reaches the indices created afterwards.
+
+"""
+    // What a default policy does, read from the policy itself: its streams and its deletion age.
+    def summary = { Map policy ->
+      def streams = policy.ism_template.collectMany { it.index_patterns }.findAll { !it.startsWith('.ds-') }.join(', ')
+      def conditions = policy.states.find { it.name == policy.default_state }.transitions[0].conditions
+      def deleted = conditions.min_rollover_age ? "${conditions.min_rollover_age} after it rolls over" :
+          "${conditions.min_index_age} after it is created"
+      "${streams}: an index is deleted ${deleted}"
+    }
+    def policyLines = []
+    def generator = new JsonGenerator.Options().disableUnicodeEscaping().build()
+    policies.each { policyFile ->
+      def id = policyFile.name - '.json'
+      def policy = slurper.parse(policyFile)
+      policyLines << ["#policies.${id}.custom: false", summary(policy.policy as Map)]
+      def description = policy.policy.description as String
+      def marker = description.indexOf(setupConfigPolicyMarker)
+      if (policy.policy.policy_id != id || marker < 0) {
+        throw new GradleException("${policyFile}: expected policy_id [${id}] and a description holding [${setupConfigPolicyMarker}]")
+      }
+      policy.policy.description = description.substring(0, marker) +
+          "This is the editable copy of the default policy. It replaces the default one while policies.${id}.custom " +
+          "is true in setup.yml: ${setupConfigDocs}#ism-policies"
+      new File(outputDir, policyFile.name).setText(JsonOutput.prettyPrint(generator.toJson(policy)) + '\n', 'UTF-8')
+    }
+    keyLines(policyLines, text)
+    // Every line of the file starts with "#", the separator lines too.
+    def content = text.toString().readLines().collect { it.isEmpty() ? '#' : it }.join('\n') + '\n'
+    new File(outputDir, 'setup.yml').setText(content, 'UTF-8')
+
+    // ---- README.md
+    new File(outputDir, 'README.md').setText("""\
+# Wazuh indexer setup plugin configuration
+
+The setup plugin creates the index templates, the indices and the Index State Management (ISM) policies of Wazuh. The files in this directory customize them.
+
+| File | Purpose |
+| --- | --- |
+| `setup.yml` | Overrides of the index template settings, and one switch per ISM policy. Every key is listed, commented out, with its default and its valid values, after a few examples. To use a key, remove the `#` in front of it. |
+| `<policy-id>.json` | Editable copy of each default ISM policy. The plugin uses it instead of the default policy while `policies.<policy-id>.custom` is `true` in `setup.yml`. |
+
+- The plugin reads these files each time it initializes the cluster, which happens when a node that has just started is elected cluster manager. A change needs a restart.
+- In a cluster with several nodes, keep the same files on every cluster-manager-eligible node.
+- A change reaches the indices created afterwards. An index that exists keeps its settings and the policy version it started with.
+- An invalid key, value or policy file stops the initialization, and the error in the indexer log names it.
+- In a policy file, keep `policy_id` and the `ism_template` block as they are. ISM uses the `ism_template` index patterns to attach the policy to the backing indices that a rollover creates. Set `last_updated_time` to the time of the edit, in milliseconds, and never to a time in the future.
+
+Reference: ${setupConfigDocs}
+""", 'UTF-8')
+  }
+}
+
+// Ship the generated files in the config/ folder of the plugin zip. The plugin installer copies that
+// folder to <path.conf>/wazuh-indexer-setup and keeps the files that already exist there.
+tasks.named('bundlePlugin') {
+  dependsOn 'generateSetupConfig'
+  from(setupConfigOutput.map { it.dir(setupConfigDirectory) }) {
+    into 'config'
+  }
+}
+
+// The tests read the generated files from the classpath, under wazuh-indexer-setup/.
+sourceSets.test.resources.srcDir(tasks.named('generateSetupConfig'))

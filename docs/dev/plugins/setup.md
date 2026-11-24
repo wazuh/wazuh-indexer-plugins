@@ -24,8 +24,11 @@ classDiagram
     class StateIndex
     class StreamIndex
     class ContentIndex
+    class SetupConfig
 
     %% Relations
+    Index --> SetupConfig : template overrides
+    IndexStateManagement --> SetupConfig : replaced policies
     IndexInitializer <|-- Index : implements
     Index <|-- IndexStateManagement
     Index <|-- WazuhIndex
@@ -43,9 +46,12 @@ classDiagram
         Client client
         ClusterService clusterService
         IndexUtils utils
+        SetupConfig config
         String index
         String template
         +Index(String index, String template)
+        +setConfig(SetupConfig config) void
+        templateSettings(String template, String templateName, IndexTemplate indexTemplate) Settings
         +setClient(Client client) IndexInitializer
         +setClusterService(ClusterService clusterService) IndexInitializer
         +setIndexUtils(IndexUtils utils) IndexInitializer
@@ -61,6 +67,12 @@ classDiagram
         -indexPolicy(String policy) void
     }
     class WazuhIndex {
+    }
+    class SetupConfig {
+        +load(Path directory, Collection~String~ templates, Collection~String~ policies) SetupConfig$
+        +templateOverrides(String template) Settings
+        +customPolicy(String policy) Map
+        +log(Logger log) void
     }
     class StreamIndex {
         -String alias
@@ -96,14 +108,21 @@ The `SetupPlugin` class holds the list of indices to create. The logic for the c
 sequenceDiagram
     actor Node
     participant SetupPlugin
+    participant SetupConfig
     participant Index
     participant Client
     Node->>SetupPlugin: plugin.onNodeStarted()
     activate SetupPlugin
     Note over Node,SetupPlugin: Invoked on Node::start()
 
+    Note over SetupPlugin,Index: The setup status index is initialized first
+    SetupPlugin->>SetupConfig: load(configDirectory)
+    SetupConfig--)SetupPlugin: overrides and replaced policies
+    Note over SetupPlugin,SetupConfig: An invalid file stops here: status failed
+
     activate Index
     loop i..n indices
+        SetupPlugin->>Index: i.setConfig(config)
         SetupPlugin->>Index: i.initialize()
 
 
@@ -310,27 +329,22 @@ Keep a single condition in each transition.
 
 Edit the `IndexStateManagement` class located at: `/plugins/setup/src/main/java/com/wazuh/setup/index/IndexStateManagement.java`
 
-Register the new policy constant and add it in the constructor:
+Register the new policy constant and add it to `POLICIES`:
 ```java
 // ISM policy name constant (filename without .json extension)
 static final String MY_POLICY = "my-policy-filename";
 
 ...
 
-/**
- * Constructor
- *
- * @param index    Index name
- * @param template Index template name
- */
-public IndexStateManagement(String index, String template) {
-    super(index, template);
-    this.policies = new ArrayList<>();
-
-    // Register the ISM policy to be created
-    this.policies.add(MY_POLICY);
-}
+/** Ids of the default ISM policies, in the order they are created. */
+public static final List<String> POLICIES =
+        List.of(
+                EVENTS_POLICY,
+                ...
+                MY_POLICY);
 ```
+
+End the `description` of the policy with the sentence the other default policies end with, starting at `This is a Wazuh default policy:`. The build replaces it in the editable copy of the policy it generates for the configuration directory (see [Configuration file](#configuration-file-setupyml)), and fails if it is missing.
 
 ## Additional notes
 Always follow existing naming conventions to maintain consistency.
@@ -339,7 +353,7 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 
 ISM policies and templates must be properly deployed before the indices are created.
 
-`IndexStateManagement.initialize()` runs when a node that has just started is elected cluster manager, and `indexPolicy()` writes each policy with a plain `IndexRequest` keyed by policy id, so **the seven shipped policies are overwritten on every restart**. This is intended: they are Wazuh's default policies, and the overwrite is how a release delivers a new version of them. Any edit an operator makes to one of them through the ISM API is reverted on the next boot, which is why [Retention](../../ref/modules/setup/retention.md#creating-a-custom-policy) tells operators to create a policy under their own id rather than editing a default one. Each policy's description says the same and links to that page, so keep that sentence when you change a description.
+`IndexStateManagement.initialize()` runs when a node that has just started is elected cluster manager, and `indexPolicy()` writes each policy with a plain `IndexRequest` keyed by policy id, so **the seven shipped policies are overwritten on every restart**. This is intended: they are Wazuh's default policies, and the overwrite is how a release delivers a new version of them. Any edit an operator makes to one of them through the ISM API is reverted on the next boot, which is why [Retention](../../ref/modules/setup/retention.md#changing-a-policy) tells operators to edit the policy file of the configuration directory and turn on its switch instead. With the switch on, `indexPolicy()` writes the content of that file under the same policy id, so the overwrite then restores the operator's version. Each policy's description says the same and links to the customization page, so keep that sentence when you change a description.
 
 A new version of a policy reaches only the backing indices created after it. The existing ones keep the copy they were attached with until someone runs `change_policy` on them (see [Retention](../../ref/modules/setup/retention.md#existing-indices-keep-the-policy-version-they-started-with)).
 
@@ -410,6 +424,49 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ---
 
+## Configuration file (`setup.yml`)
+
+Operators change some index settings of the templates, and replace the ISM policies, through the files of the plugin configuration directory, `<path.conf>/wazuh-indexer-setup`. The reference manual describes them for an operator: see [Customization](../../ref/modules/setup/customization.md). This section describes the code.
+
+### How it works
+
+The `config` package holds three classes:
+
+- **`SetupConfig`:** reads and validates `setup.yml` and the policy files it selects. An instance is the result of one read.
+- **`SupportedSetting`:** the six index settings a key can override, each with the check of its value.
+- **`SetupConfigException`:** thrown for an invalid configuration. The message names the key or the file.
+
+- `SetupPlugin.initialize()` runs the initialization. It initializes the setup status index first, reads the configuration, hands it to every other index with `setConfig()`, and initializes them. An invalid configuration throws before any other index is touched, and the caller marks the status as `failed`.
+- The file is parsed with `Settings.Builder.loadFromStream()`, the loader OpenSearch uses for `opensearch.yml`, so flat and nested keys are both accepted and no YAML dependency is added.
+- A key is valid if its template is one the plugin registers under `templates/streams`, `templates/states` or `templates/content`, and its setting is a `SupportedSetting`. The registered templates come from the indices of `SetupPlugin`, so a new template needs nothing else. The internal templates sit outside those folders and cannot be overridden.
+- A policy file is checked before anything is stored: a `policy` object and nothing else, `policy_id` equal to the default id, a `last_updated_time` that is not in the future (nor in any `ism_template` entry), at least one `ism_template` entry, because ISM attaches the policy to the backing indices a rollover creates through it, and only the fields of `policy` in the mapping of `templates/ism-config.json`. That mapping is strict, so a field it does not list would fail the write. The list is read from the mapping, so a field added there is accepted with no other change.
+- A policy file is then parsed with `Policy.parse()` of the Index Management plugin, the parser ISM reads a stored policy with. `indexPolicy()` stores a policy with a plain `IndexRequest`, so ISM validates nothing at that point, and one stored policy that ISM cannot parse makes it attach no policy to any new index: it reads every policy with an `ism_template` in one go, and the read fails as a whole. The parser gets the `NamedXContentRegistry` of the node, as in ISM.
+- If an index cannot be initialized while the file overrides settings of its template, `SetupPlugin.initialize()` adds the file and those overrides to the error (`SetupConfig.describeOverrides()`). The cluster can refuse a value the file accepts, such as a number of shards over the shard limit, and its error names no key.
+- `Index.templateSettings()` builds the settings of a template: the bundled ones, then `SetupConfig.templateOverrides()` on top. The three `createTemplate()` implementations (`Index`, `StreamIndex`, `ContentIndex`) call it. Precedence is the order the three levels are put in: all templates, then the group, then the template.
+- `IndexStateManagement.indexPolicy()` indexes `SetupConfig.customPolicy()` when there is one, and the bundled policy otherwise, under the same id.
+
+### Generated files
+
+`gradle/setup-config.gradle` adds the task `generateSetupConfig`, which writes the configuration directory to `build/generated/setup-config/wazuh-indexer-setup`:
+
+- `setup.yml`. It has one commented key per template and setting, with the value the bundled template has, or the Wazuh default when the template does not set it, followed by the valid values of the setting. It also has a section of examples and, for each policy switch, the streams of the policy and its deletion age, read from the policy.
+- One `<policy-id>.json` per bundled policy: the policy with another description.
+- `README.md`.
+
+`bundlePlugin` puts them in the `config/` folder of the plugin zip. The plugin installer copies that folder to `<path.conf>/wazuh-indexer-setup` and keeps the files that already exist there. Nothing generated is committed.
+
+The same folder is a test resource folder. `SetupConfigFilesTests` loads the generated files with `SetupConfig` and fails if a commented default differs from its bundled template, if a registered template or a bundled policy has no key, if a key names something the plugin does not register, or if an example stops working once its keys are uncommented. The test finds the examples and the list of keys by their headings, which the task defines.
+
+### Adding a supported setting
+
+1. Add it to `SupportedSetting`, with the definition of the setting when its error message is usable, or with a list of the accepted values. The value goes to the index template as it is written in the file, so the check must not accept a spelling that the indexer reads as something else
+2. Add it to `setupConfigSettings` in `gradle/setup-config.gradle`, with its default and its valid values, and describe it in the header the task writes.
+3. Add it to the table of [Customization](../../ref/modules/setup/customization.md#supported-settings).
+
+`SetupConfigFilesTests` fails until the first two agree, and for a setting checked against a list, until the valid values written in the second are the values of that list, in the same order.
+
+---
+
 ## Translog durability of the stream templates
 
 Three stream templates set `index.translog.durability: async`. The translog of their backing indices is synced every `index.translog.sync_interval` (5 seconds, the OpenSearch default, which no template overrides) instead of before each write is acknowledged. The active responses, metrics, AI assistant sessions, stateful and content templates do not set it, so they keep the default, `request`.
@@ -420,7 +477,7 @@ Three stream templates set `index.translog.durability: async`. The translog of t
 | `wcs/stateless/events/raw` | `templates/streams/raw.json` | `wazuh-events-raw-v5` |
 | `wcs/stateless/events/findings` | `templates/streams/findings.json` | `wazuh-findings-v5-<category>` |
 
-`StreamIndex.createTemplate()` copies the settings of the base template through unchanged, so the 8 category templates of the events and of the findings carry the setting too.
+`StreamIndex.createTemplate()` copies the settings of the base template through, so the 8 category templates of the events and of the findings carry the setting too. Only a key of the [configuration file](#configuration-file-setupyml) changes it.
 
 The reference manual describes what this means for an operator: see [Write durability of the stream indices](../../ref/modules/setup/architecture.md#write-durability-of-the-stream-indices).
 
