@@ -39,9 +39,10 @@ import static org.hamcrest.Matchers.containsString;
 /**
  * Integration tests for the OpenSearch operations the schema upgrade relies on, run against the
  * indices the plugin created: a mapping update addressed to a data stream reaches every backing
- * index without rolling it over, a dynamic settings update addressed to a state index or a content
- * alias reaches the live index while a static one is rejected, and a rollover creates a write index
- * at the shipped version that ISM manages like the previous one.
+ * index without rolling it over, a dynamic settings update addressed to the alias of a state index
+ * reaches the concrete index behind it while a static one is rejected, a mapping update addressed
+ * to a content alias reaches the index behind it, and a rollover creates a write index at the
+ * shipped version that ISM manages like the previous one.
  *
  * <p>The upgrade itself runs at boot, after the drift detection, so a cluster that starts at the
  * shipped version never runs it; {@code SchemaUpgraderTests} covers its sequence.
@@ -126,11 +127,14 @@ public class SchemaUpgradeIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * A settings update addressed to a state index name reaches the live index, and a static setting
-     * is rejected by OpenSearch, which is why the upgrade filters them out.
+     * A settings update addressed to the alias of a state index reaches the concrete index behind it,
+     * and a static setting is rejected by OpenSearch, which is why the upgrade filters them out.
      */
-    public void testDynamicSettingThroughTheStateIndexName() throws IOException, ParseException {
+    public void testDynamicSettingThroughTheStateAlias() throws IOException, ParseException {
         String index = "wazuh-states-sca";
+        Map<String, Object> resolved =
+                entityAsMap(client().performRequest(new Request("GET", "/" + index + "/_settings")));
+        assertEquals(java.util.Set.of(index + "-a"), resolved.keySet());
         String before = this.setting(index, "refresh_interval");
 
         Request dynamic = new Request("PUT", "/" + index + "/_settings");

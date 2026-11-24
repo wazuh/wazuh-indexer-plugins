@@ -63,6 +63,19 @@ classDiagram
         +initialize() void
         +createIndex(String index) void
         +createTemplate(String template) void
+        +isVersioned() bool
+        +getInstalledSchemaVersion() long
+        +applyShippedMappings() void
+        +applyShippedSettings() void
+        +stampShippedVersion() void
+    }
+    class SchemaDriftDetector {
+        +SchemaDriftDetector(List~Index~ indices, SetupStatusIndex statusIndex)
+        +detect() List~IndexRecord~
+    }
+    class SchemaUpgrader {
+        +SchemaUpgrader(List~Index~ indices, SetupStatusIndex statusIndex)
+        +upgrade(List~IndexRecord~ records) List~IndexRecord~
     }
     class IndexStateManagement {
         -List~String~ policies
@@ -82,6 +95,7 @@ classDiagram
         -String alias
         +StreamIndex(String index, String template, String alias)
         +createIndex(String index)
+        +rollover() void
     }
     class AliasedIndex {
         +String SUFFIX_A
@@ -160,6 +174,7 @@ sequenceDiagram
     loop i..n pending records
         alt upgrade_in_place
             SchemaUpgrader->>Index: applyShippedMappings(), applyShippedSettings(), stampShippedVersion()
+            Note over Index,Client: addressed to the public name: the alias of a state or content index, or the data stream
         else rebuild_required on a data stream
             SchemaUpgrader->>StreamIndex: rollover()
         end
@@ -191,7 +206,7 @@ See [Architecture](../../ref/modules/setup/architecture.md#schema-versions) for 
 
 `SchemaUpgrader` takes the records the detection wrote and upgrades every pending index it can without copying data, writing the records as it goes. `SetupPlugin` runs it right after the detection and computes the readiness marker from the records it returns.
 
-An `upgrade_in_place` record drives three `Index` methods, in this order, each addressed to the index's public name so OpenSearch resolves a content alias to the index behind it and a data stream to every backing index:
+An `upgrade_in_place` record drives three `Index` methods, in this order, each addressed to the index's public name so OpenSearch resolves the alias of a state or content index to the concrete index behind it, whichever slot is live, and a data stream to every backing index:
 
 1. `applyShippedMappings()` sends the template's mappings without their `_meta` in a `PutMappingRequest`. OpenSearch merges them, and rejects a field whose type changed with an `IllegalArgumentException` (or a `MapperException`): the upgrader records the index as `rebuild_required` and touches nothing else on it.
 2. `applyShippedSettings()` sends the dynamic settings of the template in an `UpdateSettingsRequest`. `Index.dynamicSettings()` loads the template's settings into a `Settings` object with the `index.` prefix normalized and drops every key that `IndexScopedSettings.DEFAULT_SCOPED_SETTINGS` knows as static; a key the node does not know, such as the ISM `policy_id`, is kept and validated by OpenSearch.
@@ -203,7 +218,7 @@ Any other exception from a step is caught per index: it is logged, the record ke
 
 ### Testing
 
-`SchemaUpgraderTests` covers the sequence and its records, the mapping conflict, the two resume points, a failed settings update, the rollover of a stream and the untouched cases, with a mocked client and a cluster state built from `IndexMetadata`, against the `templates/upgradable.json` test resource (50300, compatible from 50200, static and dynamic settings). `SchemaUpgradeIT` exercises on the gradle cluster the OpenSearch operations the upgrade relies on: a mapping update addressed to a data stream reaches every backing index without rolling it over, a dynamic settings update through a state index name is applied while a static one is rejected, a mapping update through a content alias reaches the physical index, and a rollover creates a write index at the shipped version that ISM manages like the previous one. The upgrade itself only runs at boot on an index created from an older template, which the gradle cluster cannot produce.
+`SchemaUpgraderTests` covers the sequence and its records, the mapping conflict, the two resume points, a failed settings update, the rollover of a stream and the untouched cases, with a mocked client and a cluster state built from `IndexMetadata`, against the `templates/upgradable.json` test resource (50300, compatible from 50200, static and dynamic settings). `SchemaUpgradeIT` exercises on the gradle cluster the OpenSearch operations the upgrade relies on: a mapping update addressed to a data stream reaches every backing index without rolling it over, a dynamic settings update through a state alias lands on its `-a` index while a static one is rejected, a mapping update through a content alias reaches the physical index, and a rollover creates a write index at the shipped version that ISM manages like the previous one. The upgrade itself only runs at boot on an index created from an older template, which the gradle cluster cannot produce.
 
 ## JavaDoc
 
