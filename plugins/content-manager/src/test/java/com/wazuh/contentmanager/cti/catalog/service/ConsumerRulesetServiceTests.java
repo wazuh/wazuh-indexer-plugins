@@ -857,6 +857,53 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     /**
+     * engine_load records Engine load failures, which the Engine content loader owns: it is not a
+     * synchronization phase. A pass with nothing to sync and only engine_load stored syncs nothing,
+     * writes no phases and asks for no retry, as with nothing pending.
+     */
+    public void testOnSyncComplete_engineLoadPending_isNotASyncPhase() throws Exception {
+        this.mockExistingConsumerDoc(List.of(LocalConsumer.PHASE_ENGINE_LOAD));
+
+        this.synchronizer.onSyncComplete(false);
+
+        verify(this.consumersIndex, never()).setConsumer(any());
+        verify(this.spaceService, never()).getResourcesBySpace(any(), any(), any(), any());
+        verifyNoInteractions(this.securityAnalyticsService);
+    }
+
+    /**
+     * A pass that only finds engine_load stored has finished no owed phase, so it neither requests an
+     * immediate retry nor records a content update time.
+     */
+    public void testSynchronize_engineLoadPending_doesNotMoveUpdatedAt() throws Exception {
+        this.mockExistingConsumerDoc(List.of(LocalConsumer.PHASE_ENGINE_LOAD));
+        this.mockIndexResolution(name -> false);
+        ConsumerService consumerService = mock(ConsumerService.class);
+        when(consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "ctx",
+                                "name",
+                                "cti:catalog:consumer:ruleset",
+                                "",
+                                true,
+                                LocalConsumer.Status.READY,
+                                100L,
+                                100L,
+                                List.of()));
+        this.synchronizer.setConsumerService(consumerService);
+
+        Assert.assertFalse(this.synchronizer.synchronize());
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, org.mockito.Mockito.atLeastOnce()).setConsumer(captor.capture());
+        LocalConsumer lastWrite = captor.getValue();
+        Assert.assertEquals(LocalConsumer.Status.READY, lastWrite.getStatus());
+        Assert.assertNull(lastWrite.getUpdatedAt());
+        Assert.assertTrue(lastWrite.getPendingSyncPhases().isEmpty());
+    }
+
+    /**
      * synchronize() calls setConsumerStatus(READY) right after onSyncComplete() on every pass; that
      * status write must preserve pending_sync_phases, not reset it. Drives synchronize() end to end
      * (not onSyncComplete() directly) so the trailing status write is actually exercised.

@@ -89,6 +89,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
+import com.wazuh.contentmanager.cti.catalog.service.EngineLoadReporter;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -148,6 +149,7 @@ public class ContentManagerPlugin extends Plugin
     private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
     private EngineContentLoader engineContentLoader;
+    private EngineLoadReporter engineLoadReporter;
     private ClusterStateListener engineContentListener;
     private ClusterStateListener standardSpaceHashListener;
     private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
@@ -240,8 +242,11 @@ public class ContentManagerPlugin extends Plugin
         this.spaceService = new SpaceService(this.client);
         UserOverridesService userOverridesService =
                 new UserOverridesService(this.client, this.spaceService);
+        this.engineLoadReporter =
+                new EngineLoadReporter(this.consumersIndex, this.clusterService, this.threadPool);
         this.engineContentLoader =
-                new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
+                new EngineContentLoader(
+                        this.engine, this.spaceService, this.threadPool, this.engineLoadReporter);
 
         if (PluginSettings.getInstance().isSecurityAnalyticsMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -414,7 +419,13 @@ public class ContentManagerPlugin extends Plugin
         // ready is retried on a subsequent event, and late/rejoining nodes converge on join. A space
         // the Engine refused is not sent again on every event: the loader's scheduled retry, or a
         // content change, sends it. Once loaded, each call is a cheap in-memory hash comparison.
-        this.engineContentListener = event -> this.engineContentLoader.reloadIfChanged();
+        // The elected cluster manager also drops the Engine load failures recorded by nodes that left
+        // the cluster, which would otherwise keep the ruleset consumer reporting a pending load.
+        this.engineContentListener =
+                event -> {
+                    this.engineContentLoader.reloadIfChanged();
+                    this.engineLoadReporter.onClusterChanged(event);
+                };
         this.clusterService.addListener(this.engineContentListener);
         // Attempt an initial load immediately; if the Engine is not ready yet the listener retries.
         this.engineContentLoader.reloadIfChanged();

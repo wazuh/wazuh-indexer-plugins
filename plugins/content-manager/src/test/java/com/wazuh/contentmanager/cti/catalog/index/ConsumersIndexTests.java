@@ -16,11 +16,13 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.get.GetRequest;
@@ -32,6 +34,15 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.index.shard.ShardId;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.index.mapper.MapperParsingException;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -41,7 +52,11 @@ import org.junit.Before;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
 
+import com.wazuh.contentmanager.cti.catalog.model.EngineLoadFailure;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Answers;
@@ -355,6 +370,17 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         this.mockClusterHealth(ClusterHealthStatus.GREEN);
         BulkResponse bulkResponse = mock(BulkResponse.class);
         when(bulkResponse.hasFailures()).thenReturn(true);
+        when(bulkResponse.getItems())
+                .thenReturn(
+                        new BulkItemResponse[] {
+                            new BulkItemResponse(
+                                    0,
+                                    DocWriteRequest.OpType.INDEX,
+                                    new BulkItemResponse.Failure(
+                                            ConsumersIndex.INDEX_NAME,
+                                            "cti:catalog:consumer:iocs",
+                                            new MapperParsingException("failed to parse")))
+                        });
         when(bulkResponse.buildFailureMessage()).thenReturn("failure in bulk execution");
         PlainActionFuture<BulkResponse> future = PlainActionFuture.newFuture();
         future.onResponse(bulkResponse);
@@ -375,6 +401,365 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                                                         0,
                                                         20))));
         Assert.assertEquals("failure in bulk execution", ex.getMessage());
+    }
+
+    private static final String RULESET = "cti:catalog:consumer:ruleset";
+
+    /** Failure message recorded for node 1 in the stored ruleset fixtures. */
+    private static final String STORED_MESSAGE =
+            "Field 'tmp_json.event.action' is not defined in WCS schema";
+
+    /**
+     * A stored ruleset document whose node 1 failed to load it, as the Engine content loader left it.
+     */
+    private static final String STORED_RULESET_WITH_FAILURE =
+            "{\"name\":\"name\",\"context\":\"ctx\",\"type\":\"cti:catalog:consumer:ruleset\","
+                    + "\"resource\":\"https://cti/ruleset\",\"is_public\":true,\"status\":\"ready\","
+                    + "\"local_offset\":10,\"remote_offset\":10,\"pending_sync_phases\":[\"engine_load\"],"
+                    + "\"engine_load_error\":{\"failed_at\":\"2025-11-23T06:47:12.000Z\",\"reason\":\"refused\","
+                    + "\"message\":\""
+                    + STORED_MESSAGE
+                    + "\",\"node\":\"node-1\",\"nodes\":{\"id-1\":"
+                    + "{\"failed_at\":\"2025-11-23T06:47:12.000Z\",\"reason\":\"refused\","
+                    + "\"message\":\""
+                    + STORED_MESSAGE
+                    + "\",\"node\":\"node-1\"}}}}";
+
+    /** A stored ruleset document with a synchronization phase pending and no Engine load failure. */
+    private static final String STORED_RULESET_WITHOUT_FAILURE =
+            "{\"name\":\"name\",\"context\":\"ctx\",\"type\":\"cti:catalog:consumer:ruleset\","
+                    + "\"resource\":\"https://cti/ruleset\",\"is_public\":true,\"status\":\"ready\","
+                    + "\"local_offset\":10,\"remote_offset\":10,\"pending_sync_phases\":[\"rules\"],"
+                    + "\"updated_at\":\"2025-11-20T08:00:00.000Z\"}";
+
+    /** Builds the get response of a stored document, read at the given sequence number and term. */
+    private PlainActionFuture<GetResponse> stored(String source, long seqNo, long primaryTerm) {
+        return ConsumersIndexTests.getResponse(
+                new GetResult(
+                        ConsumersIndex.INDEX_NAME,
+                        RULESET,
+                        seqNo,
+                        primaryTerm,
+                        1,
+                        true,
+                        new BytesArray(source),
+                        null,
+                        null));
+    }
+
+    /** Builds the get response of a document that does not exist. */
+    private PlainActionFuture<GetResponse> absent() {
+        return ConsumersIndexTests.getResponse(
+                new GetResult(
+                        ConsumersIndex.INDEX_NAME,
+                        RULESET,
+                        SequenceNumbers.UNASSIGNED_SEQ_NO,
+                        SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                        -1,
+                        false,
+                        null,
+                        null,
+                        null));
+    }
+
+    private static PlainActionFuture<GetResponse> getResponse(GetResult result) {
+        PlainActionFuture<GetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(new GetResponse(result));
+        return future;
+    }
+
+    private PlainActionFuture<IndexResponse> indexed() {
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        return future;
+    }
+
+    private PlainActionFuture<IndexResponse> conflict() {
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onFailure(
+                new VersionConflictEngineException(
+                        new ShardId(ConsumersIndex.INDEX_NAME, "_na_", 0), RULESET, "seq_no mismatch"));
+        return future;
+    }
+
+    private static Map<String, Object> sourceOf(IndexRequest request) {
+        return XContentHelper.convertToMap(request.source(), false, XContentType.JSON).v2();
+    }
+
+    private static LocalConsumer rulesetWriter(List<String> phases) {
+        return new LocalConsumer(
+                "ctx",
+                "name",
+                RULESET,
+                "https://cti/ruleset",
+                true,
+                LocalConsumer.Status.RUNNING,
+                12L,
+                20L,
+                phases);
+    }
+
+    /**
+     * A synchronization write of the ruleset document keeps the Engine load failure stored by the
+     * Engine content loader, which the writer's own copy does not have, and is conditional on the
+     * stored document not having changed since it was read.
+     */
+    @SuppressWarnings("unchecked")
+    public void testSetConsumer_RulesetKeepsTheStoredEngineLoadFailures() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(this.stored(STORED_RULESET_WITH_FAILURE, 7, 2));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+
+        this.consumersIndex.setConsumer(ConsumersIndexTests.rulesetWriter(List.of()));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        IndexRequest request = captor.getValue();
+        Assert.assertEquals(7, request.ifSeqNo());
+        Assert.assertEquals(2, request.ifPrimaryTerm());
+        Map<String, Object> source = ConsumersIndexTests.sourceOf(request);
+        Assert.assertEquals(12, source.get("local_offset"));
+        Assert.assertEquals("running", source.get("status"));
+        Assert.assertEquals(
+                List.of(LocalConsumer.PHASE_ENGINE_LOAD), source.get("pending_sync_phases"));
+        Map<String, Object> error = (Map<String, Object>) source.get("engine_load_error");
+        Assert.assertEquals("node-1", error.get("node"));
+        Assert.assertEquals(STORED_MESSAGE, error.get("message"));
+        Assert.assertEquals(Set.of("id-1"), ((Map<String, Object>) error.get("nodes")).keySet());
+    }
+
+    /**
+     * A writer's own copy of the Engine load state is stale by definition: the stored one wins, so a
+     * write cannot bring back a failure the Engine content loader already cleared.
+     */
+    public void testSetConsumer_RulesetDropsTheWritersStaleFailures() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(this.stored(STORED_RULESET_WITHOUT_FAILURE, 3, 1));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+        LocalConsumer stale =
+                ConsumersIndexTests.rulesetWriter(List.of("rules", LocalConsumer.PHASE_ENGINE_LOAD))
+                        .withEngineLoadFailures(
+                                Map.of(
+                                        "id-1",
+                                        new EngineLoadFailure(
+                                                "2025-11-23T06:47:12.000Z", "refused", STORED_MESSAGE, "node-1")));
+
+        this.consumersIndex.setConsumer(stale);
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        Map<String, Object> source = ConsumersIndexTests.sourceOf(captor.getValue());
+        Assert.assertEquals(List.of("rules"), source.get("pending_sync_phases"));
+        Assert.assertFalse(source.containsKey("engine_load_error"));
+    }
+
+    /**
+     * When the stored document changes between the read and the write, the write is refused and made
+     * again on top of the newer document, keeping the failure that document holds.
+     */
+    public void testSetConsumer_RulesetRetriesWhenTheStoredDocumentChanged() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(
+                        this.stored(STORED_RULESET_WITHOUT_FAILURE, 7, 2),
+                        this.stored(STORED_RULESET_WITH_FAILURE, 8, 2));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.conflict(), this.indexed());
+
+        this.consumersIndex.setConsumer(ConsumersIndexTests.rulesetWriter(List.of()));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client, times(2)).index(captor.capture());
+        IndexRequest retry = captor.getAllValues().get(1);
+        Assert.assertEquals(8, retry.ifSeqNo());
+        Assert.assertEquals(
+                List.of(LocalConsumer.PHASE_ENGINE_LOAD),
+                ConsumersIndexTests.sourceOf(retry).get("pending_sync_phases"));
+    }
+
+    /** A document that keeps changing under the write fails after the last attempt. */
+    public void testSetConsumer_RulesetGivesUpAfterRepeatedConflicts() {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class)))
+                .thenAnswer(invocation -> this.stored(STORED_RULESET_WITHOUT_FAILURE, 7, 2));
+        when(this.client.index(any(IndexRequest.class))).thenAnswer(invocation -> this.conflict());
+
+        Assert.assertThrows(
+                ExecutionException.class,
+                () -> this.consumersIndex.setConsumer(ConsumersIndexTests.rulesetWriter(List.of())));
+
+        verify(this.client, times(ConsumersIndex.MAX_WRITE_ATTEMPTS)).index(any(IndexRequest.class));
+    }
+
+    /**
+     * With no stored document, the write creates it, and fails rather than replace one created
+     * meanwhile.
+     */
+    public void testSetConsumer_RulesetCreatesTheDocumentWhenAbsent() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class))).thenReturn(this.absent());
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+
+        this.consumersIndex.setConsumer(ConsumersIndexTests.rulesetWriter(List.of("rules")));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        Assert.assertEquals(DocWriteRequest.OpType.CREATE, captor.getValue().opType());
+        Assert.assertEquals(
+                List.of("rules"),
+                ConsumersIndexTests.sourceOf(captor.getValue()).get("pending_sync_phases"));
+    }
+
+    /** Consumers without Engine load state keep the plain write, with no read before it. */
+    public void testSetConsumer_OtherConsumersAreNotRead() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+
+        this.consumersIndex.setConsumer(
+                new LocalConsumer(
+                        "ctx", "name", "cti:catalog:consumer:iocs", "https://cti/iocs", true, 1L, 2L));
+
+        verify(this.client, never()).get(any(GetRequest.class));
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        Assert.assertEquals(SequenceNumbers.UNASSIGNED_SEQ_NO, captor.getValue().ifSeqNo());
+    }
+
+    /**
+     * A bulk write whose ruleset item conflicts writes that document again on its own, on top of the
+     * change that made it conflict.
+     */
+    public void testSetConsumers_RewritesTheConflictedRulesetDocument() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(
+                        this.stored(STORED_RULESET_WITHOUT_FAILURE, 7, 2),
+                        this.stored(STORED_RULESET_WITH_FAILURE, 8, 2));
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(true);
+        when(bulkResponse.getItems())
+                .thenReturn(
+                        new BulkItemResponse[] {
+                            new BulkItemResponse(
+                                    0,
+                                    DocWriteRequest.OpType.INDEX,
+                                    new BulkItemResponse.Failure(
+                                            ConsumersIndex.INDEX_NAME,
+                                            RULESET,
+                                            new VersionConflictEngineException(
+                                                    new ShardId(ConsumersIndex.INDEX_NAME, "_na_", 0),
+                                                    RULESET,
+                                                    "seq_no mismatch")))
+                        });
+        PlainActionFuture<BulkResponse> bulkFuture = PlainActionFuture.newFuture();
+        bulkFuture.onResponse(bulkResponse);
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(bulkFuture);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+
+        this.consumersIndex.setConsumers(List.of(ConsumersIndexTests.rulesetWriter(List.of())));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        Assert.assertEquals(8, captor.getValue().ifSeqNo());
+        Assert.assertEquals(
+                List.of(LocalConsumer.PHASE_ENGINE_LOAD),
+                ConsumersIndexTests.sourceOf(captor.getValue()).get("pending_sync_phases"));
+    }
+
+    /** No document, no record. */
+    public void testUpdateEngineLoadFailures_AbsentDocument() throws Exception {
+        when(this.client.get(any(GetRequest.class))).thenReturn(this.absent());
+
+        Assert.assertEquals(
+                ConsumersIndex.EngineLoadUpdate.ABSENT,
+                this.consumersIndex.updateEngineLoadFailures(RULESET, failures -> Map.of()));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /** No index yet counts as no document. */
+    public void testUpdateEngineLoadFailures_MissingIndexIsAnAbsentDocument() throws Exception {
+        PlainActionFuture<GetResponse> missing = PlainActionFuture.newFuture();
+        missing.onFailure(new IndexNotFoundException(ConsumersIndex.INDEX_NAME));
+        when(this.client.get(any(GetRequest.class))).thenReturn(missing);
+
+        Assert.assertEquals(
+                ConsumersIndex.EngineLoadUpdate.ABSENT,
+                this.consumersIndex.updateEngineLoadFailures(RULESET, failures -> Map.of()));
+    }
+
+    /** A change that leaves the stored failures as they are writes nothing. */
+    public void testUpdateEngineLoadFailures_UnchangedWritesNothing() throws Exception {
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(this.stored(STORED_RULESET_WITH_FAILURE, 7, 2));
+
+        Assert.assertEquals(
+                ConsumersIndex.EngineLoadUpdate.UNCHANGED,
+                this.consumersIndex.updateEngineLoadFailures(RULESET, failures -> new TreeMap<>(failures)));
+        verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Recording a failure changes only the Engine load state: the synchronization's fields are
+     * written back as stored, conditionally, and refreshed so clients see it.
+     */
+    @SuppressWarnings("unchecked")
+    public void testUpdateEngineLoadFailures_WritesOnlyTheFailures() throws Exception {
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(this.stored(STORED_RULESET_WITHOUT_FAILURE, 3, 1));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexed());
+        EngineLoadFailure failure =
+                new EngineLoadFailure("2025-11-23T06:47:12.000Z", "unreachable", "down", "node-2");
+
+        Assert.assertEquals(
+                ConsumersIndex.EngineLoadUpdate.WRITTEN,
+                this.consumersIndex.updateEngineLoadFailures(RULESET, failures -> Map.of("id-2", failure)));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        IndexRequest request = captor.getValue();
+        Assert.assertEquals(3, request.ifSeqNo());
+        Assert.assertEquals(1, request.ifPrimaryTerm());
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, request.getRefreshPolicy());
+        Map<String, Object> source = ConsumersIndexTests.sourceOf(request);
+        Assert.assertEquals(
+                List.of("rules", LocalConsumer.PHASE_ENGINE_LOAD), source.get("pending_sync_phases"));
+        Assert.assertEquals("2025-11-20T08:00:00.000Z", source.get("updated_at"));
+        Assert.assertEquals(10, source.get("local_offset"));
+        Assert.assertEquals(
+                "unreachable", ((Map<String, Object>) source.get("engine_load_error")).get("reason"));
+    }
+
+    /**
+     * A conflict reads the newer document and applies the change to it again, so another node's
+     * failure recorded meanwhile is kept.
+     */
+    @SuppressWarnings("unchecked")
+    public void testUpdateEngineLoadFailures_ReappliesTheChangeOnAConflict() throws Exception {
+        when(this.client.get(any(GetRequest.class)))
+                .thenReturn(
+                        this.stored(STORED_RULESET_WITHOUT_FAILURE, 3, 1),
+                        this.stored(STORED_RULESET_WITH_FAILURE, 4, 1));
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.conflict(), this.indexed());
+        EngineLoadFailure failure =
+                new EngineLoadFailure("2025-11-23T06:50:00.000Z", "unreachable", "down", "node-2");
+
+        this.consumersIndex.updateEngineLoadFailures(
+                RULESET,
+                failures -> {
+                    Map<String, EngineLoadFailure> updated = new TreeMap<>(failures);
+                    updated.put("id-2", failure);
+                    return updated;
+                });
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client, times(2)).index(captor.capture());
+        Map<String, Object> source = ConsumersIndexTests.sourceOf(captor.getAllValues().get(1));
+        Map<String, Object> error = (Map<String, Object>) source.get("engine_load_error");
+        Assert.assertEquals(
+                Set.of("id-1", "id-2"), ((Map<String, Object>) error.get("nodes")).keySet());
+        // node-2 failed last, so it is the one shown.
+        Assert.assertEquals("node-2", error.get("node"));
     }
 
     private void mockClusterHealth(ClusterHealthStatus status) {

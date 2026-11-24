@@ -27,6 +27,27 @@
     "pending_sync_phases": {
       "type": "keyword"
     },
+    "engine_load_error": {
+      "properties": {
+        "failed_at": {
+          "type": "date"
+        },
+        "reason": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text",
+          "index": false
+        },
+        "node": {
+          "type": "keyword"
+        },
+        "nodes": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    },
     "updated_at": {
       "type": "date"
     },

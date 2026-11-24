@@ -18,11 +18,15 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
 import java.util.List;
+import java.util.Map;
 
 /** Unit tests for the {@link LocalConsumer} class. */
 public class LocalConsumerTests extends OpenSearchTestCase {
@@ -254,5 +258,145 @@ public class LocalConsumerTests extends OpenSearchTestCase {
         Assert.assertEquals(consumer.getLocalOffset(), copy.getLocalOffset());
         Assert.assertEquals(consumer.getRemoteOffset(), copy.getRemoteOffset());
         Assert.assertEquals(consumer.getPendingSyncPhases(), copy.getPendingSyncPhases());
+    }
+
+    /**
+     * A ruleset document whose two nodes failed to load it, as the Engine content loader leaves it.
+     */
+    private static final String RULESET_WITH_FAILURES =
+            "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"ready\","
+                    + "\"type\":\"cti:catalog:consumer:ruleset\",\"resource\":\"https://cti/rules\","
+                    + "\"is_public\":true,\"local_offset\":10,\"remote_offset\":10,"
+                    + "\"pending_sync_phases\":[\"rules\",\"engine_load\"],"
+                    + "\"engine_load_error\":{\"failed_at\":\"2025-11-23T06:47:13.000Z\",\"reason\":\"unreachable\","
+                    + "\"message\":\"down\",\"node\":\"node-2\",\"nodes\":{"
+                    + "\"id-1\":{\"failed_at\":\"2025-11-23T06:47:12.000Z\",\"reason\":\"refused\","
+                    + "\"message\":\"Field is not defined in WCS schema\",\"node\":\"node-1\"},"
+                    + "\"id-2\":{\"failed_at\":\"2025-11-23T06:47:13.000Z\",\"reason\":\"unreachable\","
+                    + "\"message\":\"down\",\"node\":\"node-2\"}}}}";
+
+    private static LocalConsumer ruleset(List<String> phases) {
+        return new LocalConsumer(
+                "ctx",
+                "name",
+                "cti:catalog:consumer:ruleset",
+                "https://cti/rules",
+                true,
+                LocalConsumer.Status.READY,
+                10L,
+                10L,
+                phases);
+    }
+
+    private static EngineLoadFailure failure(String failedAt, String node) {
+        return new EngineLoadFailure(
+                failedAt, EngineLoadFailure.REASON_REFUSED, "refused by " + node, node);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> written(LocalConsumer consumer) throws Exception {
+        return XContentHelper.convertToMap(
+                        BytesReference.bytes(consumer.toXContent()), false, XContentType.JSON)
+                .v2();
+    }
+
+    /**
+     * The Engine load state is read from engine_load_error.nodes; engine_load is not a
+     * synchronization phase, so it is kept out of the phases the synchronization works with.
+     */
+    public void testEngineLoadFailuresDeserializeApartFromTheSyncPhases() throws Exception {
+        LocalConsumer consumer = this.mapper.readValue(RULESET_WITH_FAILURES, LocalConsumer.class);
+
+        Assert.assertEquals(List.of("rules"), consumer.getPendingSyncPhases());
+        Assert.assertEquals(
+                List.of("id-1", "id-2"), List.copyOf(consumer.getEngineLoadFailures().keySet()));
+        Assert.assertEquals(
+                EngineLoadFailure.REASON_REFUSED, consumer.getEngineLoadFailures().get("id-1").getReason());
+    }
+
+    /**
+     * While a node has a failure recorded, the document lists engine_load after the synchronization
+     * phases, and engine_load_error shows the most recent failure with every node's under nodes.
+     */
+    @SuppressWarnings("unchecked")
+    public void testEngineLoadFailuresRoundTrip() throws Exception {
+        LocalConsumer consumer = this.mapper.readValue(RULESET_WITH_FAILURES, LocalConsumer.class);
+
+        Map<String, Object> source = LocalConsumerTests.written(consumer);
+
+        Assert.assertEquals(
+                List.of("rules", LocalConsumer.PHASE_ENGINE_LOAD), source.get("pending_sync_phases"));
+        Map<String, Object> error = (Map<String, Object>) source.get("engine_load_error");
+        Assert.assertEquals("2025-11-23T06:47:13.000Z", error.get("failed_at"));
+        Assert.assertEquals(EngineLoadFailure.REASON_UNREACHABLE, error.get("reason"));
+        Assert.assertEquals("down", error.get("message"));
+        Assert.assertEquals("node-2", error.get("node"));
+        Map<String, Object> nodes = (Map<String, Object>) error.get("nodes");
+        Assert.assertEquals(
+                Map.of(
+                        "failed_at", "2025-11-23T06:47:12.000Z",
+                        "reason", "refused",
+                        "message", "Field is not defined in WCS schema",
+                        "node", "node-1"),
+                nodes.get("id-1"));
+        Assert.assertEquals(
+                consumer.getEngineLoadFailures(),
+                this.mapper
+                        .readValue(consumer.toXContent().toString(), LocalConsumer.class)
+                        .getEngineLoadFailures());
+    }
+
+    /** With no failure recorded, neither engine_load nor engine_load_error is written. */
+    public void testNoEngineLoadStateIsWrittenWithoutFailures() throws Exception {
+        Map<String, Object> source =
+                LocalConsumerTests.written(LocalConsumerTests.ruleset(List.of("rules")));
+
+        Assert.assertEquals(List.of("rules"), source.get("pending_sync_phases"));
+        Assert.assertFalse(source.containsKey("engine_load_error"));
+    }
+
+    /**
+     * engine_load is derived from the recorded failures: a phase list that names it, with no failure
+     * behind it, does not keep it.
+     */
+    public void testEngineLoadPhaseWithoutFailuresIsDropped() throws Exception {
+        String json =
+                "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"ready\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\",\"resource\":\"https://cti/rules\","
+                        + "\"is_public\":true,\"local_offset\":0,\"remote_offset\":0,"
+                        + "\"pending_sync_phases\":[\"engine_load\"]}";
+        LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
+
+        Assert.assertTrue(consumer.getPendingSyncPhases().isEmpty());
+        Assert.assertEquals(List.of(), LocalConsumerTests.written(consumer).get("pending_sync_phases"));
+        Assert.assertTrue(
+                LocalConsumerTests.ruleset(List.of(LocalConsumer.PHASE_ENGINE_LOAD))
+                        .getPendingSyncPhases()
+                        .isEmpty());
+    }
+
+    /** The failure shown is the latest; a tie goes to the lowest node id, so every writer agrees. */
+    public void testEngineLoadErrorIsTheLatestFailure() {
+        LocalConsumer consumer =
+                LocalConsumerTests.ruleset(List.of())
+                        .withEngineLoadFailures(
+                                Map.of(
+                                        "id-b", LocalConsumerTests.failure("2025-11-23T06:47:12Z", "node-b"),
+                                        "id-a", LocalConsumerTests.failure("2025-11-23T06:47:12.000Z", "node-a"),
+                                        "id-c", LocalConsumerTests.failure("2025-11-23T06:40:00.000Z", "node-c")));
+
+        Assert.assertEquals("node-a", consumer.getEngineLoadError().getNode());
+        Assert.assertNull(LocalConsumerTests.ruleset(List.of()).getEngineLoadError());
+    }
+
+    /** Copies keep the failures, and withEngineLoadFailures replaces them. */
+    public void testCopiesCarryTheEngineLoadFailures() {
+        Map<String, EngineLoadFailure> failures =
+                Map.of("id-1", LocalConsumerTests.failure("2025-11-23T06:47:12.000Z", "node-1"));
+        LocalConsumer consumer = LocalConsumerTests.ruleset(List.of()).withEngineLoadFailures(failures);
+
+        Assert.assertEquals(
+                failures, consumer.withUpdatedAt("2025-11-23T07:00:00.000Z").getEngineLoadFailures());
+        Assert.assertTrue(consumer.withEngineLoadFailures(null).getEngineLoadFailures().isEmpty());
     }
 }
