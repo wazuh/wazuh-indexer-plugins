@@ -592,11 +592,17 @@ fields:
           email: {}
           group:
             fields: "*"
+          groups: {}
           full_name: {}
           hash: {}
           id: {}
+          is_hidden: {}
           name: {}
+          password:
+            fields:
+              status: {}
           roles: {}
+          shell: {}
       domain: {}
       effective:
         fields:

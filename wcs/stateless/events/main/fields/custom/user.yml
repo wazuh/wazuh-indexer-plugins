@@ -1,0 +1,36 @@
+---
+# These fields are not exposed at the root of `user`: the subset only takes
+# their copies under `user.changes`, which ECS makes from the fields `user`
+# has before it nests itself. A field written directly under `changes` would
+# be overwritten by that nesting.
+- name: user
+  fields:
+    - name: groups
+      type: keyword
+      level: custom
+      short: Groups the user belongs to.
+      description: >
+        Names of the groups the user belongs to.
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["Administrators", "Users"]'
+    - name: shell
+      type: keyword
+      level: custom
+      description: >
+        Login shell of the user, e.g. `/usr/sbin/nologin` or `/bin/false` for an account that cannot log in interactively.
+      example: /bin/bash
+    - name: is_hidden
+      type: boolean
+      level: custom
+      description: >
+        Whether the user is hidden from the login window and the user lists (macOS).
+      example: false
+    - name: password.status
+      type: keyword
+      level: custom
+      description: >
+        Status of the user's password, e.g. `active`, `locked` or `empty`.
+      example: active

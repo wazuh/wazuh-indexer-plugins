@@ -4137,6 +4137,24 @@
           }
         },
         {
+          "wcs_group_previous_users": {
+            "path_match": "group.previous.users",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_group_users": {
+            "path_match": "group.users",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_host_architecture": {
             "path_match": "host.architecture",
             "mapping": {
@@ -5781,6 +5799,23 @@
           }
         },
         {
+          "wcs_package_from_webstore": {
+            "path_match": "package.from_webstore",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "wcs_package_id": {
+            "path_match": "package.id",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_package_install_scope": {
             "path_match": "package.install_scope",
             "mapping": {
@@ -5825,10 +5860,28 @@
           }
         },
         {
+          "wcs_package_permissions": {
+            "path_match": "package.permissions",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_package_previous_installed": {
             "path_match": "package.previous.installed",
             "mapping": {
               "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_package_previous_permissions": {
+            "path_match": "package.previous.permissions",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
             }
           }
         },
@@ -5852,6 +5905,15 @@
         {
           "wcs_package_type": {
             "path_match": "package.type",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_package_vendor": {
+            "path_match": "package.vendor",
             "mapping": {
               "ignore_above": 4096,
               "type": "keyword"
@@ -9195,6 +9257,15 @@
           }
         },
         {
+          "wcs_registry_architecture": {
+            "path_match": "registry.architecture",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_registry_data_bytes": {
             "path_match": "registry.data.bytes",
             "mapping": {
@@ -9245,6 +9316,14 @@
             "mapping": {
               "ignore_above": 4096,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_registry_previous_value": {
+            "path_match": "registry.previous.value",
+            "mapping": {
+              "type": "match_only_text"
             }
           }
         },
@@ -9888,6 +9967,15 @@
           }
         },
         {
+          "wcs_service_enabled": {
+            "path_match": "service.enabled",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_service_environment": {
             "path_match": "service.environment",
             "mapping": {
@@ -10061,6 +10149,15 @@
         {
           "wcs_service_previous_state": {
             "path_match": "service.previous.state",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_service_start_type": {
+            "path_match": "service.start_type",
             "mapping": {
               "ignore_above": 4096,
               "type": "keyword"
@@ -15311,6 +15408,15 @@
           }
         },
         {
+          "wcs_user_changes_groups": {
+            "path_match": "user.changes.groups",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_user_changes_hash": {
             "path_match": "user.changes.hash",
             "mapping": {
@@ -15329,6 +15435,14 @@
           }
         },
         {
+          "wcs_user_changes_is_hidden": {
+            "path_match": "user.changes.is_hidden",
+            "mapping": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
           "wcs_user_changes_name": {
             "path_match": "user.changes.name",
             "mapping": {
@@ -15338,8 +15452,26 @@
           }
         },
         {
+          "wcs_user_changes_password_status": {
+            "path_match": "user.changes.password.status",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_user_changes_roles": {
             "path_match": "user.changes.roles",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_user_changes_shell": {
+            "path_match": "user.changes.shell",
             "mapping": {
               "ignore_above": 4096,
               "type": "keyword"
@@ -20902,7 +21034,11 @@
           }
         },
         "group": {
-          "properties": {}
+          "properties": {
+            "previous": {
+              "properties": {}
+            }
+          }
         },
         "host": {
           "properties": {
@@ -21379,6 +21515,9 @@
           "properties": {
             "data": {
               "properties": {}
+            },
+            "previous": {
+              "properties": {}
             }
           }
         },
@@ -21734,6 +21873,9 @@
             "changes": {
               "properties": {
                 "group": {
+                  "properties": {}
+                },
+                "password": {
                   "properties": {}
                 }
               }

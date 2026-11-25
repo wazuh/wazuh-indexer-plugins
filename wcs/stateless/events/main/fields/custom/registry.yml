@@ -1,0 +1,17 @@
+---
+- name: registry
+  fields:
+    - name: architecture
+      type: keyword
+      level: custom
+      short: Registry view of the key or value.
+      description: >
+        Registry view the key or value was read from, `[x32]` or `[x64]`. The same path can name a 32-bit and a 64-bit key.
+      example: "[x64]"
+    - name: previous.value
+      type: match_only_text
+      level: custom
+      short: Changes in the data of the registry value.
+      description: >
+        Diff of the data of a registry value that changed, reported by FIM when `report_changes` is enabled. Lines starting with `<` hold the data before the change and lines starting with `>` the data after it. The agent only sends hashes of the value data, so this is the only field that holds the data itself.
+      example: "< C:\\Windows\\system32\\userinit.exe, --- > C:\\Windows\\system32\\userinit.exe,C:\\Users\\Public\\run.exe,"

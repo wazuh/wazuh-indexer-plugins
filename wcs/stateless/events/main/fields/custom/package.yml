@@ -7,3 +7,43 @@
       description: >
         Installation date before it changed.
       example: "2026-07-01T10:00:00.000Z"
+    - name: vendor
+      type: keyword
+      level: custom
+      description: >
+        Vendor, publisher or maintainer of the package or browser extension.
+      example: Example Inc.
+    - name: id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier of the browser extension.
+      example: abcdefghijklmnopabcdefghijklmnop
+    - name: permissions
+      type: keyword
+      level: custom
+      short: Permissions of the browser extension.
+      description: >
+        Permissions the browser extension requests.
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["tabs", "storage"]'
+    - name: previous.permissions
+      type: keyword
+      level: custom
+      short: Permissions of the browser extension before it changed.
+      description: >
+        Permissions the browser extension requested before it changed. Compared with `package.permissions`, it shows the permissions an update added.
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["storage"]'
+    - name: from_webstore
+      type: boolean
+      level: custom
+      description: >
+        Whether the browser extension was installed from a web store.
+      example: true

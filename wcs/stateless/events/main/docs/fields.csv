@@ -480,6 +480,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,group,group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,group,group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,group,group.name,keyword,extended,,,Name of the group.
+9.1.0,true,group,group.previous.users,keyword,custom,array,"[""alice""]",Members of the group before it changed.
+9.1.0,true,group,group.users,keyword,custom,array,"[""alice"", ""bob""]",Members of the group.
 9.1.0,true,host,host.architecture,keyword,core,,x86_64,Operating system architecture.
 9.1.0,true,host,host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
 9.1.0,true,host,host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
@@ -678,15 +680,20 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,package,package.build_version,keyword,extended,,36f4f7e89dd61b0988b12ee000b98966867710cd,Build version information
 9.1.0,true,package,package.checksum,keyword,extended,,68b329da9893e34099c7d8ad5cb9c940,Checksum of the installed package for verification.
 9.1.0,true,package,package.description,keyword,extended,,Open source programming language to build simple/reliable/efficient software.,Description of the package.
+9.1.0,true,package,package.from_webstore,boolean,custom,,True,Whether the browser extension was installed from a web store.
+9.1.0,true,package,package.id,keyword,custom,,abcdefghijklmnopabcdefghijklmnop,Unique identifier of the browser extension.
 9.1.0,true,package,package.install_scope,keyword,extended,,global,"Indicating how the package was installed, e.g. user-local, global."
 9.1.0,true,package,package.installed,date,extended,,,Time when package was installed.
 9.1.0,true,package,package.license,keyword,extended,,Apache License 2.0,Package license
 9.1.0,true,package,package.name,keyword,extended,,go,Package name
 9.1.0,true,package,package.path,keyword,extended,,/usr/local/Cellar/go/1.12.9/,Path where the package is installed.
+9.1.0,true,package,package.permissions,keyword,custom,array,"[""tabs"", ""storage""]",Permissions of the browser extension.
 9.1.0,true,package,package.previous.installed,date,custom,,2026-07-01T10:00:00.000Z,Installation date before it changed.
+9.1.0,true,package,package.previous.permissions,keyword,custom,array,"[""storage""]",Permissions of the browser extension before it changed.
 9.1.0,true,package,package.reference,keyword,extended,,https://golang.org,Package home page or reference URL
 9.1.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 9.1.0,true,package,package.type,keyword,extended,,rpm,Package type
+9.1.0,true,package,package.vendor,keyword,custom,,Example Inc.,"Vendor, publisher or maintainer of the package or browser extension."
 9.1.0,true,package,package.version,keyword,extended,,1.12.9,Package version
 9.1.0,true,policy,policy.description,keyword,custom,,"""The CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0 is a comprehensive security configuration guide that provides prescriptive guidance for establishing a secure baseline configuration for Microsoft Windows 11 Enterprise.""",Extended description of the policy.
 9.1.0,true,policy,policy.file,keyword,custom,,cis_win11_enterprise.yml,The file name of the SCA policy.
@@ -1090,12 +1097,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.working_directory,keyword,extended,,/home/alice,The working directory of the process.
+9.1.0,true,registry,registry.architecture,keyword,custom,,[x64],Registry view of the key or value.
 9.1.0,true,registry,registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
 9.1.0,true,registry,registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,registry,registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,registry,registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,registry,registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
 9.1.0,true,registry,registry.path,keyword,core,,HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe\Debugger,"Full path, including hive, key and value"
+9.1.0,true,registry,registry.previous.value,match_only_text,custom,,"< C:\Windows\system32\userinit.exe, --- > C:\Windows\system32\userinit.exe,C:\Users\Public\run.exe,",Changes in the data of the registry value.
 9.1.0,true,registry,registry.value,keyword,core,,Debugger,Name of the value written.
 9.1.0,true,related,related.hash,keyword,extended,array,,All the hashes seen on your event.
 9.1.0,true,related,related.hosts,keyword,extended,array,,All the host identifiers seen on your event.
@@ -1171,6 +1180,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,server,server.user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,server,server.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,service,service.address,keyword,extended,,172.26.0.2:5432,Address of this service.
+9.1.0,true,service,service.enabled,keyword,custom,,enabled,"Whether the unit file is enabled to start at boot, e.g. `enabled`, `disabled`, `static` or `masked`."
 9.1.0,true,service,service.environment,keyword,extended,,production,Environment of the service.
 9.1.0,true,service,service.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this service.
 9.1.0,true,service,service.id,keyword,core,,d37e5ebfe0ae6c4972dbe9f0174a1637bb8247f6,Unique identifier of the running service.
@@ -1191,6 +1201,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.origin.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.origin.version,keyword,core,,3.2.4,Version of the service.
 9.1.0,true,service,service.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
+9.1.0,true,service,service.start_type,keyword,custom,,AUTO_START,"Start type of the service, e.g. `BOOT_START`, `SYSTEM_START`, `AUTO_START`, `DEMAND_START` or `DISABLED` on Windows."
 9.1.0,true,service,service.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.address,keyword,extended,,172.26.0.2:5432,Address of this service.
 9.1.0,true,service,service.target.environment,keyword,extended,,production,Environment of the service.
@@ -1785,10 +1796,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,user,user.changes.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,user,user.changes.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,user,user.changes.group.name,keyword,extended,,,Name of the group.
+9.1.0,true,user,user.changes.groups,keyword,custom,array,"[""Administrators"", ""Users""]",Groups the user belongs to.
 9.1.0,true,user,user.changes.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,user,user.changes.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
+9.1.0,true,user,user.changes.is_hidden,boolean,custom,,False,Whether the user is hidden from the login window and the user lists (macOS).
 9.1.0,true,user,user.changes.name,keyword,core,,a.einstein,Short name or login of the user.
+9.1.0,true,user,user.changes.password.status,keyword,custom,,active,"Status of the user's password, e.g. `active`, `locked` or `empty`."
 9.1.0,true,user,user.changes.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
+9.1.0,true,user,user.changes.shell,keyword,custom,,/bin/bash,"Login shell of the user, e.g. `/usr/sbin/nologin` or `/bin/false` for an account that cannot log in interactively."
 9.1.0,true,user,user.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.effective.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.effective.email,keyword,extended,,,User email address.
