@@ -257,7 +257,7 @@ At each initialization the plugin logs the file it read and its SHA-256, one lin
 
 Compare the SHA-256 values across the nodes to check that they hold the same files.
 
-If an index exists and does not have the value of an override, the plugin also logs a warning that names the index and the setting, as a reminder that the override only reaches new indices:
+If an index exists and does not have the value of an override, the plugin also logs a warning that names the index and the setting, as a reminder that the override reaches new indices, and an existing one only when a [schema upgrade](architecture.md#schema-upgrades) applies the template's dynamic settings to it in place:
 
 ```
 [WARN ][c.w.s.i.Index] [node-1] Index [.ds-wazuh-events-v5-security-000001] exists with [index.number_of_shards] = [1]. The override [3] applies only to indices created from now on.

@@ -134,9 +134,9 @@ public class StreamIndex extends WazuhIndex {
     /**
      * Rolls the data stream over, so a new write index is created from the stored template and
      * carries its mappings, settings and schema versions. The previous backing indices keep their
-     * definition until the ISM policy deletes them; a data stream is never reindexed. The new write
-     * index is registered with ISM the same way the first backing index is at creation, so the stream
-     * is left as a rollover performed by the policy leaves it.
+     * definition until the ISM policy deletes them; a data stream is never reindexed. ISM attaches
+     * the policy to the new write index as it is created, through the policy's template, exactly as
+     * after a rollover the policy performs, so the stream is left as that leaves it.
      *
      * @throws IllegalStateException if OpenSearch acknowledges the request without rolling over.
      */
@@ -155,7 +155,6 @@ public class StreamIndex extends WazuhIndex {
                 this.index,
                 response.getOldIndex(),
                 response.getNewIndex());
-        this.registerWithISM();
     }
 
     /**

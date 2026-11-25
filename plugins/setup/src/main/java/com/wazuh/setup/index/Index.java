@@ -374,15 +374,21 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Applies the dynamic settings of the shipped template to the live index: the index itself, the
-     * index behind an alias, or every backing index of a data stream. Static settings cannot be
-     * changed on an existing index and are left out; see {@link #dynamicSettings(IndexTemplate,
-     * String)}.
+     * Applies the dynamic settings of the stored template to the live index: the index itself, the
+     * index behind an alias, or every backing index of a data stream. The settings are the shipped
+     * ones with the overrides of the configuration file on top, as a new index would get them. Static
+     * settings cannot be changed on an existing index and are left out; see {@link
+     * #dynamicSettings(Settings, String)}.
      *
      * @throws IOException if the shipped template cannot be read.
      */
     public void applyShippedSettings() throws IOException {
-        Settings dynamic = Index.dynamicSettings(this.loadTemplate(), this.index);
+        Settings stored =
+                Settings.builder()
+                        .loadFromMap(this.loadTemplate().getSettings())
+                        .put(this.config.templateOverrides(this.template))
+                        .build();
+        Settings dynamic = Index.dynamicSettings(stored, this.index);
         if (dynamic.isEmpty()) {
             log.debug("The shipped template of [{}] carries no dynamic setting to apply.", this.index);
             return;
@@ -432,16 +438,13 @@ public abstract class Index implements IndexInitializer {
      * to it is breaking by definition and is applied by a rebuild. A setting the node does not know,
      * such as one registered by another plugin, is kept and validated by the update.
      *
-     * @param template the shipped template.
+     * @param settings the settings of the template.
      * @param index the index the settings are for, named in the log.
      * @return the dynamic settings, with the {@code index.} prefix normalized.
      */
-    static Settings dynamicSettings(IndexTemplate template, String index) {
+    static Settings dynamicSettings(Settings settings, String index) {
         Settings shipped =
-                Settings.builder()
-                        .loadFromMap(template.getSettings())
-                        .normalizePrefix(INDEX_SETTINGS_PREFIX)
-                        .build();
+                Settings.builder().put(settings).normalizePrefix(INDEX_SETTINGS_PREFIX).build();
         Settings.Builder dynamic = Settings.builder();
         for (String key : shipped.keySet()) {
             Setting<?> setting = IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.get(key);

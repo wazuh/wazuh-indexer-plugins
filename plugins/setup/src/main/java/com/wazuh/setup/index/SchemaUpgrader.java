@@ -48,13 +48,24 @@ import com.wazuh.setup.model.SchemaStatus;
  * here.
  *
  * <p>A step that fails for another reason is logged and left pending, so the upgrade of the other
- * indices goes on and the failed one is retried on the next boot.
+ * indices goes on. The detection on the next boot classifies the index again from its live version
+ * and what is left of the upgrade resumes from there: a rollover already performed is not repeated,
+ * since the new write index is then at the shipped version. A record that cannot be written stops
+ * the upgrade: the records drive the upgrades, so an initialization that cannot store them has
+ * failed, as in {@link SchemaDriftDetector}.
  */
 public class SchemaUpgrader {
     private static final Logger log = LogManager.getLogger(SchemaUpgrader.class);
 
     private final Map<String, Index> indices;
     private final SetupStatusIndex statusIndex;
+
+    /** A record that could not be written, which fails the initialization instead of the index. */
+    private static class RecordWriteException extends RuntimeException {
+        RecordWriteException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 
     /**
      * Constructor.
@@ -74,6 +85,7 @@ public class SchemaUpgrader {
      * @param records the records the detection wrote, one per versioned index.
      * @return the records after the upgrade, in the same order. A record stays pending when its index
      *     could not be upgraded.
+     * @throws IllegalStateException if a record cannot be written. The message names the index.
      */
     public List<IndexRecord> upgrade(List<IndexRecord> records) {
         List<IndexRecord> result = new ArrayList<>();
@@ -92,7 +104,9 @@ public class SchemaUpgrader {
         }
         long pending = result.stream().filter(IndexRecord::isPending).count();
         if (pending == 0) {
-            log.info("All {} managed indices are at the shipped schema version.", result.size());
+            log.info(
+                    "All {} managed indices were already at the shipped schema version, or were upgraded to it.",
+                    result.size());
         } else {
             log.warn("{} of {} managed indices still need a schema upgrade.", pending, result.size());
         }
@@ -122,9 +136,14 @@ public class SchemaUpgrader {
                 }
                 default -> record;
             };
+        } catch (RecordWriteException e) {
+            throw new IllegalStateException(e.getMessage(), e.getCause());
         } catch (Exception e) {
             log.error(
-                    "Upgrade of [{}] failed and is retried on the next boot: {}", name, e.getMessage(), e);
+                    "Upgrade of [{}] stopped: {}. The next boot classifies the index again from its live version and resumes from there.",
+                    name,
+                    e.getMessage(),
+                    e);
             return this.statusIndex.getIndexRecord(name).orElse(record);
         }
     }
@@ -211,7 +230,19 @@ public class SchemaUpgrader {
     }
 
     private IndexRecord write(IndexRecord record) {
-        this.statusIndex.putIndexRecord(record);
+        try {
+            this.statusIndex.putIndexRecord(record);
+        } catch (Exception e) {
+            throw new RecordWriteException(
+                    "The record of ["
+                            + record.index()
+                            + "] could not be written after its upgrade reached ["
+                            + record.status().getValue()
+                            + (record.step() == null ? "" : ", step " + record.step())
+                            + "]: "
+                            + e.getMessage(),
+                    e);
+        }
         return record;
     }
 }
