@@ -1,0 +1,44 @@
+{
+  "policy": {
+    "policy_id": "stream-events-policy",
+    "description": "Integration test policy that Index State Management cannot read: the age of the transition is not a time value.",
+    "last_updated_time": 1700000000000,
+    "schema_version": 1,
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "rollover": {
+              "min_doc_count": 200000000
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_rollover_age": "7days"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": [".ds-wazuh-events-v5-*", "wazuh-events-v5*"],
+        "priority": 0
+      }
+    ]
+  }
+}

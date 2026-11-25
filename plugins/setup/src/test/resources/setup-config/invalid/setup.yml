@@ -1,0 +1,2 @@
+# Configuration of the test cluster of SetupConfigInvalidIT: a value of the wrong type.
+templates.streams.events.settings.index.number_of_shards: "three"

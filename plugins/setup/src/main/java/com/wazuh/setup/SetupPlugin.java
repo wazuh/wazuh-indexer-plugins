@@ -43,6 +43,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,6 +54,7 @@ import com.wazuh.setup.action.GetAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutAiAssistantSessionAction;
 import com.wazuh.setup.action.PutAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutSettingsAction;
+import com.wazuh.setup.config.SetupConfig;
 import com.wazuh.setup.index.AiAssistantSessionsIndex;
 import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
 import com.wazuh.setup.index.ContentIndex;
@@ -60,6 +62,7 @@ import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.InternalIndexReplicas;
 import com.wazuh.setup.index.SchemaDriftDetector;
+import com.wazuh.setup.index.SchemaUpgrader;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
@@ -92,7 +95,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
     public static final String CLUSTER_DEFAULT_NUMBER_OF_REPLICAS =
             "cluster.default_number_of_replicas";
-    private final List<Index> indices = new ArrayList<>();
+    // Not private: the tests check the generated configuration files against the registered indices.
+    final List<Index> indices = new ArrayList<>();
     private Client client;
     private ClusterService clusterService;
     private ThreadPool threadPool;
@@ -100,6 +104,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private SetupStatusIndex setupStatusIndex;
     private AiAssistantSettingsAdminIndex settingsAdminIndex;
     private AiAssistantSessionsIndex sessionsIndex;
+    private Path configDirectory;
+    private NamedXContentRegistry xContentRegistry;
     // spotless:off
     private final String[] categories = {
         "access-management",
@@ -132,6 +138,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.client = client;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.configDirectory = environment.configDir().resolve(SetupConfig.DIRECTORY);
+        this.xContentRegistry = xContentRegistry;
         // spotless:off
         // Setup status index - Holds the initialization marker read by other plugins (e.g.
         // Content Manager) to defer their startup work until setup completes. Added first so its
@@ -279,7 +287,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                             }
 
                                             try {
-                                                SetupPlugin.this.indices.forEach(Index::initialize);
+                                                SetupPlugin.initialize(
+                                                        SetupPlugin.this.indices,
+                                                        SetupPlugin.this.setupStatusIndex,
+                                                        SetupPlugin.this.configDirectory,
+                                                        SetupPlugin.this.xContentRegistry);
                                                 // The marker says ready only when every index is at the
                                                 // shipped schema version. While one still needs an
                                                 // upgrade it stays running, so the plugins that wait
@@ -288,6 +300,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                                         new SchemaDriftDetector(
                                                                         SetupPlugin.this.indices, SetupPlugin.this.setupStatusIndex)
                                                                 .detect();
+                                                records =
+                                                        new SchemaUpgrader(
+                                                                        SetupPlugin.this.indices, SetupPlugin.this.setupStatusIndex)
+                                                                .upgrade(records);
                                                 List<String> pending =
                                                         records.stream()
                                                                 .filter(IndexRecord::isPending)
@@ -320,6 +336,52 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // runs), trigger the callback explicitly.
         if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
             listener.onClusterManager();
+        }
+    }
+
+    /**
+     * Creates the index templates, indices and ISM policies of the plugin.
+     *
+     * <p>The setup status index goes first, so its marker says {@code running} before anything else
+     * exists. The configuration file is read next, and an invalid one stops the initialization there:
+     * no other index is created, and the caller marks the status as failed.
+     *
+     * <p>If an index cannot be initialized while the file overrides settings of its template, the
+     * error also lists those overrides.
+     *
+     * @param indices every index of the plugin, the setup status index included.
+     * @param setupStatusIndex the setup status index.
+     * @param configDirectory directory of the configuration file and the policy files.
+     * @param xContentRegistry registry of the node, to parse the policy files.
+     * @throws com.wazuh.setup.config.SetupConfigException if the configuration is invalid.
+     */
+    static void initialize(
+            List<Index> indices,
+            SetupStatusIndex setupStatusIndex,
+            Path configDirectory,
+            NamedXContentRegistry xContentRegistry) {
+        setupStatusIndex.initialize();
+
+        List<String> templates = indices.stream().map(Index::getTemplate).toList();
+        SetupConfig config =
+                SetupConfig.load(
+                        configDirectory, templates, IndexStateManagement.POLICIES, xContentRegistry);
+        config.log(log);
+
+        for (Index index : indices) {
+            if (index != setupStatusIndex) {
+                index.setConfig(config);
+                try {
+                    index.initialize();
+                } catch (RuntimeException e) {
+                    // The cluster can refuse a value the file accepts, and its error names no key.
+                    String overrides = config.describeOverrides(index.getTemplate());
+                    if (overrides.isEmpty()) {
+                        throw e;
+                    }
+                    throw new IllegalStateException(e.getMessage() + " " + overrides, e);
+                }
+            }
         }
     }
 

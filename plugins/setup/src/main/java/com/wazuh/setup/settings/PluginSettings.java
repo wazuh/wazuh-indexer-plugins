@@ -64,9 +64,9 @@ public class PluginSettings {
 
     /**
      * Number of times an initialization task that timed out is re-attempted, each attempt separated
-     * by {@link PluginSettings#BACKOFF}, before the failure is rethrown and the node shuts down. Zero
-     * disables retrying. Raise it on clusters where a cluster-manager election, and therefore the
-     * first index creation, routinely outlasts the default single re-attempt.
+     * by {@link PluginSettings#BACKOFF}, before the failure is rethrown and the setup status is set
+     * to failed. Zero disables retrying. Raise it on clusters where a cluster-manager election, and
+     * therefore the first index creation, routinely outlasts the default single re-attempt.
      */
     public static final Setting<Integer> MAX_RETRIES =
             Setting.intSetting(

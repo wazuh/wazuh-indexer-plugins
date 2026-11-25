@@ -1,0 +1,20 @@
+{
+  "policy": {
+    "policy_id": "security-auditlogs-policy",
+    "description": "Integration test policy for the security audit log data stream.",
+    "last_updated_time": 1700000000000,
+    "schema_version": 1,
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": []
+      }
+    ],
+    "ism_template": {
+      "index_patterns": [".ds-security-auditlogs-*", "security-auditlogs*"],
+      "priority": 0
+    }
+  }
+}

@@ -4,9 +4,11 @@
 
 The plugin hooks into the node's startup lifecycle and creates every required index template, index, and data stream before the node is considered ready to serve Wazuh data. By design, the plugin overwrites any existing index template under the same name, so template changes shipped in a new version take effect automatically on restart.
 
+Before it creates them, the plugin reads its configuration file, `setup.yml`, which can override some index settings of the templates and replace the ISM policies. The file is read at every initialization, so the templates always hold the bundled definitions plus the overrides the file has at that moment. See [Customization](customization.md).
+
 ### Retry mechanism
 
-The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (back-off). If two consecutive faults occur during the initialization of the same index, the initialization process is halted, and the node is shut down. Proper logging is in place to notify administrators before the shutdown occurs.
+The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (back-off). If the fault persists after the last retry, the initialization stops and the [setup status](#readiness-marker) is set to `failed`. The node keeps running, and the log names the index, template or policy that failed.
 
 The back-off time is configurable. Head to [Configuration](./configuration.md) for more information.
 
@@ -20,13 +22,13 @@ The marker transitions once per boot:
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `running` | Index initialization is in progress (set at the start of index initialization, overwriting any marker left over from a previous boot), or at least one index still needs a schema upgrade (see [Schema versions](#schema-versions)). |
 | `ready`   | All index templates, indices and data streams have been created successfully, and every index is at the shipped schema version.                                                  |
-| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices, or while detecting the schema version of one of them; the log names the index). |
+| `failed`  | Index initialization could not complete: the configuration file is invalid, or an unhandled exception was thrown while initializing one of the indices or while detecting the schema version of one of them. The log names the key, the file or the index. |
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
 
 ### Alias-backed indices
 
-The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. The Wazuh server, the dashboard and the API read and write through `<name>` and never address the concrete index. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at.
+The stateful indices and the threat intel content indices are not addressed by their own name. For each of them the plugin creates a concrete index named `<name>-a` and a write alias named `<name>` pointing at it. The Wazuh server, the dashboard and the API read and write through `<name>` and never address the concrete index. The alias makes a rebuild a plain operation: the data is rebuilt into the spare `<name>-b` slot while `<name>-a` keeps serving, and the alias is switched in one atomic step. The slots alternate on each rebuild, so the plugin leaves an existing alias alone whichever slot it points at. The plugin addresses the alias too: the schema version is read from, and an upgrade in place applied to, whichever slot is live (see [Schema versions](#schema-versions)).
 
 A concrete index at the alias name cannot coexist with the alias. For the content indices it can only come from a write that reached the name before the alias existed, which OpenSearch auto-created with dynamic mappings; it is deleted and its content downloaded again. For the stateful indices it is not expected at all: the plugin creates the alias before any writer can reach the name, and the user the Wazuh server writes with cannot create indices. An empty one is deleted so the alias can take the name. One that holds documents is kept, since it is the state of every agent and nothing re-sends it, and the initialization fails naming it; the marker is set to `failed` until the index is deleted or reindexed by hand.
 
@@ -42,7 +44,7 @@ A stored template only applies to indices created afterwards. After a package up
 | `upgrade_in_place` | installed version is at least the shipped `compat_version`  | The shipped mappings and dynamic settings can be applied to the index. |
 | `rebuild_required` | installed version is below the shipped `compat_version`, or the index carries no version (`0`) | The index must be rebuilt from the shipped template.                  |
 
-The installed version is read from the live index: the index itself, the write index of a data stream, or the write index behind a content alias. Detection reads version metadata only; it never compares the live mappings or settings against the shipped files.
+The installed version is read from the live index: the index itself, the write index of a data stream, or the write index behind the alias of a stateful or content index. Detection reads version metadata only; it never compares the live mappings or settings against the shipped files.
 
 The result is stored in `.wazuh-setup-status`, one document per managed index, with the index name as document id:
 
@@ -62,11 +64,29 @@ The result is stored in `.wazuh-setup-status`, one document per managed index, w
 
 The marker is set to `ready` only when every record is `up_to_date`; while any index is pending it stays `running`. The ISM configuration index (`.opendistro-ism-config`) has no record: the ISM plugin versions that mapping itself. The `.wazuh-setup-status` index is the one exception to "a stored template only applies to indices created afterwards": it holds the records of the running version, so the plugin pushes the shipped mappings to it on every boot before writing them.
 
+### Schema upgrades
+
+Right after the detection, in the same initialization, the plugin upgrades the pending indices as far as it can without copying data. The marker is written only afterwards, so the plugins that wait for it see the upgraded indices.
+
+An index in `upgrade_in_place` receives three requests, in this order, addressed to its public name: the index itself, the concrete index behind the alias of a stateful or content index (whichever slot is live), or every backing index of a data stream.
+
+1. The shipped mappings, without their `_meta`. OpenSearch merges them into the live mapping, which only accepts additive changes. A field whose type differs is a conflict the versioning missed: the request is rejected, the index is recorded as `rebuild_required`, and nothing else is changed on it.
+2. The dynamic settings of the stored template: the shipped ones with the overrides of `setup.yml` on top, as a new index would get them (see [Customization](./customization.md)). A setting the node knows as static (`index.number_of_shards`, `index.codec`, ...) cannot be changed on an existing index and is left out; a change to one of them is breaking by definition. Every other setting of the template is applied, which also resets a dynamic setting changed by hand through the API to the stored value; an override meant to last belongs in `setup.yml`.
+3. The shipped `schema_version` and `compat_version`, written into the `_meta` of the live mapping. This is what the detection reads, so it goes last: an upgrade interrupted before it is still detected as pending on the next boot.
+
+The first two steps are recorded in the index's record as `mappings_updated` and `settings_updated`, and an interrupted upgrade resumes after the last one recorded. The record ends `up_to_date` with the shipped version as the installed one.
+
+A data stream in `rebuild_required` is rolled over once instead. The new write index is created from the stored template, so it carries the shipped mappings, settings and versions, and ISM attaches the stream's policy to it as it does to every backing index a rollover creates. The previous backing indices keep their definition until the policy deletes them: a data stream is never reindexed. ISM finds the previous write index already rolled over and moves it towards deletion on the policy's usual schedule, as after a rollover it performed itself (see [Retention](./retention.md)).
+
+Any other index in `rebuild_required` (a state, content or internal index) stays pending and is reported in the log; the marker stays `running`. Rebuilding those indices is not automated by this version.
+
+A step that fails for another reason, such as a timeout, is logged with the index name. Its record keeps the last step completed, the upgrade of the other indices goes on, and the failed one is retried on the next boot.
+
 ### Replica configuration
 
 During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.
 
-The packaged configuration sets `cluster.default_number_of_replicas` to `0`, so that a single node stays green. The Wazuh indices set `index.auto_expand_replicas: 0-1` instead: no replica on a single node, and one replica as soon as a second node joins, so the cluster can lose a node without losing a primary.
+The packaged configuration sets `cluster.default_number_of_replicas` to `0`, so that a single node stays green. The Wazuh indices set `index.auto_expand_replicas: 0-1` instead: no replica on a single node, and one replica as soon as a second node joins, so the cluster can lose a node without losing a primary. To use another range or a fixed number of replicas, override it in `setup.yml`, as described in [Customization](customization.md#index-template-settings).
 
 Two plugins create internal indices with a fixed replica count and no auto-expand option: Index State Management, for its history indices (`.opendistro-ism-managed-index-history-*`), and the security plugin, for the backing indices of the `security-auditlogs` data stream (`.ds-security-auditlogs-*`). The setup plugin creates these indices with `index.auto_expand_replicas: 0-1` too.
 
@@ -93,7 +113,18 @@ A lost write is not sent again, because its sender received the acknowledgement.
 
 #### Changing the durability
 
-`index.translog.durability` is a dynamic index setting. To make these streams sync every write before acknowledging it again:
+To make a stream sync every write before acknowledging it again, override the setting in the plugin's configuration file, `setup.yml`:
+
+```yaml
+# The three stream families that default to async
+templates.streams.events.settings.index.translog.durability: request
+templates.streams.raw.settings.index.translog.durability: request
+templates.streams.findings.settings.index.translog.durability: request
+```
+
+`templates.streams.*.settings.index.translog.durability: request` does the same for every stream at once. The same key with `async` turns it on for a stream that defaults to `request`. See [Customization](customization.md) for the file and for when a change takes effect.
+
+The file changes the index templates, so the backing indices created from then on. `index.translog.durability` is a dynamic index setting, so the backing indices that exist are changed with the settings API:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*/_settings" \
@@ -101,7 +132,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/w
   -d '{"index.translog.durability": "request"}'
 ```
 
-The request changes the backing indices that exist. A backing index created by a later rollover takes the value of its index template again, so the change does not outlive the rollover. Editing the index template does not keep it either, because the plugin overwrites its templates at every restart.
+Do both. The request alone does not last: a backing index created by a later rollover takes the value of its index template again. Editing the index template does not keep it either, because the plugin writes its templates again at every restart.
 
 To check the value of each backing index:
 
