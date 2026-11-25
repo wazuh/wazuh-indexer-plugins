@@ -1,0 +1,25 @@
+---
+- name: group
+  fields:
+    - name: users
+      type: keyword
+      level: custom
+      short: Members of the group.
+      description: >
+        Names of the users that belong to the group.
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["alice", "bob"]'
+    - name: previous.users
+      type: keyword
+      level: custom
+      short: Members of the group before it changed.
+      description: >
+        Names of the users that belonged to the group before it changed. Compared with `group.users`, it shows who was added to or removed from the group.
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["alice"]'

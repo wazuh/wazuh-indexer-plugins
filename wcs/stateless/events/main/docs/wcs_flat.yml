@@ -6755,6 +6755,35 @@ group.name:
   normalize: []
   short: Name of the group.
   type: keyword
+group.previous.users:
+  dashed_name: group-previous-users
+  description: 'Names of the users that belonged to the group before it changed. Compared
+    with `group.users`, it shows who was added to or removed from the group.
+
+    Note: this field should contain an array of values.'
+  example: '["alice"]'
+  flat_name: group.previous.users
+  ignore_above: 4096
+  level: custom
+  name: previous.users
+  normalize:
+  - array
+  short: Members of the group before it changed.
+  type: keyword
+group.users:
+  dashed_name: group-users
+  description: 'Names of the users that belong to the group.
+
+    Note: this field should contain an array of values.'
+  example: '["alice", "bob"]'
+  flat_name: group.users
+  ignore_above: 4096
+  level: custom
+  name: users
+  normalize:
+  - array
+  short: Members of the group.
+  type: keyword
 host.architecture:
   dashed_name: host-architecture
   description: Operating system architecture.
@@ -9320,6 +9349,27 @@ package.description:
   normalize: []
   short: Description of the package.
   type: keyword
+package.from_webstore:
+  dashed_name: package-from-webstore
+  description: Whether the browser extension was installed from a web store.
+  example: true
+  flat_name: package.from_webstore
+  level: custom
+  name: from_webstore
+  normalize: []
+  short: Whether the browser extension was installed from a web store.
+  type: boolean
+package.id:
+  dashed_name: package-id
+  description: Unique identifier of the browser extension.
+  example: abcdefghijklmnopabcdefghijklmnop
+  flat_name: package.id
+  ignore_above: 4096
+  level: custom
+  name: id
+  normalize: []
+  short: Unique identifier of the browser extension.
+  type: keyword
 package.install_scope:
   dashed_name: package-install-scope
   description: Indicating how the package was installed, e.g. user-local, global.
@@ -9376,6 +9426,20 @@ package.path:
   normalize: []
   short: Path where the package is installed.
   type: keyword
+package.permissions:
+  dashed_name: package-permissions
+  description: 'Permissions the browser extension requests.
+
+    Note: this field should contain an array of values.'
+  example: '["tabs", "storage"]'
+  flat_name: package.permissions
+  ignore_above: 4096
+  level: custom
+  name: permissions
+  normalize:
+  - array
+  short: Permissions of the browser extension.
+  type: keyword
 package.previous.installed:
   dashed_name: package-previous-installed
   description: Installation date before it changed.
@@ -9386,6 +9450,21 @@ package.previous.installed:
   normalize: []
   short: Installation date before it changed.
   type: date
+package.previous.permissions:
+  dashed_name: package-previous-permissions
+  description: 'Permissions the browser extension requested before it changed. Compared
+    with `package.permissions`, it shows the permissions an update added.
+
+    Note: this field should contain an array of values.'
+  example: '["storage"]'
+  flat_name: package.previous.permissions
+  ignore_above: 4096
+  level: custom
+  name: previous.permissions
+  normalize:
+  - array
+  short: Permissions of the browser extension before it changed.
+  type: keyword
 package.reference:
   dashed_name: package-reference
   description: Home page or reference URL of the software in this package, if available.
@@ -9421,6 +9500,17 @@ package.type:
   name: type
   normalize: []
   short: Package type
+  type: keyword
+package.vendor:
+  dashed_name: package-vendor
+  description: Vendor, publisher or maintainer of the package or browser extension.
+  example: Example Inc.
+  flat_name: package.vendor
+  ignore_above: 4096
+  level: custom
+  name: vendor
+  normalize: []
+  short: Vendor, publisher or maintainer of the package or browser extension.
   type: keyword
 package.version:
   dashed_name: package-version
@@ -14595,6 +14685,18 @@ process.working_directory:
     stability: development
   short: The working directory of the process.
   type: keyword
+registry.architecture:
+  dashed_name: registry-architecture
+  description: Registry view the key or value was read from, `[x32]` or `[x64]`. The
+    same path can name a 32-bit and a 64-bit key.
+  example: '[x64]'
+  flat_name: registry.architecture
+  ignore_above: 4096
+  level: custom
+  name: architecture
+  normalize: []
+  short: Registry view of the key or value.
+  type: keyword
 registry.data.bytes:
   dashed_name: registry-data-bytes
   description: 'Original bytes written with base64 encoding.
@@ -14673,6 +14775,19 @@ registry.path:
   normalize: []
   short: Full path, including hive, key and value
   type: keyword
+registry.previous.value:
+  dashed_name: registry-previous-value
+  description: Diff of the data of a registry value that changed, reported by FIM
+    when `report_changes` is enabled. Lines starting with `<` hold the data before
+    the change and lines starting with `>` the data after it. The agent only sends
+    hashes of the value data, so this is the only field that holds the data itself.
+  example: < C:\Windows\system32\userinit.exe, --- > C:\Windows\system32\userinit.exe,C:\Users\Public\run.exe,
+  flat_name: registry.previous.value
+  level: custom
+  name: previous.value
+  normalize: []
+  short: Changes in the data of the registry value.
+  type: match_only_text
 registry.value:
   dashed_name: registry-value
   description: Name of the value written.
@@ -15635,6 +15750,19 @@ service.address:
   normalize: []
   short: Address of this service.
   type: keyword
+service.enabled:
+  dashed_name: service-enabled
+  description: Whether the unit file is enabled to start at boot, e.g. `enabled`,
+    `disabled`, `static` or `masked`.
+  example: enabled
+  flat_name: service.enabled
+  ignore_above: 4096
+  level: custom
+  name: enabled
+  normalize: []
+  short: Whether the unit file is enabled to start at boot, e.g. `enabled`, `disabled`,
+    `static` or `masked`.
+  type: keyword
 service.environment:
   beta: This field is beta and subject to change.
   dashed_name: service-environment
@@ -16001,6 +16129,19 @@ service.previous.state:
   name: previous.state
   normalize: []
   short: Service state before it changed, e.g. `RUNNING` before a restart.
+  type: keyword
+service.start_type:
+  dashed_name: service-start-type
+  description: Start type of the service, e.g. `BOOT_START`, `SYSTEM_START`, `AUTO_START`,
+    `DEMAND_START` or `DISABLED` on Windows.
+  example: AUTO_START
+  flat_name: service.start_type
+  ignore_above: 4096
+  level: custom
+  name: start_type
+  normalize: []
+  short: Start type of the service, e.g. `BOOT_START`, `SYSTEM_START`, `AUTO_START`,
+    `DEMAND_START` or `DISABLED` on Windows.
   type: keyword
 service.state:
   dashed_name: service-state
@@ -23797,6 +23938,21 @@ user.changes.group.name:
   original_fieldset: group
   short: Name of the group.
   type: keyword
+user.changes.groups:
+  dashed_name: user-changes-groups
+  description: 'Names of the groups the user belongs to.
+
+    Note: this field should contain an array of values.'
+  example: '["Administrators", "Users"]'
+  flat_name: user.changes.groups
+  ignore_above: 4096
+  level: custom
+  name: groups
+  normalize:
+  - array
+  original_fieldset: user
+  short: Groups the user belongs to.
+  type: keyword
 user.changes.hash:
   dashed_name: user-changes-hash
   description: 'Unique user hash to correlate information for a user in anonymized
@@ -23824,6 +23980,18 @@ user.changes.id:
   original_fieldset: user
   short: Unique identifier of the user.
   type: keyword
+user.changes.is_hidden:
+  dashed_name: user-changes-is-hidden
+  description: Whether the user is hidden from the login window and the user lists
+    (macOS).
+  example: false
+  flat_name: user.changes.is_hidden
+  level: custom
+  name: is_hidden
+  normalize: []
+  original_fieldset: user
+  short: Whether the user is hidden from the login window and the user lists (macOS).
+  type: boolean
 user.changes.name:
   dashed_name: user-changes-name
   description: Short name or login of the user.
@@ -23835,6 +24003,18 @@ user.changes.name:
   normalize: []
   original_fieldset: user
   short: Short name or login of the user.
+  type: keyword
+user.changes.password.status:
+  dashed_name: user-changes-password-status
+  description: Status of the user's password, e.g. `active`, `locked` or `empty`.
+  example: active
+  flat_name: user.changes.password.status
+  ignore_above: 4096
+  level: custom
+  name: password.status
+  normalize: []
+  original_fieldset: user
+  short: Status of the user's password, e.g. `active`, `locked` or `empty`.
   type: keyword
 user.changes.roles:
   dashed_name: user-changes-roles
@@ -23848,6 +24028,20 @@ user.changes.roles:
   - array
   original_fieldset: user
   short: Array of user roles at the time of the event.
+  type: keyword
+user.changes.shell:
+  dashed_name: user-changes-shell
+  description: Login shell of the user, e.g. `/usr/sbin/nologin` or `/bin/false` for
+    an account that cannot log in interactively.
+  example: /bin/bash
+  flat_name: user.changes.shell
+  ignore_above: 4096
+  level: custom
+  name: shell
+  normalize: []
+  original_fieldset: user
+  short: Login shell of the user, e.g. `/usr/sbin/nologin` or `/bin/false` for an
+    account that cannot log in interactively.
   type: keyword
 user.domain:
   dashed_name: user-domain

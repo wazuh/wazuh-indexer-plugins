@@ -28,15 +28,30 @@ trap cleanup EXIT
 # ECS copies all the fields of a field set into each of its reuses.
 #
 # Current list of excluded fields:
-#   * file.diff belongs to the root file object only, not to the file reuses
-#     under threat.indicator, threat.enrichments.indicator and their
-#     wazuh.threat counterparts.
-EXCLUDED_FIELDS=(
-  "threat.indicator.file.diff"
-  "threat.enrichments.indicator.file.diff"
-  "wazuh.threat.indicator.file.diff"
-  "wazuh.threat.enrichments.indicator.file.diff"
-)
+#   * file.diff, registry.architecture and registry.previous.value belong to
+#     the root file and registry objects only, not to their reuses under
+#     threat.indicator, threat.enrichments.indicator and their wazuh.threat
+#     counterparts.
+#   * group.users and group.previous.users belong to the root group object
+#     only, not to the group of each user object.
+#   * service.enabled and service.start_type belong to the root service object
+#     only, not to service.origin and service.target.
+EXCLUDED_FIELDS=()
+for prefix in threat.indicator threat.enrichments.indicator \
+  wazuh.threat.indicator wazuh.threat.enrichments.indicator; do
+  EXCLUDED_FIELDS+=(
+    "${prefix}.file.diff"
+    "${prefix}.registry.architecture"
+    "${prefix}.registry.previous.value"
+  )
+done
+for prefix in user user.changes user.effective user.target \
+  client.user destination.user server.user source.user; do
+  EXCLUDED_FIELDS+=("${prefix}.group.users" "${prefix}.group.previous.users")
+done
+for prefix in service.origin service.target; do
+  EXCLUDED_FIELDS+=("${prefix}.enabled" "${prefix}.start_type")
+done
 
 # Function to display usage information
 show_usage() {

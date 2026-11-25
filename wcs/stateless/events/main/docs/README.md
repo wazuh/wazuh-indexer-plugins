@@ -81,3 +81,9 @@ Unlike `process.*` above, this field is not module-scoped: since `service` uses 
 #### `package.previous.installed`
 
 Adds a `previous.installed` field to the ECS `package` field set, capturing the package's installation date prior to a `modified` event. Reaches `findings` the same way `service.previous.state` does, for the same reason (`package` also uses `fields: "*"`).
+
+#### IT Hygiene and FIM change fields
+
+Extends `group`, `user.changes`, `service`, `package` and `registry` so detection rules can see what an IT Hygiene or FIM change did: the members added to a group, the groups, shell or password status of an account, a service disabled at boot, the permissions an extension update added, or the data diff of a registry value. They reach `findings` too.
+
+The `user.changes` fields are defined at the root of `user` in `custom/user.yml`, because ECS builds `user.changes` by copying `user` and would overwrite a field defined under `changes`; `subset.yml` only takes the copies. The custom fields of `group`, `registry` and `service` are not mapped where ECS reuses those field sets (for example `user.target.group` or `threat.indicator.registry`): the generator removes them through `EXCLUDED_FIELDS`.

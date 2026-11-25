@@ -7,3 +7,15 @@
       description: >
         Service state before it changed, e.g. `RUNNING` before a restart.
       example: activating
+    - name: enabled
+      type: keyword
+      level: custom
+      description: >
+        Whether the unit file is enabled to start at boot, e.g. `enabled`, `disabled`, `static` or `masked`.
+      example: enabled
+    - name: start_type
+      type: keyword
+      level: custom
+      description: >
+        Start type of the service, e.g. `BOOT_START`, `SYSTEM_START`, `AUTO_START`, `DEMAND_START` or `DISABLED` on Windows.
+      example: AUTO_START

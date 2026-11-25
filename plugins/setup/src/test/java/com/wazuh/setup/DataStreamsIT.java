@@ -27,9 +27,11 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.hamcrest.MatcherAssert;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -481,6 +483,140 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                 body,
                 containsString("\"key\":999000111"));
         assertThat("process.state should aggregate as keyword", body, containsString("\"key\":\"S\""));
+    }
+
+    /**
+     * Verifies that the IT Hygiene and FIM fields detection rules need are mapped with their type on
+     * the events stream and on the findings stream (#1841).
+     *
+     * <p>The document carries all of them, so indexing it also proves that {@code
+     * strict_allow_templates} accepts each one. The {@code user.changes} fields are a special case:
+     * ECS copies them from the root of {@code user}, where the subset does not expose them.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    @SuppressWarnings("unchecked")
+    public void testItHygieneAndFimFieldsAreMappedOnEventsAndFindings() throws IOException {
+        Map<String, String> expectedTypes =
+                Map.ofEntries(
+                        Map.entry("group.users", "keyword"),
+                        Map.entry("group.previous.users", "keyword"),
+                        Map.entry("user.changes.groups", "keyword"),
+                        Map.entry("user.changes.shell", "keyword"),
+                        Map.entry("user.changes.password.status", "keyword"),
+                        Map.entry("user.changes.is_hidden", "boolean"),
+                        Map.entry("service.enabled", "keyword"),
+                        Map.entry("service.start_type", "keyword"),
+                        Map.entry("package.vendor", "keyword"),
+                        Map.entry("package.id", "keyword"),
+                        Map.entry("package.permissions", "keyword"),
+                        Map.entry("package.previous.permissions", "keyword"),
+                        Map.entry("package.from_webstore", "boolean"),
+                        Map.entry("registry.architecture", "keyword"),
+                        Map.entry("registry.previous.value", "match_only_text"));
+        String document =
+                """
+                {
+                  "@timestamp": "2026-08-05T10:00:00.000Z",
+                  "event": {"type": ["change"], "changed_fields": ["group.users"]},
+                  "group": {"name": "wcs-test-admins", "users": ["alice", "bob"], "previous": {"users": ["alice"]}},
+                  "user": {
+                    "name": "bob",
+                    "changes": {
+                      "groups": ["wcs-test-admins", "users"],
+                      "shell": "/bin/bash",
+                      "password": {"status": "empty"},
+                      "is_hidden": true
+                    }
+                  },
+                  "service": {"name": "wcs-test.service", "enabled": "disabled", "start_type": "DISABLED"},
+                  "package": {
+                    "name": "wcs-test-extension",
+                    "vendor": "Example Inc.",
+                    "id": "abcdefghijklmnopabcdefghijklmnop",
+                    "permissions": ["tabs", "cookies"],
+                    "previous": {"permissions": ["tabs"]},
+                    "from_webstore": false
+                  },
+                  "registry": {
+                    "architecture": "[x64]",
+                    "previous": {"value": "< userinit.exe,\\n---\\n> userinit.exe,wcs-test-updater.exe,"}
+                  }
+                }
+                """;
+        String fields = String.join(",", expectedTypes.keySet());
+
+        for (String prefix : List.of(EVENTS_PREFIX, FINDINGS_PREFIX)) {
+            this.index(prefix, document);
+
+            Request request = new Request("GET", "/" + prefix + "security/_mapping/field/" + fields);
+            Map<String, Object> indices =
+                    OpenSearchRestTestCase.entityAsMap(OpenSearchRestTestCase.client().performRequest(request));
+            Map<String, String> actualTypes = new HashMap<>();
+            for (Object body : indices.values()) {
+                Map<String, Object> mappings = (Map<String, Object>) ((Map<String, Object>) body).get("mappings");
+                mappings.forEach(
+                        (field, mapping) -> {
+                            Map<String, Object> leaves =
+                                    (Map<String, Object>) ((Map<String, Object>) mapping).get("mapping");
+                            Map<String, Object> leaf = (Map<String, Object>) leaves.values().iterator().next();
+                            actualTypes.put(field, (String) leaf.get("type"));
+                        });
+            }
+            logger.info("IT Hygiene and FIM field types on {}: {}", prefix, actualTypes);
+            Assert.assertEquals("field types on " + prefix, expectedTypes, actualTypes);
+        }
+    }
+
+    /**
+     * Verifies that the IT Hygiene and FIM fields are only mapped where #1841 puts them.
+     *
+     * <p>ECS copies a custom field into every reuse of its field set: {@code group.users} into the
+     * group of each user object, {@code registry.*} into the threat indicators, {@code service.*}
+     * into {@code service.origin} and {@code service.target}. The generator removes those copies,
+     * and the root of {@code user} keeps only the fields it had, so each path below must be
+     * rejected as unmapped. Each value has the type of the field it copies, so a copy left in the
+     * template would accept it.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    public void testCopiesOfTheItHygieneAndFimFieldsAreNotMapped() throws IOException {
+        Map<String, String> unmapped =
+                Map.ofEntries(
+                        Map.entry("user.target.group.users", "\"alice\""),
+                        Map.entry("user.changes.group.previous.users", "\"alice\""),
+                        Map.entry("source.user.group.users", "\"alice\""),
+                        Map.entry("threat.indicator.registry.architecture", "\"[x64]\""),
+                        Map.entry("wazuh.threat.enrichments.indicator.registry.previous.value", "\"< a\""),
+                        Map.entry("service.origin.enabled", "\"enabled\""),
+                        Map.entry("service.target.start_type", "\"AUTO_START\""),
+                        Map.entry("user.groups", "\"users\""),
+                        Map.entry("user.shell", "\"/bin/bash\""),
+                        Map.entry("user.is_hidden", "true"),
+                        Map.entry("user.password.status", "\"active\""));
+
+        for (String prefix : List.of(EVENTS_PREFIX, FINDINGS_PREFIX)) {
+            for (Map.Entry<String, String> field : unmapped.entrySet()) {
+                Request index = new Request("POST", "/" + prefix + "security/_doc");
+                index.setJsonEntity(
+                        String.format(
+                                Locale.ROOT,
+                                "{\"@timestamp\": \"2026-08-05T10:00:00.000Z\", \"%s\": %s}",
+                                field.getKey(),
+                                field.getValue()));
+
+                ResponseException exception =
+                        Assert.assertThrows(
+                                field.getKey() + " should be rejected on " + prefix,
+                                ResponseException.class,
+                                () -> OpenSearchRestTestCase.client().performRequest(index));
+                Assert.assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+                MatcherAssert.assertThat(
+                        field.getKey() + " should be unmapped on " + prefix,
+                        exception.getMessage(),
+                        containsString("strict_dynamic_mapping_exception"));
+            }
+        }
     }
 
     /**
