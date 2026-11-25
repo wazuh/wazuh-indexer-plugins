@@ -21,6 +21,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
+import org.opensearch.action.admin.indices.rollover.RolloverRequest;
+import org.opensearch.action.admin.indices.rollover.RolloverResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -127,6 +129,32 @@ public class StreamIndex extends WazuhIndex {
         this.createTemplate(this.template);
         this.createIndex(this.index);
         this.registerWithISM();
+    }
+
+    /**
+     * Rolls the data stream over, so a new write index is created from the stored template and
+     * carries its mappings, settings and schema versions. The previous backing indices keep their
+     * definition until the ISM policy deletes them; a data stream is never reindexed. ISM attaches
+     * the policy to the new write index as it is created, through the policy's template, exactly as
+     * after a rollover the policy performs, so the stream is left as that leaves it.
+     *
+     * @throws IllegalStateException if OpenSearch acknowledges the request without rolling over.
+     */
+    public void rollover() {
+        RolloverResponse response =
+                this.client
+                        .admin()
+                        .indices()
+                        .rolloverIndex(new RolloverRequest(this.index, null))
+                        .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+        if (!response.isRolledOver()) {
+            throw new IllegalStateException("the rollover of [" + this.index + "] was not performed");
+        }
+        log.info(
+                "Data stream [{}] rolled over from [{}] to [{}].",
+                this.index,
+                response.getOldIndex(),
+                response.getNewIndex());
     }
 
     /**
