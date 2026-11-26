@@ -26,6 +26,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -277,7 +278,10 @@ public class SigmaFilterService {
                         e -> {
                             OpenSearchException rejection =
                                     (OpenSearchException) ExceptionsHelper.unwrap(e, OpenSearchException.class);
-                            if (rejection == null || rejection.status().getStatus() >= 500) {
+                            // Only a 400 is Security Analytics refusing the rule. Anything else, a 403 for a
+                            // caller
+                            // without the validate permission included, is answered as it is.
+                            if (rejection == null || rejection.status() != RestStatus.BAD_REQUEST) {
                                 listener.onFailure(e);
                                 return;
                             }

@@ -320,4 +320,21 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
                 "Invalid 'sigma_filters' value [draft]. Must be one of: test, custom, none.",
                 e.getMessage());
     }
+
+    public void testCheckTargetsPassesOnAPermissionFailure() throws Exception {
+        stubSearch(rule("standard", "apache-http", "standard"));
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        Exception forbidden =
+                new org.opensearch.OpenSearchSecurityException(
+                        "no permissions for [cluster:admin/wazuh/securityanalytics/rule/validate]",
+                        RestStatus.FORBIDDEN);
+
+        validatingService(forbidden, new java.util.ArrayList<>())
+                .checkTargets(
+                        filter("apache-http"),
+                        Space.DRAFT,
+                        ActionListener.wrap(r -> fail("expected a failure, got " + r), failure::set));
+
+        assertSame(forbidden, failure.get());
+    }
 }
