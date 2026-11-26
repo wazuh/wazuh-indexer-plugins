@@ -107,6 +107,36 @@ public class Constants {
             "This promotion would leave %d detectors without enabled rules: %s. "
                     + "Disable or delete them, or keep one of their rules enabled.";
 
+    // Sigma filters: why a filter cannot be applied to a rule (SigmaFilterComposer).
+    public static final String E_400_SIGMA_FILTER_MISSING_FILTER = "The 'filter' object is missing.";
+    public static final String E_400_SIGMA_FILTER_MISSING_LOGSOURCE =
+            "The 'logsource' object is missing.";
+    public static final String E_400_SIGMA_FILTER_RULES =
+            "'filter.rules' must be a non-empty list of rule ids ('any' is not supported).";
+    public static final String E_400_SIGMA_FILTER_CONDITION_NOT_STRING =
+            "'filter.condition' must be a string.";
+    public static final String E_400_SIGMA_FILTER_NO_SELECTION = "The filter defines no selection.";
+    public static final String E_400_SIGMA_FILTER_SELECTION_NAME =
+            "Selection name [%s] is not a valid identifier: use letters, digits and underscores, not"
+                    + " starting with a digit.";
+    public static final String E_400_SIGMA_FILTER_CONDITION_SYNTAX =
+            "Filter condition [%s] is not a valid Sigma condition.";
+    public static final String E_400_SIGMA_FILTER_CONDITION_NOT_NEGATION =
+            "Filter condition [%s] must be a single top-level negation, such as 'not selection': a"
+                    + " filter is applied as (<rule condition>) and (<filter condition>).";
+    public static final String E_400_SIGMA_FILTER_UNDEFINED_SELECTION =
+            "Filter condition [%s] refers to [%s], which matches none of the filter's selections.";
+    public static final String E_400_SIGMA_FILTER_LOGSOURCE_MISMATCH =
+            "The filter logsource %s does not match the logsource %s of rule [%s].";
+    public static final String E_400_SIGMA_FILTER_RULE_CONDITION =
+            "Rule [%s] has no single condition string, so a filter cannot be applied to it.";
+    public static final String E_400_SIGMA_FILTER_RULE_AGGREGATES =
+            "Rule [%s] aggregates events, so a filter cannot be applied to it.";
+    public static final String E_400_SIGMA_FILTER_IDENTIFIER_TAKEN =
+            "Rule [%s] already defines the identifier [%s].";
+    public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
+            "Selector [%s] of rule [%s] would also select the filter's selections.";
+
     public static final String E_400_NO_OFFLINE_SNAPSHOTS =
             "No snapshot file to load in [%s] on node [%s]. Place the new snapshot files in that"
                     + " directory, on every node, before requesting an offline update.";
@@ -381,6 +411,8 @@ public class Constants {
             "Partial failures deleting Security Analytics resources for space [{}]: {}";
     public static final String I_LOG_SAP_SPACE_DELETED =
             "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]";
+    public static final String W_LOG_SIGMA_FILTER_NOT_APPLIED =
+            "Sigma filter [{}] not applied to rule [{}], skipped: {}";
     // Space-parameterized Engine load logs (space name is the first {}). The "standard" rendering of
     // I_LOG_ENGINE_SPACE_LOADED is intentionally byte-identical to the original standard-only message
     // so existing log-based validation keeps matching.
