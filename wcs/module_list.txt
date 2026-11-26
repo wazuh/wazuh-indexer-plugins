@@ -38,6 +38,7 @@ module_to_file=(
   [content/kvdbs]=templates/content/kvdbs.json
   [content/policies]=templates/content/policies.json
   [content/rules]=templates/content/rules.json
+  [content/sigma-filters]=templates/content/sigma-filters.json
   [content/vulnerabilities]=templates/content/vulnerabilities.json
   # CVE module
   [cve]=templates/cve.json
