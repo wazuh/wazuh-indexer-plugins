@@ -18,17 +18,9 @@ package com.wazuh.contentmanager.cti.console.client;
 
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
-import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.message.BasicHeader;
-import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
-import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.opensearch.core.action.ActionListener;
 
@@ -41,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.client.CtiHttpClients;
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -70,30 +63,7 @@ public class ApiClient {
 
     /** Builds and starts the Http client. */
     private void buildClient() {
-        IOReactorConfig ioReactorConfig =
-                IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.timeout)).build();
-
-        List<Header> defaultHeaders =
-                List.of(
-                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
-
-        this.client =
-                HttpAsyncClients.custom()
-                        .setIOReactorConfig(ioReactorConfig)
-                        .setDefaultHeaders(defaultHeaders)
-                        .setConnectionManager(
-                                PoolingAsyncClientConnectionManagerBuilder.create()
-                                        .setTlsStrategy(
-                                                ClientTlsStrategyBuilder.create()
-                                                        // JDK truststore + DefaultHostnameVerifier. Honours
-                                                        // javax.net.ssl.trustStore* so an operator behind a
-                                                        // TLS-terminating proxy adds a CA instead of disabling
-                                                        // checks.
-                                                        .setSslContext(SSLContexts.createSystemDefault())
-                                                        .setTlsVersions(TLS.V_1_2, TLS.V_1_3)
-                                                        .build())
-                                        .build())
-                        .build();
+        this.client = CtiHttpClients.asyncBuilder(Timeout.ofSeconds(this.timeout)).build();
 
         this.client.start();
     }

@@ -55,4 +55,4 @@ Allow the following inbound traffic on every Wazuh indexer node:
 
 These are the default ports; `http.port` and `transport.port` in `/etc/wazuh-indexer/opensearch.yml` change them.
 
-The Content Manager plugin also connects out to the Wazuh Cyber Threat Intelligence (CTI) API over HTTPS (`443/TCP`) to synchronize content, check for updates and send telemetry. An installation without internet access works without it: it loads the content snapshots included in the package. See [Offline installations](../modules/content-manager/configuration.md#offline-installations).
+The Content Manager plugin also connects out to the Wazuh Cyber Threat Intelligence (CTI) API over HTTPS (`443/TCP`) to synchronize content, check for updates and send telemetry. An installation without internet access works without it: it loads the content snapshots included in the package. See [Offline installations](../modules/content-manager/configuration.md#offline-installations). Behind an HTTP proxy, configure the proxy as described in [Outbound HTTP proxy](../modules/content-manager/configuration.md#outbound-http-proxy).

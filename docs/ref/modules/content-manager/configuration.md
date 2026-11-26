@@ -112,6 +112,32 @@ To keep the content of an offline installation current, load newer snapshots wit
 
 See [Offline content updates](offline-update.md) for the procedure.
 
+### Outbound HTTP proxy
+
+The Wazuh Indexer can reach Wazuh CTI through an HTTP proxy. On every node, set the proxy in the JVM options, `/etc/wazuh-indexer/jvm.options.d/proxy.options`:
+
+```
+-Dhttps.proxyHost=<PROXY_HOST>
+-Dhttps.proxyPort=<PROXY_PORT>
+```
+
+Also set it in the environment file of the service, `/etc/default/wazuh-indexer` (DEB) or `/etc/sysconfig/wazuh-indexer` (RPM):
+
+```
+https_proxy=http://<PROXY_HOST>:<PROXY_PORT>
+no_proxy=localhost,127.0.0.1
+```
+
+In a container, pass the JVM flags in `OPENSEARCH_JAVA_OPTS`, and set `https_proxy` and `no_proxy` in the container environment. The proxy must allow `CONNECT` to port 443 of the CTI hosts.
+
+Optional JVM flags:
+
+- `-Dhttps.proxyUser=<USER>` and `-Dhttps.proxyPassword=<PASSWORD>`: for a proxy that asks for credentials. Add them to the `https_proxy` URL too: `http://<USER>:<PASSWORD>@<PROXY_HOST>:<PROXY_PORT>`.
+- `-Dhttp.nonProxyHosts=<HOSTS>`: hosts reached directly, separated by `|`.
+- `-Djavax.net.ssl.trustStore=<TRUSTSTORE>` and `-Djavax.net.ssl.trustStorePassword=<PASSWORD>`: for a proxy that intercepts TLS, a copy of `/usr/share/wazuh-indexer/jdk/lib/security/cacerts` with the proxy CA imported. Add the proxy CA to the trust store of the operating system too.
+
+The JVM flags apply to the whole Wazuh Indexer, so Notifications webhooks also go through the proxy. If the synchronization fails, see [Sync fails behind an HTTP proxy](troubleshooting.md#sync-fails-behind-an-http-proxy).
+
 ### Disabling automatic updates
 
 `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.telemetry.enabled` are dynamic, so on a running deployment they can be applied without a restart:
@@ -250,7 +276,7 @@ User-Agent: Wazuh Indexer <version tag>
 Accept-Encoding: gzip
 ```
 
-For example: `Wazuh Indexer v5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+For example: `Wazuh Indexer v5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. Behind an [outbound HTTP proxy](#outbound-http-proxy), the `CONNECT` request sent to the proxy carries the same `User-Agent`.
 
 The version tag is built at plugin startup from the `version` and `stage` fields of `VERSION.json`, and its format depends on the CTI API the node points to (`plugins.content_manager.cti.api`):
 

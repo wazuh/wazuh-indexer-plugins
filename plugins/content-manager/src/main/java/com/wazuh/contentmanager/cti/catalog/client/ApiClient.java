@@ -18,16 +18,9 @@ package com.wazuh.contentmanager.cti.catalog.client;
 
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
-import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.utils.DateUtils;
 import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.message.BasicHeader;
-import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
-import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -38,7 +31,6 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.URI;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -81,35 +73,13 @@ public class ApiClient implements AutoCloseable {
 
     /** Builds and starts the asynchronous HTTP client. */
     private void buildClient() {
-        IOReactorConfig ioReactorConfig =
-                IOReactorConfig.custom()
-                        .setSoTimeout(Timeout.ofSeconds(PluginSettings.getInstance().getClientTimeout()))
-                        .build();
-
-        List<Header> defaultHeaders =
-                List.of(
-                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
-
         this.client =
-                HttpAsyncClients.custom()
-                        .setIOReactorConfig(ioReactorConfig)
-                        .setDefaultHeaders(defaultHeaders)
+                CtiHttpClients.asyncBuilder(
+                                Timeout.ofSeconds(PluginSettings.getInstance().getClientTimeout()))
                         // Keep the default transient-I/O retry, but never let the async client retry on
                         // a response status code: a 429 must surface to executeWithRetry() so the
                         // Retry-After backoff runs on the calling thread
                         .setRetryStrategy(new StatusCodeAwareRetryStrategy())
-                        .setConnectionManager(
-                                PoolingAsyncClientConnectionManagerBuilder.create()
-                                        .setTlsStrategy(
-                                                ClientTlsStrategyBuilder.create()
-                                                        // JDK truststore + DefaultHostnameVerifier. Honours
-                                                        // javax.net.ssl.trustStore* so an operator behind a
-                                                        // TLS-terminating proxy adds a CA instead of disabling
-                                                        // checks.
-                                                        .setSslContext(SSLContexts.createSystemDefault())
-                                                        .setTlsVersions(TLS.V_1_2, TLS.V_1_3)
-                                                        .build())
-                                        .build())
                         .build();
 
         this.client.start();
