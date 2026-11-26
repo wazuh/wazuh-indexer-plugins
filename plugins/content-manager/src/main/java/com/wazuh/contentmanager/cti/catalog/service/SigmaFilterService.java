@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -71,13 +72,32 @@ public class SigmaFilterService {
      * @param listener receives the filter documents by target rule id.
      */
     public void filtersByRule(Space space, ActionListener<Map<String, List<JsonNode>>> listener) {
+        this.filtersByRule(space, null, listener);
+    }
+
+    /**
+     * Reads the Sigma filters of a space that target any of the given rules, grouped by the id of
+     * each rule they target. As {@link #filtersByRule(Space, ActionListener)}, a failed read yields
+     * no filters.
+     *
+     * @param space the space whose filters to read.
+     * @param ruleIds the rules whose filters to read, or {@code null} for every rule.
+     * @param listener receives the filter documents by target rule id.
+     */
+    public void filtersByRule(
+            Space space,
+            Collection<String> ruleIds,
+            ActionListener<Map<String, List<JsonNode>>> listener) {
+        BoolQueryBuilder query =
+                QueryBuilders.boolQuery()
+                        .filter(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
+        if (ruleIds != null) {
+            query.filter(QueryBuilders.termsQuery(Constants.Q_SIGMA_FILTER_RULES, ruleIds));
+        }
         SearchRequest request =
                 new SearchRequest(Constants.INDEX_SIGMA_FILTERS)
                         .indicesOptions(IndicesOptions.lenientExpandOpen())
-                        .source(
-                                new SearchSourceBuilder()
-                                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
-                                        .size(Constants.MAX_RESULT_WINDOW));
+                        .source(new SearchSourceBuilder().query(query).size(Constants.MAX_RESULT_WINDOW));
         this.client.search(
                 request,
                 ActionListener.wrap(
@@ -136,6 +156,40 @@ public class SigmaFilterService {
                                 } else {
                                     rules.putIfAbsent(id, rule);
                                 }
+                            }
+                            listener.onResponse(rules);
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Reads the rules with the given ids in one space.
+     *
+     * @param ruleIds the rule ids.
+     * @param space the space to read them from.
+     * @param listener receives the rule documents by id; an id that is not found has no entry.
+     */
+    public void findRulesInSpace(
+            Collection<String> ruleIds, Space space, ActionListener<Map<String, JsonNode>> listener) {
+        SearchRequest request =
+                new SearchRequest(Constants.INDEX_RULES)
+                        .source(
+                                new SearchSourceBuilder()
+                                        .query(
+                                                QueryBuilders.boolQuery()
+                                                        .filter(QueryBuilders.termsQuery(Constants.Q_DOCUMENT_ID, ruleIds))
+                                                        .filter(
+                                                                QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
+                                        .size(ruleIds.size()));
+        this.client.search(
+                request,
+                ActionListener.wrap(
+                        response -> {
+                            Map<String, JsonNode> rules = new HashMap<>();
+                            for (SearchHit hit : response.getHits().getHits()) {
+                                JsonNode rule =
+                                        MAPPER.readTree(hit.getSourceAsString()).path(Constants.KEY_DOCUMENT);
+                                rules.put(rule.path(Constants.KEY_ID).asText(), rule);
                             }
                             listener.onResponse(rules);
                         },

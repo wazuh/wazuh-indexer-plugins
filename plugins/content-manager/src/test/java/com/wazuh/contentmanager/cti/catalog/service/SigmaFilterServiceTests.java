@@ -201,4 +201,26 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
 
         assertTrue(byRule.get().isEmpty());
     }
+
+    public void testFiltersByRuleCanReadTheFiltersOfSomeRulesOnly() {
+        stubSearch();
+
+        this.service.filtersByRule(
+                Space.CUSTOM, List.of(RULE_ID), ActionListener.wrap(r -> {}, e -> fail()));
+
+        String query = this.lastSearch.get().source().query().toString();
+        assertTrue(query, query.contains(Constants.Q_SIGMA_FILTER_RULES) && query.contains(RULE_ID));
+    }
+
+    public void testFindRulesInSpaceReadsThatSpaceOnly() {
+        stubSearch(rule("custom", "apache-http", "custom copy"));
+        AtomicReference<Map<String, JsonNode>> found = new AtomicReference<>();
+
+        this.service.findRulesInSpace(
+                List.of(RULE_ID), Space.CUSTOM, ActionListener.wrap(found::set, e -> fail(e.getMessage())));
+
+        assertEquals("custom copy", found.get().get(RULE_ID).at("/metadata/title").asText());
+        String query = this.lastSearch.get().source().query().toString();
+        assertTrue(query, query.contains("custom") && !query.contains("standard"));
+    }
 }

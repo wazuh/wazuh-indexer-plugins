@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
@@ -57,8 +58,10 @@ import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.DetectorLookupService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.utils.DetectorRuleGuard;
+import com.wazuh.contentmanager.cti.catalog.utils.SigmaFilterComposer;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
@@ -100,6 +103,7 @@ public class TransportPostPromoteAction
     private final SecurityAnalyticsService securityAnalyticsService;
     private final Client client;
     private final DetectorLookupService detectorLookupService;
+    private final SigmaFilterService sigmaFilterService;
 
     @Inject
     public TransportPostPromoteAction(
@@ -115,6 +119,7 @@ public class TransportPostPromoteAction
         this.securityAnalyticsService = securityAnalyticsService;
         this.client = client;
         this.detectorLookupService = new DetectorLookupService(client);
+        this.sigmaFilterService = new SigmaFilterService(client);
     }
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -916,7 +921,11 @@ public class TransportPostPromoteAction
                                                                                         Constants.KEY_RULES,
                                                                                         targetSpaceEnum,
                                                                                         context.targetSpace,
-                                                                                        listener),
+                                                                                        ActionListener.wrap(
+                                                                                                v4 ->
+                                                                                                        resyncSigmaFilterTargetsAsync(
+                                                                                                                context, targetSpaceEnum, listener),
+                                                                                                listener::onFailure)),
                                                                         listener::onFailure)),
                                                 listener::onFailure)),
                         listener::onFailure));
@@ -1032,8 +1041,146 @@ public class TransportPostPromoteAction
             this.securityAnalyticsService.upsertIntegration(
                     MAPPER.valueToTree(document), targetSpaceEnum, method, itemListener);
         } else {
-            this.securityAnalyticsService.upsertRule(
-                    MAPPER.valueToTree(document), targetSpaceEnum, method, itemListener);
+            this.upsertSapRule(
+                    MAPPER.valueToTree(document), targetSpaceEnum, method, false, itemListener);
+        }
+    }
+
+    /**
+     * Sends a rule to Security Analytics. A Standard or Custom rule is sent with the Custom Sigma
+     * filters that target it applied, as the CTI sync sends the Standard ones; the rule document
+     * itself is not rewritten.
+     */
+    private void upsertSapRule(
+            JsonNode rule,
+            Space space,
+            RestRequest.Method method,
+            boolean skipDetectorRebuild,
+            ActionListener<ActionResponse> listener) {
+        if (space != Space.CUSTOM && space != Space.STANDARD) {
+            this.securityAnalyticsService.upsertRule(rule, space, method, skipDetectorRebuild, listener);
+            return;
+        }
+        this.sigmaFilterService.filtersByRule(
+                Space.CUSTOM,
+                List.of(rule.path(Constants.KEY_ID).asText()),
+                ActionListener.wrap(
+                        filters ->
+                                this.securityAnalyticsService.upsertRule(
+                                        SigmaFilterComposer.applyOrKeep(rule, filters),
+                                        space,
+                                        method,
+                                        skipDetectorRebuild,
+                                        listener),
+                        listener::onFailure));
+    }
+
+    /**
+     * After Sigma filters change in the Custom space, re-sends every rule they target or targeted,
+     * with the Custom filters now in place, then rebuilds each affected detector once. The rules
+     * promoted by the same request were already sent with their filters, and are left out.
+     * Best-effort, like the rest of the Security Analytics sync.
+     */
+    private void resyncSigmaFilterTargetsAsync(
+            PromotionContext context, Space targetSpace, ActionListener<Void> listener) {
+        Set<String> ruleIds = new HashSet<>();
+        if (targetSpace == Space.CUSTOM) {
+            List<Map<String, Object>> changed = new ArrayList<>(context.sigmaFiltersToApply.values());
+            changed.addAll(
+                    context
+                            .oldVersions
+                            .getOrDefault(Constants.KEY_SIGMA_FILTERS, Collections.emptyMap())
+                            .values());
+            changed.addAll(
+                    context
+                            .deleteSnapshots
+                            .getOrDefault(Constants.KEY_SIGMA_FILTERS, Collections.emptyMap())
+                            .values());
+            for (Map<String, Object> filter : changed) {
+                if (filter != null) {
+                    MAPPER
+                            .valueToTree(filter)
+                            .path(Constants.KEY_DOCUMENT)
+                            .path(Constants.KEY_FILTER)
+                            .path(Constants.KEY_RULES)
+                            .forEach(id -> ruleIds.add(id.asText()));
+                }
+            }
+            ruleIds.removeAll(context.rulesToApply.keySet());
+        }
+        if (ruleIds.isEmpty()) {
+            listener.onResponse(null);
+            return;
+        }
+        ActionListener<Void> done =
+                ActionListener.wrap(
+                        v -> listener.onResponse(null),
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_SAP_SYNC_RESOURCE_FAILED,
+                                    "rules",
+                                    ruleIds,
+                                    targetSpace,
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        });
+        this.sigmaFilterService.findRulesInSpace(
+                ruleIds,
+                Space.CUSTOM,
+                ActionListener.wrap(
+                        customRules ->
+                                this.sigmaFilterService.findRulesInSpace(
+                                        ruleIds,
+                                        Space.STANDARD,
+                                        ActionListener.wrap(
+                                                standardRules -> {
+                                                    List<Map.Entry<Space, JsonNode>> sends = new ArrayList<>();
+                                                    customRules.values().forEach(r -> sends.add(Map.entry(Space.CUSTOM, r)));
+                                                    standardRules
+                                                            .values()
+                                                            .forEach(r -> sends.add(Map.entry(Space.STANDARD, r)));
+                                                    this.resendRulesThenRefresh(sends, done);
+                                                },
+                                                done::onFailure)),
+                        done::onFailure));
+    }
+
+    /** Re-sends the rules without rebuilding their detectors, then rebuilds each detector once. */
+    private void resendRulesThenRefresh(
+            List<Map.Entry<Space, JsonNode>> rules, ActionListener<Void> listener) {
+        if (rules.isEmpty()) {
+            listener.onResponse(null);
+            return;
+        }
+        Set<String> ids = new HashSet<>();
+        GroupedActionListener<Void> group =
+                new GroupedActionListener<>(
+                        ActionListener.wrap(
+                                v ->
+                                        this.securityAnalyticsService.refreshDetectors(
+                                                new ArrayList<>(ids),
+                                                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure)),
+                                listener::onFailure),
+                        rules.size());
+        for (Map.Entry<Space, JsonNode> rule : rules) {
+            String id = rule.getValue().path(Constants.KEY_ID).asText();
+            ids.add(id);
+            this.upsertSapRule(
+                    rule.getValue(),
+                    rule.getKey(),
+                    rule.getKey() == Space.CUSTOM ? RestRequest.Method.PUT : RestRequest.Method.POST,
+                    true,
+                    ActionListener.wrap(
+                            r -> group.onResponse(null),
+                            e -> {
+                                log.warn(
+                                        Constants.W_LOG_SAP_SYNC_RESOURCE_FAILED,
+                                        Constants.KEY_RULES,
+                                        id,
+                                        rule.getKey(),
+                                        e.getMessage());
+                                group.onResponse(null);
+                            }));
         }
     }
 
@@ -1276,8 +1423,7 @@ public class TransportPostPromoteAction
                 this.securityAnalyticsService.upsertIntegration(
                         docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
             } else {
-                this.securityAnalyticsService.upsertRule(
-                        docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
+                this.upsertSapRule(docNode, targetSpaceEnum, RestRequest.Method.PUT, false, sapListener);
             }
             log.debug(Constants.D_LOG_SAP_ROLLBACK_RESTORED, resourceType, id, targetSpaceEnum);
         } else {
@@ -1343,8 +1489,7 @@ public class TransportPostPromoteAction
                 this.securityAnalyticsService.upsertIntegration(
                         docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
             } else {
-                this.securityAnalyticsService.upsertRule(
-                        docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
+                this.upsertSapRule(docNode, targetSpaceEnum, RestRequest.Method.POST, false, sapListener);
             }
         } else {
             next.onResponse(null);

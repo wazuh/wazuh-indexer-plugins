@@ -46,7 +46,11 @@ import java.util.Set;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.securityanalytics.action.WIndexCustomRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
+import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WRefreshDetectorsAction;
+import com.wazuh.securityanalytics.action.WRefreshDetectorsRequest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -493,5 +497,46 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         ActionListener<ActionResponse> listener = mock(ActionListener.class);
         this.service.upsertIntegration(doc, Space.DRAFT, Method.POST, listener);
         verify(listener).onResponse(null);
+    }
+
+    // ── Sigma filters: skipping the per-rule rebuild, and the refresh ────────
+
+    private static JsonNode ruleDoc() throws Exception {
+        return MAPPER.readTree(
+                "{\"id\":\"" + RULE_1 + "\",\"metadata\":{\"title\":\"r\"},"
+                        + "\"logsource\":{\"product\":\"apache-http\"}}");
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testUpsertRuleCarriesTheSkipFlagForStandardAndCustomRules() throws Exception {
+        org.mockito.ArgumentCaptor<org.opensearch.action.ActionRequest> requests =
+                org.mockito.ArgumentCaptor.forClass(org.opensearch.action.ActionRequest.class);
+
+        this.service.upsertRule(
+                ruleDoc(), Space.STANDARD, Method.POST, true, ActionListener.wrap(r -> {}, e -> {}));
+        this.service.upsertRule(
+                ruleDoc(), Space.CUSTOM, Method.PUT, true, ActionListener.wrap(r -> {}, e -> {}));
+        this.service.upsertRule(
+                ruleDoc(), Space.CUSTOM, Method.PUT, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client, org.mockito.Mockito.times(3))
+                .execute(any(), requests.capture(), any(ActionListener.class));
+        List<org.opensearch.action.ActionRequest> sent = requests.getAllValues();
+        assertTrue(((WIndexRuleRequest) sent.get(0)).isSkipDetectorRebuild());
+        assertTrue(((WIndexCustomRuleRequest) sent.get(1)).isSkipDetectorRebuild());
+        assertFalse(
+                "the four-argument upsert keeps rebuilding the detectors",
+                ((WIndexCustomRuleRequest) sent.get(2)).isSkipDetectorRebuild());
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testRefreshDetectorsSendsTheRuleIds() {
+        org.mockito.ArgumentCaptor<WRefreshDetectorsRequest> request =
+                org.mockito.ArgumentCaptor.forClass(WRefreshDetectorsRequest.class);
+
+        this.service.refreshDetectors(List.of(RULE_1, RULE_2), ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client).execute(eq(WRefreshDetectorsAction.INSTANCE), request.capture(), any(ActionListener.class));
+        assertEquals(List.of(RULE_1, RULE_2), request.getValue().getRuleIds());
     }
 }

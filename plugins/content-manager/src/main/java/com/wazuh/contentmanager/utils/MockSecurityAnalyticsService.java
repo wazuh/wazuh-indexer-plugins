@@ -24,6 +24,8 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 
+import java.util.List;
+
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 
@@ -60,6 +62,24 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     public void upsertRule(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertRule called");
+        listener.onResponse(null);
+    }
+
+    @Override
+    public void upsertRule(
+            JsonNode doc,
+            Space space,
+            Method method,
+            boolean skipDetectorRebuild,
+            ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.upsertRule called");
+        listener.onResponse(null);
+    }
+
+    @Override
+    public void refreshDetectors(
+            List<String> ruleIds, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.refreshDetectors called");
         listener.onResponse(null);
     }
 
