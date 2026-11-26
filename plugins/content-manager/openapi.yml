@@ -36,6 +36,8 @@ tags:
     description: Manage decoders for parsing and normalization
   - name: Filters
     description: Manage filters for event pre-processing and post-processing
+  - name: Sigma filters
+    description: Manage Sigma filters, which exclude events from detection rules without changing them
   - name: Rules
     description: Manage detection rules and analytics
   - name: Integrations
@@ -810,6 +812,125 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /sigma_filters:
+    post:
+      tags: [Sigma filters]
+      summary: Create Sigma filter
+      description: |
+        Creates a Sigma filter in the draft space. The server generates the UUID. The filter is
+        checked against every rule it targets: each rule must exist in the standard or draft space,
+        and Security Analytics must accept the rule with the filter applied (WCS fields, a query
+        that parses). The filter is linked to the draft policy's `sigma_filters` list.
+
+        A filter is applied as `(<rule condition>) and (<filter condition>)`, so its condition must
+        be a single top-level `not`; any other condition is rejected rather than applied inverted.
+        Only filters promoted to the custom space reach the detectors.
+      operationId: createSigmaFilter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft]
+                  description: Target space for the Sigma filter
+                resource:
+                  $ref: "#/components/schemas/SigmaFilterResource"
+            examples:
+              create_sigma_filter:
+                summary: Ignore an internal scanner in a Standard rule
+                value:
+                  space: "draft"
+                  resource:
+                    metadata:
+                      title: "Ignore the internal audit scanner"
+                      author: "Wazuh, Inc."
+                    logsource:
+                      product: "apache-http"
+                    filter:
+                      rules: ["26a8d32e-0838-5589-948c-501b5a301cf5"]
+                      selection:
+                        "user_agent.original|startswith": "internal-scanner"
+                      condition: "not selection"
+      responses:
+        "201":
+          $ref: "#/components/responses/ResourceCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /sigma_filters/{id}:
+    put:
+      tags: [Sigma filters]
+      summary: Update Sigma filter
+      description: |
+        Updates a Sigma filter in the draft space. The filter is checked against its target rules
+        again, as on create.
+      operationId: updateSigmaFilter
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - space
+                - resource
+              properties:
+                space:
+                  type: string
+                  enum: [draft]
+                  description: Target space for the Sigma filter
+                resource:
+                  $ref: "#/components/schemas/SigmaFilterResource"
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [Sigma filters]
+      summary: Delete Sigma filter
+      description: |
+        Deletes a Sigma filter from the draft space and removes it from the draft policy. Promote the
+        removal to take the filter out of the test and custom spaces.
+      operationId: deleteSigmaFilter
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   # Rule management endpoints
   /rules:
     post:
@@ -1335,6 +1456,11 @@ paths:
         - A `document.id` field storing the original CTI document UUID.
         - A `space` field indicating the target space (e.g., `test`, `custom`).
 
+        A rule promoted to `custom` is sent with the Custom Sigma filters that target it applied.
+        When a promotion to `custom` changes Sigma filters (`changes.sigma_filters`, optional), every
+        rule they target or targeted is sent again, and each detector that uses those rules is
+        rebuilt once.
+
         **Rollback on failure**: If any Content Manager index mutation fails during the
         consolidation phase, the endpoint automatically initiates a LIFO (Last-In, First-Out)
         rollback of all previously completed mutations:
@@ -1384,7 +1510,7 @@ paths:
       description: |
         Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of
         the space's decoders, filters and kvdbs — the resources that make the Engine require a root
-        decoder — and `detection` holds its rules. A resource type with no documents in the space
+        decoder — and `detection` holds its rules and Sigma filters. A resource type with no documents in the space
         returns an empty array.
 
         Use it to find what a space still holds when a promotion fails with `Missing root decoder`:
@@ -1431,6 +1557,10 @@ paths:
                         type: array
                         items:
                           type: string
+                      sigma_filters:
+                        type: array
+                        items:
+                          type: string
                   status:
                     type: integer
               example:
@@ -1440,6 +1570,7 @@ paths:
                   kvdbs: ["7f3b56e8-9daf-4b2c-a249-a42af2fcf93f"]
                 detection:
                   rules: []
+                  sigma_filters: []
                 status: 200
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -1835,6 +1966,18 @@ components:
           description: Trace verbosity level. Defaults to `NONE` when omitted or null.
           example: "NONE"
 
+        sigma_filters:
+          type: string
+          enum:
+            - test
+            - custom
+            - none
+          description: |
+            Whose Sigma filters apply to the evaluated rules. When omitted, a `test` run applies the
+            Test filters and a `standard` or `custom` run the Custom ones, as the detectors do. Any
+            other value is rejected with `400 Bad Request`. Not forwarded to the Engine.
+          example: "custom"
+
     # Request body for normalization-only logtest
     LogtestNormalizationRequest:
       type: object
@@ -1929,6 +2072,18 @@ components:
             source:
               ip: "10.42.3.15"
 
+        sigma_filters:
+          type: string
+          enum:
+            - test
+            - custom
+            - none
+          description: |
+            Whose Sigma filters apply to the evaluated rules. When omitted, a `test` run applies the
+            Test filters and a `standard` or `custom` run the Custom ones, as the detectors do. Any
+            other value is rejected with `400 Bad Request`. Not forwarded to the Engine.
+          example: "custom"
+
     # Response body showing differences during promotion preview
     PolicyDiff:
       type: object
@@ -1958,6 +2113,11 @@ components:
                 $ref: "#/components/schemas/PromotionDiffItem"
             filters:
               type: array
+              items:
+                $ref: "#/components/schemas/PromotionDiffItem"
+            sigma_filters:
+              type: array
+              description: Sigma filter changes. Optional in a promotion request.
               items:
                 $ref: "#/components/schemas/PromotionDiffItem"
 
@@ -2394,6 +2554,69 @@ components:
             author:
               type: string
               description: Author name (stored as a keyword; must be a string)
+
+    # Sigma filter document schema (create and update)
+    SigmaFilterResource:
+      type: object
+      description: |
+        A Sigma filter, as in the Sigma filters specification. Besides `rules` and `condition`,
+        `filter` holds one or more named selections, written like rule selections. Selection names
+        use letters, digits and underscores, and do not start with a digit.
+      required:
+        - metadata
+        - logsource
+        - filter
+      properties:
+        metadata:
+          type: object
+          required:
+            - title
+          properties:
+            title:
+              type: string
+              description: Title of the Sigma filter
+            author:
+              type: string
+            description:
+              type: string
+        logsource:
+          type: object
+          description: |
+            Log source the filter applies to. Each of `product`, `category` and `service` the filter
+            sets must have the same value in every target rule; an empty object fits any rule.
+          properties:
+            product:
+              type: string
+            category:
+              type: string
+            service:
+              type: string
+        filter:
+          type: object
+          required:
+            - rules
+            - condition
+          properties:
+            rules:
+              type: array
+              minItems: 1
+              description: |
+                Ids of the rules the filter applies to: Standard rules, or rules of the filter's
+                space. `any` is not supported.
+              items:
+                type: string
+            condition:
+              type: string
+              description: |
+                A single top-level `not` over the filter's selections, e.g. `not selection`,
+                `not 1 of sel*` or `not (sel_a or sel_b)`.
+              example: "not selection"
+          additionalProperties:
+            type: object
+            description: A named selection
+        enabled:
+          type: boolean
+          description: Whether the filter applies. Optional; defaults to `true` on create.
 
     # Filter document schema (for updates)
     FilterResource:

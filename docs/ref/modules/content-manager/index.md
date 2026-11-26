@@ -135,6 +135,7 @@ The Content Manager uses the following system indices:
 | `wazuh-threatintel-enrichments`       | Indicators of Compromise (IoC)                                                                         |
 | `.wazuh-threatintel-vulnerabilities`  | Common Vulnerabilities and Exposures (CVE) data from CTI — hidden, no spaces, offset-tracked, with its main fields searchable (see [Searching the CVE feed](#searching-the-cve-feed)) |
 | `wazuh-threatintel-filters`           | Engine filters (routing filters for event classification)                                             |
+| `wazuh-threatintel-sigma-filters`     | [Sigma filters](../ruleset-management/sigma-filters.md) the user writes to exclude events from rules (Draft, Test and Custom spaces; not touched by CTI updates) |
 | `.wazuh-content-manager-jobs`         | Job Scheduler metadata for periodic sync and update check jobs                                        |
 
 For the alias-backed blue/green storage details and the exact hidden/alias status of each index, see the [development guide's system indices table](../../../dev/plugins/content-manager.md#system-indices).

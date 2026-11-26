@@ -58,6 +58,7 @@
     - [Architecture](ref/modules/ruleset-management/architecture.md)
     - [Configuration](ref/modules/ruleset-management/configuration.md)
     - [Sigma rules](ref/modules/ruleset-management/rules.md)
+    - [Sigma filters](ref/modules/ruleset-management/sigma-filters.md)
     - [Case management](ref/modules/ruleset-management/case-management.md)
   - [Notifications](ref/modules/notifications/index.md)
     - [Architecture](ref/modules/notifications/architecture.md)
