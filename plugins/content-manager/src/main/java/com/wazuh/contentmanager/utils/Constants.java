@@ -419,6 +419,8 @@ public class Constants {
             "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]";
     public static final String W_LOG_SIGMA_FILTER_NOT_APPLIED =
             "Sigma filter [{}] not applied to rule [{}], skipped: {}";
+    public static final String W_LOG_SIGMA_FILTERS_READ_FAILED =
+            "Could not read the Sigma filters of the [{}] space, its rules are sent without them: {}";
     // Space-parameterized Engine load logs (space name is the first {}). The "standard" rendering of
     // I_LOG_ENGINE_SPACE_LOADED is intentionally byte-identical to the original standard-only message
     // so existing log-based validation keeps matching.

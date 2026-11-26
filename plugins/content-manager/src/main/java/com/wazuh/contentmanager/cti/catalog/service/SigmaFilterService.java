@@ -19,7 +19,10 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -28,6 +31,7 @@ import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +49,7 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class SigmaFilterService {
 
+    private static final Logger log = LogManager.getLogger(SigmaFilterService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Client client;
@@ -56,6 +61,42 @@ public class SigmaFilterService {
      */
     public SigmaFilterService(Client client) {
         this.client = client;
+    }
+
+    /**
+     * Reads the Sigma filters of a space, grouped by the id of each rule they target. A missing index
+     * or a failed read yields no filters, with a warning: a filter never blocks the rules it targets.
+     *
+     * @param space the space whose filters to read.
+     * @param listener receives the filter documents by target rule id.
+     */
+    public void filtersByRule(Space space, ActionListener<Map<String, List<JsonNode>>> listener) {
+        SearchRequest request =
+                new SearchRequest(Constants.INDEX_SIGMA_FILTERS)
+                        .indicesOptions(IndicesOptions.lenientExpandOpen())
+                        .source(
+                                new SearchSourceBuilder()
+                                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
+                                        .size(Constants.MAX_RESULT_WINDOW));
+        this.client.search(
+                request,
+                ActionListener.wrap(
+                        response -> {
+                            Map<String, List<JsonNode>> byRule = new HashMap<>();
+                            for (SearchHit hit : response.getHits().getHits()) {
+                                JsonNode filter =
+                                        MAPPER.readTree(hit.getSourceAsString()).path(Constants.KEY_DOCUMENT);
+                                for (JsonNode ruleId :
+                                        filter.path(Constants.KEY_FILTER).path(Constants.KEY_RULES)) {
+                                    byRule.computeIfAbsent(ruleId.asText(), k -> new ArrayList<>()).add(filter);
+                                }
+                            }
+                            listener.onResponse(byRule);
+                        },
+                        e -> {
+                            log.warn(Constants.W_LOG_SIGMA_FILTERS_READ_FAILED, space, e.getMessage());
+                            listener.onResponse(Collections.emptyMap());
+                        }));
     }
 
     /**

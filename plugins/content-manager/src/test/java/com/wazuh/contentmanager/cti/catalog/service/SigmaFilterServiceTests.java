@@ -166,4 +166,39 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
         assertNotNull(error.get());
         assertTrue(error.get(), error.get().contains("does not match the logsource"));
     }
+
+    public void testFiltersByRuleGroupsTheFiltersOfASpaceByTargetRule() {
+        stubSearch(
+                "{'space':{'name':'custom'},'document':{'id':'f1','filter':{'rules':['r1','r2']}}}"
+                        .replace('\'', '"'),
+                "{'space':{'name':'custom'},'document':{'id':'f2','filter':{'rules':['r1']}}}"
+                        .replace('\'', '"'));
+        AtomicReference<Map<String, List<JsonNode>>> byRule = new AtomicReference<>();
+
+        this.service.filtersByRule(
+                Space.CUSTOM, ActionListener.wrap(byRule::set, e -> fail(e.getMessage())));
+
+        assertEquals(2, byRule.get().get("r1").size());
+        assertEquals("f1", byRule.get().get("r2").get(0).path("id").asText());
+        assertEquals(Constants.INDEX_SIGMA_FILTERS, this.lastSearch.get().indices()[0]);
+        assertTrue(this.lastSearch.get().source().query().toString().contains("custom"));
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testFiltersByRuleYieldsNoFiltersWhenTheReadFails() {
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<SearchResponse>) invocation.getArgument(1))
+                                    .onFailure(new RuntimeException("shards failed"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+        AtomicReference<Map<String, List<JsonNode>>> byRule = new AtomicReference<>();
+
+        this.service.filtersByRule(
+                Space.CUSTOM, ActionListener.wrap(byRule::set, e -> fail(e.getMessage())));
+
+        assertTrue(byRule.get().isEmpty());
+    }
 }

@@ -45,6 +45,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
+import com.wazuh.contentmanager.cti.catalog.utils.SigmaFilterComposer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -78,6 +79,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final SpaceService spaceService;
     private final UserOverridesService userOverridesService;
     private DetectorLookupService detectorLookupService;
+    private SigmaFilterService sigmaFilterService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -104,6 +106,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         this.spaceService = spaceService;
         this.userOverridesService = userOverridesService;
         this.detectorLookupService = new DetectorLookupService(client);
+        this.sigmaFilterService = new SigmaFilterService(client);
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -116,6 +119,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     /** Injects a {@link DetectorLookupService} instance, used by tests to provide a mock. */
     void setDetectorLookupService(DetectorLookupService detectorLookupService) {
         this.detectorLookupService = detectorLookupService;
+    }
+
+    /** Injects a {@link SigmaFilterService} instance, used by tests to provide a mock. */
+    void setSigmaFilterService(SigmaFilterService sigmaFilterService) {
+        this.sigmaFilterService = sigmaFilterService;
     }
 
     @Override
@@ -605,13 +613,19 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 return failed.isEmpty();
             }
 
+            // The detectors read the Standard rules with the Custom Sigma filters applied. The rule
+            // documents themselves are never rewritten: the composed copy only goes to Security
+            // Analytics.
+            Map<String, List<JsonNode>> filtersByRule =
+                    this.awaitResult(l -> this.sigmaFilterService.filtersByRule(Space.CUSTOM, l));
+
             CountDownLatch latch = new CountDownLatch(docs.size());
             AtomicInteger sent = new AtomicInteger();
 
             docs.forEach(
                     (id, doc) -> {
                         this.securityAnalyticsService.upsertRule(
-                                doc,
+                                SigmaFilterComposer.applyOrKeep(doc, filtersByRule),
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
                                 ActionListener.wrap(

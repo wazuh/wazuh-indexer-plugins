@@ -94,6 +94,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                         this.spaceService,
                         this.securityAnalyticsService,
                         this.userOverridesService);
+        // The rules phase reads the Custom Sigma filters; none unless a test says otherwise.
+        this.synchronizer.setSigmaFilterService(sigmaFilters(Collections.emptyMap()));
 
         // initializeSpaces() runs unconditionally at the top of onSyncComplete(); stub it so tests
         // that don't care about it don't block on awaitResult()'s 60s timeout.
@@ -295,6 +297,83 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                 .when(overridesService)
                 .apply(any(), any());
         return overridesService;
+    }
+
+    /** A Sigma filter source that answers at once with the given filters, by target rule id. */
+    private static SigmaFilterService sigmaFilters(Map<String, List<JsonNode>> byRule) {
+        SigmaFilterService filters = mock(SigmaFilterService.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Map<String, List<JsonNode>>>>getArgument(1)
+                                    .onResponse(byRule);
+                            return null;
+                        })
+                .when(filters)
+                .filtersByRule(any(), any());
+        return filters;
+    }
+
+    /**
+     * The Standard rules reach Security Analytics with the Custom Sigma filters that target them
+     * applied. A filter that no longer fits its rule is skipped, and the others still apply.
+     */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncComplete_standardRulesAreSentWithTheirCustomSigmaFilters()
+            throws Exception {
+        this.mockExistingConsumerDoc(Collections.emptyList());
+        this.mockIndexResolution(name -> false);
+        this.mockResourcesBySpace(Constants.INDEX_INTEGRATIONS, Collections.emptyMap());
+        Map<String, Map<String, Object>> rules = new LinkedHashMap<>();
+        rules.put(
+                "rule-1",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id",
+                                "rule-1",
+                                "metadata",
+                                Map.of("title", "git"),
+                                "logsource",
+                                Map.of("product", "apache-http"),
+                                "detection",
+                                Map.of(
+                                        "selection",
+                                        Map.of("url.original|contains", ".git/"),
+                                        "condition",
+                                        "selection"))));
+        this.mockResourcesBySpace(Constants.INDEX_RULES, rules);
+        ObjectMapper json = new ObjectMapper();
+        JsonNode fits =
+                json.readTree(
+                        "{\"id\":\"a1776000-0000-4000-8000-000000000001\",\"logsource\":{\"product\":\"apache-http\"},"
+                                + "\"filter\":{\"rules\":[\"rule-1\"],\"selection\":{\"user.name\":\"scanner\"},"
+                                + "\"condition\":\"not selection\"}}");
+        JsonNode drifted =
+                json.readTree(
+                        "{\"id\":\"b2776000-0000-4000-8000-000000000002\",\"logsource\":{\"product\":\"windows\"},"
+                                + "\"filter\":{\"rules\":[\"rule-1\"],\"selection\":{\"user.name\":\"x\"},"
+                                + "\"condition\":\"not selection\"}}");
+        SigmaFilterService filters = sigmaFilters(Map.of("rule-1", List.of(drifted, fits)));
+        this.synchronizer.setSigmaFilterService(filters);
+        List<JsonNode> sent = Collections.synchronizedList(new ArrayList<>());
+        doAnswer(
+                        invocation -> {
+                            sent.add(invocation.getArgument(0));
+                            invocation.<ActionListener<?>>getArgument(3).onResponse(null);
+                            return null;
+                        })
+                .when(this.securityAnalyticsService)
+                .upsertRule(any(), eq(Space.STANDARD), any(), any());
+
+        this.synchronizer.onSyncComplete(true);
+
+        verify(filters).filtersByRule(eq(Space.CUSTOM), any());
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(
+                "(selection) and (not _filt_a177600000_selection)",
+                sent.get(0).at("/detection/condition").asText());
+        Assert.assertFalse(sent.get(0).at("/detection").has("_filt_b277600000_selection"));
     }
 
     /** Both collaborators are injected at construction, so a test that stubs them builds its own. */
