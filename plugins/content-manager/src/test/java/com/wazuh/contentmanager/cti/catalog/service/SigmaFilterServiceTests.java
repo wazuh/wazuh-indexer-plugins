@@ -20,11 +20,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.lucene.search.TotalHits;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchResponseSections;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
@@ -125,7 +128,8 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
         this.service.findRules(
                 List.of(RULE_ID), Space.DRAFT, ActionListener.wrap(found::set, e -> fail(e.getMessage())));
 
-        assertEquals("draft copy", found.get().get(RULE_ID).at("/metadata/title").asText());
+        assertEquals("draft copy", found.get().get(RULE_ID).at("/document/metadata/title").asText());
+        assertEquals("draft", found.get().get(RULE_ID).at("/space/name").asText());
         assertEquals(Constants.INDEX_RULES, this.lastSearch.get().indices()[0]);
         String query = this.lastSearch.get().source().query().toString();
         assertTrue(query, query.contains("standard") && query.contains("draft"));
@@ -222,5 +226,82 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
         assertEquals("custom copy", found.get().get(RULE_ID).at("/metadata/title").asText());
         String query = this.lastSearch.get().source().query().toString();
         assertTrue(query, query.contains("custom") && !query.contains("standard"));
+    }
+
+    // ── Validation of the composed rule by Security Analytics ───────────────
+
+    /** A service whose Security Analytics answers validateRule with the given outcome. */
+    private SigmaFilterService validatingService(Exception failure, List<JsonNode> validated) {
+        SecurityAnalyticsService sap = mock(SecurityAnalyticsService.class);
+        doAnswer(
+                        invocation -> {
+                            validated.add(invocation.getArgument(0));
+                            ActionListener<ActionResponse> l = invocation.getArgument(2);
+                            if (failure == null) {
+                                l.onResponse(null);
+                            } else {
+                                l.onFailure(failure);
+                            }
+                            return null;
+                        })
+                .when(sap)
+                .validateRule(any(), any(), any());
+        return new SigmaFilterService(this.client, sap);
+    }
+
+    public void testCheckTargetsHasSecurityAnalyticsValidateTheComposedRule() throws Exception {
+        stubSearch(rule("standard", "apache-http", "standard"));
+        List<JsonNode> validated = new java.util.ArrayList<>();
+        AtomicReference<String> error = new AtomicReference<>("not called");
+
+        validatingService(null, validated)
+                .checkTargets(
+                        filter("apache-http"),
+                        Space.DRAFT,
+                        ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertNull(error.get());
+        assertEquals(1, validated.size());
+        assertEquals(
+                "(selection) and (not _filt_a177600000_selection)",
+                validated.get(0).at("/detection/condition").asText());
+    }
+
+    public void testCheckTargetsReportsASecurityAnalyticsRejection() throws Exception {
+        stubSearch(rule("standard", "apache-http", "standard"));
+        AtomicReference<String> error = new AtomicReference<>();
+
+        validatingService(
+                        new OpenSearchStatusException(
+                                "{\"SigmaError\":\"The following fields are not part of the Wazuh Common Schema"
+                                        + " (WCS): [user.nam]\"}",
+                                RestStatus.BAD_REQUEST),
+                        new java.util.ArrayList<>())
+                .checkTargets(
+                        filter("apache-http"),
+                        Space.DRAFT,
+                        ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertEquals(
+                "With the filter applied, rule ["
+                        + RULE_ID
+                        + "] is not valid: The following fields are not part of the Wazuh Common Schema"
+                        + " (WCS): [user.nam]",
+                error.get());
+    }
+
+    public void testCheckTargetsFailsWhenSecurityAnalyticsCannotAnswer() throws Exception {
+        stubSearch(rule("standard", "apache-http", "standard"));
+        AtomicReference<Exception> failure = new AtomicReference<>();
+
+        validatingService(
+                        new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE),
+                        new java.util.ArrayList<>())
+                .checkTargets(
+                        filter("apache-http"),
+                        Space.DRAFT,
+                        ActionListener.wrap(r -> fail("expected a failure, got " + r), failure::set));
+
+        assertNotNull(failure.get());
     }
 }

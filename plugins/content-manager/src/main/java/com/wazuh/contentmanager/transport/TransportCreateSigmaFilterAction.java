@@ -30,6 +30,7 @@ import java.util.Locale;
 
 import com.wazuh.contentmanager.action.CreateSigmaFilterAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.cti.catalog.utils.SigmaFilterComposer;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -51,9 +52,10 @@ public class TransportCreateSigmaFilterAction extends AbstractTransportCreateAct
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
+            EngineService engine,
+            SecurityAnalyticsService securityAnalyticsService) {
         super(CreateSigmaFilterAction.NAME, transportService, actionFilters, client, engine);
-        this.sigmaFilterService = new SigmaFilterService(client);
+        this.sigmaFilterService = new SigmaFilterService(client, securityAnalyticsService);
     }
 
     @Override

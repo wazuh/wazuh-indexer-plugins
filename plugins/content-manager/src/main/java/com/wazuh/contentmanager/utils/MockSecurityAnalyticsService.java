@@ -77,6 +77,13 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
+    public void validateRule(
+            JsonNode doc, Space space, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.validateRule called");
+        listener.onResponse(null);
+    }
+
+    @Override
     public void refreshDetectors(
             List<String> ruleIds, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.refreshDetectors called");

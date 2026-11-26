@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.core.action.ActionListener;
@@ -55,13 +57,27 @@ public class SigmaFilterService {
 
     private final Client client;
 
+    /** Validates the rules with a filter applied; {@code null} when the caller only reads. */
+    private final SecurityAnalyticsService securityAnalytics;
+
     /**
-     * Creates the service.
+     * Creates the service, for reading only.
      *
      * @param client the node client.
      */
     public SigmaFilterService(Client client) {
+        this(client, null);
+    }
+
+    /**
+     * Creates the service.
+     *
+     * @param client the node client.
+     * @param securityAnalytics validates the rules with a filter applied, in {@link #checkTargets}.
+     */
+    public SigmaFilterService(Client client, SecurityAnalyticsService securityAnalytics) {
         this.client = client;
+        this.securityAnalytics = securityAnalytics;
     }
 
     /**
@@ -125,7 +141,8 @@ public class SigmaFilterService {
      *
      * @param ruleIds the rule ids.
      * @param space the filter's space.
-     * @param listener receives the rule documents by id; an id that is not found has no entry.
+     * @param listener receives the stored rules ({@code document} and {@code space}) by id; an id
+     *     that is not found has no entry.
      */
     public void findRules(
             Collection<String> ruleIds, Space space, ActionListener<Map<String, JsonNode>> listener) {
@@ -149,12 +166,11 @@ public class SigmaFilterService {
                             Map<String, JsonNode> rules = new HashMap<>();
                             for (SearchHit hit : response.getHits().getHits()) {
                                 JsonNode source = MAPPER.readTree(hit.getSourceAsString());
-                                JsonNode rule = source.path(Constants.KEY_DOCUMENT);
-                                String id = rule.path(Constants.KEY_ID).asText();
+                                String id = source.path(Constants.KEY_DOCUMENT).path(Constants.KEY_ID).asText();
                                 if (space.toString().equals(source.at("/space/name").asText())) {
-                                    rules.put(id, rule);
+                                    rules.put(id, source);
                                 } else {
-                                    rules.putIfAbsent(id, rule);
+                                    rules.putIfAbsent(id, source);
                                 }
                             }
                             listener.onResponse(rules);
@@ -197,8 +213,9 @@ public class SigmaFilterService {
     }
 
     /**
-     * Checks that a filter of {@code space} applies to every rule it targets: each rule exists and
-     * the filter composes with it.
+     * Checks that a filter of {@code space} applies to every rule it targets: each rule exists, the
+     * filter composes with it and, when the service validates, Security Analytics accepts the
+     * composed rule (its fields belong to WCS and it compiles to a query that parses).
      *
      * @param filter the filter document.
      * @param space the filter's space.
@@ -216,23 +233,60 @@ public class SigmaFilterService {
                 space,
                 ActionListener.wrap(
                         rules -> {
+                            List<Map.Entry<Space, JsonNode>> composed = new ArrayList<>();
                             for (String ruleId : ruleIds) {
-                                JsonNode rule = rules.get(ruleId);
-                                if (rule == null) {
+                                JsonNode stored = rules.get(ruleId);
+                                if (stored == null) {
                                     listener.onResponse(
                                             String.format(
                                                     Locale.ROOT, Constants.E_400_SIGMA_FILTER_RULE_NOT_FOUND, ruleId, space));
                                     return;
                                 }
                                 try {
-                                    SigmaFilterComposer.compose(rule, List.of(filter));
+                                    composed.add(
+                                            Map.entry(
+                                                    Space.fromValue(stored.at("/space/name").asText()),
+                                                    SigmaFilterComposer.compose(
+                                                            stored.path(Constants.KEY_DOCUMENT), List.of(filter))));
                                 } catch (SigmaFilterComposer.ComposeException e) {
                                     listener.onResponse(e.getMessage());
                                     return;
                                 }
                             }
-                            listener.onResponse(null);
+                            this.validateComposed(composed, 0, listener);
                         },
                         listener::onFailure));
+    }
+
+    /**
+     * Has Security Analytics validate each composed rule in turn, as it would compile it, without
+     * storing it. Answers {@code null} when every rule is valid, or the first rejection's reason.
+     */
+    private void validateComposed(
+            List<Map.Entry<Space, JsonNode>> composed, int idx, ActionListener<String> listener) {
+        if (this.securityAnalytics == null || idx >= composed.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        JsonNode rule = composed.get(idx).getValue();
+        this.securityAnalytics.validateRule(
+                rule,
+                composed.get(idx).getKey(),
+                ActionListener.wrap(
+                        response -> this.validateComposed(composed, idx + 1, listener),
+                        e -> {
+                            OpenSearchException rejection =
+                                    (OpenSearchException) ExceptionsHelper.unwrap(e, OpenSearchException.class);
+                            if (rejection == null || rejection.status().getStatus() >= 500) {
+                                listener.onFailure(e);
+                                return;
+                            }
+                            listener.onResponse(
+                                    String.format(
+                                            Locale.ROOT,
+                                            Constants.E_400_SIGMA_FILTER_RULE_INVALID,
+                                            rule.path(Constants.KEY_ID).asText(),
+                                            SecurityAnalyticsServiceImpl.extractErrorMessage(rejection.getMessage())));
+                        }));
     }
 }

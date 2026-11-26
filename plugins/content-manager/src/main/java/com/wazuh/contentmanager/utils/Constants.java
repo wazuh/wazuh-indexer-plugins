@@ -138,6 +138,8 @@ public class Constants {
             "Rule [%s] already defines the identifier [%s].";
     public static final String E_400_SIGMA_FILTER_RULE_NOT_FOUND =
             "Rule [%s] not found in the standard or the %s space.";
+    public static final String E_400_SIGMA_FILTER_RULE_INVALID =
+            "With the filter applied, rule [%s] is not valid: %s";
     public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
             "Selector [%s] of rule [%s] would also select the filter's selections.";
 

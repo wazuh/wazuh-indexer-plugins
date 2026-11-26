@@ -83,6 +83,17 @@ public interface SecurityAnalyticsService {
             ActionListener<? extends ActionResponse> listener);
 
     /**
+     * Has Security Analytics validate a rule as it would compile it, without storing it: its fields
+     * must belong to WCS and it must compile to a query that parses.
+     *
+     * @param doc the rule document.
+     * @param space the rule's space, which sets the compiler configuration.
+     * @param listener notified with the result; a rule Security Analytics rejects fails it with a
+     *     400.
+     */
+    void validateRule(JsonNode doc, Space space, ActionListener<? extends ActionResponse> listener);
+
+    /**
      * Rebuilds, once each, the detectors that reference any of the given rules.
      *
      * @param ruleIds the rule ids.

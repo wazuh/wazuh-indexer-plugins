@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.wazuh.contentmanager.action.UpdateSigmaFilterAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -46,9 +47,10 @@ public class TransportUpdateSigmaFilterAction extends AbstractTransportUpdateAct
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
+            EngineService engine,
+            SecurityAnalyticsService securityAnalyticsService) {
         super(UpdateSigmaFilterAction.NAME, transportService, actionFilters, client, engine);
-        this.sigmaFilterService = new SigmaFilterService(client);
+        this.sigmaFilterService = new SigmaFilterService(client, securityAnalyticsService);
     }
 
     @Override

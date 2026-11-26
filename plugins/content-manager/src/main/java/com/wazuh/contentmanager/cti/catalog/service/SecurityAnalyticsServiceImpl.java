@@ -168,6 +168,25 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
+    public void validateRule(
+            JsonNode doc, Space space, ActionListener<? extends ActionResponse> listener) {
+        String product = ContentIndex.extractProduct(doc);
+        if (product == null) {
+            listener.onFailure(
+                    new IllegalArgumentException(
+                            String.format(
+                                    Locale.ROOT,
+                                    Constants.E_RULE_MISSING_PRODUCT,
+                                    doc.path(Constants.KEY_ID).asText())));
+            return;
+        }
+        this.executeAsync(
+                WValidateRuleAction.INSTANCE,
+                new WValidateRuleRequest(product, doc.toString(), space != Space.STANDARD),
+                listener);
+    }
+
+    @Override
     public void refreshDetectors(
             List<String> ruleIds, ActionListener<? extends ActionResponse> listener) {
         this.executeAsync(

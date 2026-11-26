@@ -51,6 +51,8 @@ import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleRequest;
 import com.wazuh.securityanalytics.action.WRefreshDetectorsAction;
 import com.wazuh.securityanalytics.action.WRefreshDetectorsRequest;
+import com.wazuh.securityanalytics.action.WValidateRuleAction;
+import com.wazuh.securityanalytics.action.WValidateRuleRequest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -538,5 +540,21 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
         verify(this.client).execute(eq(WRefreshDetectorsAction.INSTANCE), request.capture(), any(ActionListener.class));
         assertEquals(List.of(RULE_1, RULE_2), request.getValue().getRuleIds());
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testValidateRuleCompilesStandardAndCustomRulesInTheirConfiguration() throws Exception {
+        org.mockito.ArgumentCaptor<WValidateRuleRequest> requests =
+                org.mockito.ArgumentCaptor.forClass(WValidateRuleRequest.class);
+
+        this.service.validateRule(ruleDoc(), Space.STANDARD, ActionListener.wrap(r -> {}, e -> {}));
+        this.service.validateRule(ruleDoc(), Space.CUSTOM, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client, times(2))
+                .execute(eq(WValidateRuleAction.INSTANCE), requests.capture(), any(ActionListener.class));
+        assertEquals("apache-http", requests.getAllValues().get(0).getLogType());
+        assertFalse(requests.getAllValues().get(0).isCustom());
+        assertTrue(requests.getAllValues().get(1).isCustom());
+        assertEquals(ruleDoc().toString(), requests.getAllValues().get(1).getRule());
     }
 }
