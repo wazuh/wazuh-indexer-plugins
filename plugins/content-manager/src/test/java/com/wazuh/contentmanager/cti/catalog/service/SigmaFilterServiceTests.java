@@ -304,4 +304,20 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
 
         assertNotNull(failure.get());
     }
+
+    public void testLogtestFilterSpace() {
+        assertEquals(Space.CUSTOM, SigmaFilterService.resolveLogtestFilterSpace(null, Space.STANDARD));
+        assertEquals(Space.CUSTOM, SigmaFilterService.resolveLogtestFilterSpace(null, Space.CUSTOM));
+        assertEquals(Space.TEST, SigmaFilterService.resolveLogtestFilterSpace(null, Space.TEST));
+        assertEquals(Space.TEST, SigmaFilterService.resolveLogtestFilterSpace("test", Space.STANDARD));
+        assertEquals(Space.CUSTOM, SigmaFilterService.resolveLogtestFilterSpace("CUSTOM", Space.TEST));
+        assertNull(SigmaFilterService.resolveLogtestFilterSpace("none", Space.STANDARD));
+        IllegalArgumentException e =
+                expectThrows(
+                        IllegalArgumentException.class,
+                        () -> SigmaFilterService.resolveLogtestFilterSpace("draft", Space.STANDARD));
+        assertEquals(
+                "Invalid 'sigma_filters' value [draft]. Must be one of: test, custom, none.",
+                e.getMessage());
+    }
 }

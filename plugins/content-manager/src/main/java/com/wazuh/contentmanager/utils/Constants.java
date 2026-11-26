@@ -140,6 +140,8 @@ public class Constants {
             "Rule [%s] not found in the standard or the %s space.";
     public static final String E_400_SIGMA_FILTER_RULE_INVALID =
             "With the filter applied, rule [%s] is not valid: %s";
+    public static final String E_400_INVALID_SIGMA_FILTERS =
+            "Invalid 'sigma_filters' value [%s]. Must be one of: test, custom, none.";
     public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
             "Selector [%s] of rule [%s] would also select the filter's selections.";
 
@@ -1034,6 +1036,8 @@ public class Constants {
     public static final String KEY_FILTER = "filter";
     public static final String KEY_SIGMA_FILTER = "sigma_filter";
     public static final String KEY_TRACE_LEVEL = "trace_level";
+    // Logtest: the "sigma_filters" value that applies no Sigma filter.
+    public static final String SIGMA_FILTERS_NONE = "none";
 
     // Logtest trace level sent to the Engine when the request omits it.
     public static final String TRACE_LEVEL_NONE = "NONE";

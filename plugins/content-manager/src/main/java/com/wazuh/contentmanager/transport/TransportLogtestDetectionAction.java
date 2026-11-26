@@ -37,6 +37,7 @@ import com.wazuh.contentmanager.action.LogtestDetectionRequest;
 import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -137,11 +138,21 @@ public class TransportLogtestDetectionAction
                 return;
             }
 
+            // Optional sigma_filters: which space's Sigma filters apply to the evaluated rules.
+            String sigmaFilters =
+                    jsonNode.hasNonNull(Constants.KEY_SIGMA_FILTERS)
+                            ? jsonNode.get(Constants.KEY_SIGMA_FILTERS).asText()
+                            : null;
+            Space filterSpace;
+            try {
+                filterSpace = SigmaFilterService.resolveLogtestFilterSpace(sigmaFilters, spaceEnum);
+            } catch (IllegalArgumentException e) {
+                listener.onResponse(new LogtestResponse(e.getMessage(), RestStatus.BAD_REQUEST));
+                return;
+            }
+
             // 6. Delegate execution to Service
-            this.logtestService.executeDetectionAsync(
-                    integrationId,
-                    spaceEnum,
-                    inputEvent,
+            ActionListener<RestResponse> serviceListener =
                     ActionListener.wrap(
                             serviceResponse ->
                                     listener.onResponse(
@@ -154,7 +165,14 @@ public class TransportLogtestDetectionAction
                                                     e.getMessage() != null
                                                             ? e.getMessage()
                                                             : "An unexpected error occurred while" + " processing your request.",
-                                                    RestStatus.INTERNAL_SERVER_ERROR))));
+                                                    RestStatus.INTERNAL_SERVER_ERROR)));
+            if (sigmaFilters == null) {
+                this.logtestService.executeDetectionAsync(
+                        integrationId, spaceEnum, inputEvent, serviceListener);
+            } else {
+                this.logtestService.executeDetectionAsync(
+                        integrationId, spaceEnum, filterSpace, inputEvent, serviceListener);
+            }
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

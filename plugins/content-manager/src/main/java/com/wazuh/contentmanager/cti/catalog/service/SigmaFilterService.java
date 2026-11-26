@@ -289,4 +289,32 @@ public class SigmaFilterService {
                                             SecurityAnalyticsServiceImpl.extractErrorMessage(rejection.getMessage())));
                         }));
     }
+
+    /**
+     * Resolves the {@code sigma_filters} value of a log test request: which space's Sigma filters
+     * apply to the rules it evaluates.
+     *
+     * @param value the request's value, or {@code null} when it omits it.
+     * @param ruleSpace the space whose rules are evaluated.
+     * @return the space whose filters apply, or {@code null} for none. By default a Test run applies
+     *     the Test filters, and a Standard or Custom run the Custom ones, as the detectors do.
+     * @throws IllegalArgumentException if the value is not test, custom or none.
+     */
+    public static Space resolveLogtestFilterSpace(String value, Space ruleSpace) {
+        if (value == null) {
+            return ruleSpace == Space.TEST ? Space.TEST : Space.CUSTOM;
+        }
+        String v = value.toLowerCase(Locale.ROOT);
+        if (Constants.SIGMA_FILTERS_NONE.equals(v)) {
+            return null;
+        }
+        if (Space.TEST.toString().equals(v)) {
+            return Space.TEST;
+        }
+        if (Space.CUSTOM.toString().equals(v)) {
+            return Space.CUSTOM;
+        }
+        throw new IllegalArgumentException(
+                String.format(Locale.ROOT, Constants.E_400_INVALID_SIGMA_FILTERS, value));
+    }
 }

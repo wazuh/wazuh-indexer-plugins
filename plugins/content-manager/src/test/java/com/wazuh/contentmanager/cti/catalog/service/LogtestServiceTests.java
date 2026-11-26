@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -53,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -80,6 +82,111 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         this.service = new LogtestService(this.engine, this.securityAnalytics, this.client);
+        // The evaluated rules get the Sigma filters of a space; none unless a test says otherwise.
+        this.service.setSigmaFilterService(sigmaFilters(Collections.emptyMap()));
+    }
+
+    /** A Sigma filter source that answers at once with the given filters, by target rule id. */
+    @SuppressWarnings("unchecked")
+    private static SigmaFilterService sigmaFilters(Map<String, List<JsonNode>> byRule) {
+        SigmaFilterService filters = mock(SigmaFilterService.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Map<String, List<JsonNode>>>>getArgument(2)
+                                    .onResponse(byRule);
+                            return null;
+                        })
+                .when(filters)
+                .filtersByRule(any(Space.class), any(), any(ActionListener.class));
+        return filters;
+    }
+
+    /**
+     * The detection log test evaluates the rules with the Sigma filters of the requested space
+     * applied, as the detectors run them.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDetection_appliesTheSigmaFiltersOfTheRequestedSpace() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            String.format(Locale.ROOT, """
+            {"document": {"id": "%s", "detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}}}
+            """, RULE_ID));
+        JsonNode filter = MAPPER.readTree(String.format(Locale.ROOT, """
+            {"id": "a1776000-0000-4000-8000-000000000001", "logsource": {"product": "test"},
+             "filter": {"rules": ["%s"], "selection": {"user.name": "scanner"}, "condition": "not selection"}}
+            """, RULE_ID));
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        SigmaFilterService filters = sigmaFilters(Map.of(RULE_ID, List.of(filter)));
+        this.service.setSigmaFilterService(filters);
+        ArgumentCaptor<List<String>> bodies = ArgumentCaptor.forClass(List.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<String>>getArgument(5).onResponse("{\"matches\":[]}");
+                            return null;
+                        })
+                .when(this.securityAnalytics)
+                .evaluateRulesAsync(
+                        anyString(),
+                        bodies.capture(),
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        any(ActionListener.class));
+
+        ActionListener<RestResponse> listener = mock(ActionListener.class);
+        this.service.executeDetectionAsync(
+                INTEGRATION_ID, Space.STANDARD, Space.TEST, MAPPER.readTree("{}"), listener);
+
+        verify(filters).filtersByRule(eq(Space.TEST), eq(List.of(RULE_ID)), any(ActionListener.class));
+        Assert.assertEquals(
+                "(selection) and (not _filt_a177600000_selection)",
+                MAPPER.readTree(bodies.getValue().get(0)).at("/detection/condition").asText());
+    }
+
+    /** With no filter space ("sigma_filters": "none"), no Sigma filter is read or applied. */
+    @SuppressWarnings("unchecked")
+    public void testDetection_withoutAFilterSpaceAppliesNoSigmaFilter() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            String.format(Locale.ROOT, """
+            {"document": {"id": "%s", "detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}}}
+            """, RULE_ID));
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        SigmaFilterService filters = sigmaFilters(Collections.emptyMap());
+        this.service.setSigmaFilterService(filters);
+        ArgumentCaptor<List<String>> bodies = ArgumentCaptor.forClass(List.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<String>>getArgument(5).onResponse("{\"matches\":[]}");
+                            return null;
+                        })
+                .when(this.securityAnalytics)
+                .evaluateRulesAsync(
+                        anyString(),
+                        bodies.capture(),
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        any(ActionListener.class));
+
+        this.service.executeDetectionAsync(
+                INTEGRATION_ID, Space.STANDARD, null, MAPPER.readTree("{}"), mock(ActionListener.class));
+
+        verify(filters, never()).filtersByRule(any(Space.class), any(), any(ActionListener.class));
+        Assert.assertEquals(
+                "selection", MAPPER.readTree(bodies.getValue().get(0)).at("/detection/condition").asText());
     }
 
     @After
