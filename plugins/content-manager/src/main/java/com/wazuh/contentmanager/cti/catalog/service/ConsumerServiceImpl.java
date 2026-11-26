@@ -117,6 +117,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
                 JsonNode root = this.mapper.readTree(response.getBodyText());
                 return new RemoteConsumer(root.get("data"), this.consumerType, this.resource);
             }
+            // Behind an HTTP proxy, the status can be the proxy's answer (403, 407, 502)
+            log.error("Couldn't obtain consumer from CTI: HTTP {}", response.getCode());
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Couldn't obtain consumer from CTI: {}", e.getMessage());
         } catch (CtiConsoleUnavailableException e) {

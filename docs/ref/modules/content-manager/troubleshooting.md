@@ -173,6 +173,31 @@ This means every attempt at the request failed: the response took longer than `p
 2. If the failure persists across passes, the CTI API stays slow or rate-limited, or keeps dropping the connection, for longer than the retry budget. Increase `plugins.content_manager.client.max_retries` and/or `plugins.content_manager.client.retry_backoff_base_seconds`, or `plugins.content_manager.client.timeout` for a slow link.
 3. Look for the warnings `CTI API request [...] failed (...); retrying in {}s` and `CTI API rate-limited request [...] (HTTP 429); retrying in {}s` in the logs to confirm the retry path is engaging.
 
+### Sync fails behind an HTTP proxy
+
+The node reaches the internet only through an HTTP proxy, and every synchronization pass fails with `did not fully synchronize this pass (unreachable feed, ...)` warnings. The line logged before them tells the cause:
+
+- `Couldn't obtain consumer from CTI: Timeout deadline: 10000 MILLISECONDS, ...`, after `retrying in 30s` warnings, while the proxy logs no request from the node: the node connects directly instead of through the proxy.
+- `Couldn't obtain consumer from CTI: ... Connect to http://<PROXY_HOST>:<PROXY_PORT> ... failed: Connection refused`: nothing listens on the proxy address that the node has. The node never falls back to a direct connection.
+- `Couldn't obtain consumer from CTI: HTTP 407`: the proxy asks for credentials, or rejects the ones in `https.proxyUser` and `https.proxyPassword`.
+- `Couldn't obtain consumer from CTI: HTTP 403`: the proxy refuses the connection to the CTI host. A `502` or `503` usually means that the proxy could not reach it.
+- `PKIX path building failed`: the proxy intercepts TLS, and its CA is not trusted.
+
+Behind a proxy, these statuses are the proxy's answer to the `CONNECT` request, not CTI's.
+
+#### Resolution
+
+1. Check that the running Wazuh Indexer has the proxy properties. If the command prints nothing, add them as described in [Outbound HTTP proxy](configuration.md#outbound-http-proxy) and restart the node. `-Dhttp.proxyHost` and `-Dhttp.proxyPort` alone are not enough, because CTI uses HTTPS:
+
+   ```bash
+   ps -o args= -u wazuh-indexer | tr ' ' '\n' | grep -E '^-Dhttps\.proxy(Host|Port|User)='
+   ```
+
+2. For a `407`, set `https.proxyUser` and `https.proxyPassword`. For a `403`, allow `CONNECT` to port 443 of the CTI hosts on the proxy. For `PKIX path building failed`, add the CA of the proxy to a truststore.
+3. Trigger a sync on demand, as shown in [Sync not running](#sync-not-running), and check that the proxy logs a `CONNECT` to the CTI host with the `Wazuh Indexer <version tag>` User-Agent.
+
+If `/var/log/wazuh-indexer/wazuh-engine.log` shows `Cannot download manifest from '.../maxmind_geoip/manifest.json'`, the Wazuh Engine is not using the proxy for its GeoIP databases: set `https_proxy` and `no_proxy` in the environment file of the service. If the warning ends in `SSL peer certificate or SSH remote key was not OK`, the proxy intercepts TLS: add its CA to the trust store of the operating system.
+
 ### Resource creation fails with a missing `indices:admin/create` permission
 
 A `POST` to `/rules`, `/decoders`, `/integrations`, `/kvdbs` or `/filters` returns HTTP 429 with

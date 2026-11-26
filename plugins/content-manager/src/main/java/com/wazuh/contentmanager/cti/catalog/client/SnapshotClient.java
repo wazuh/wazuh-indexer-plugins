@@ -19,10 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.client;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
@@ -36,9 +33,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.List;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Client responsible for downloading CTI snapshots from a remote source. */
@@ -82,11 +77,7 @@ public class SnapshotClient {
      * @throws URISyntaxException If the provided URI is invalid.
      */
     public Path downloadFile(String snapshotURI) throws IOException, URISyntaxException {
-        List<Header> defaultHeaders =
-                List.of(
-                        new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
-        try (CloseableHttpClient client =
-                HttpClients.custom().setDefaultHeaders(defaultHeaders).build()) {
+        try (CloseableHttpClient client = CtiHttpClients.classicBuilder().build()) {
             // Setup
             final URI uri = new URI(this.urlResolver.resolve(snapshotURI));
             final HttpGet request = new HttpGet(uri);
