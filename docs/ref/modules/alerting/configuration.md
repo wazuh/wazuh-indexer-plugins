@@ -6,13 +6,19 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 
 - **`plugins.alerting.monitor.max_monitors`** (Integer, default `10`, minimum `0`, no upper bound) — maximum number of monitors in the cluster. Monitors created by [Ruleset Management](../ruleset-management/index.md) detectors don't count toward this limit.
 - **`plugins.alerting.monitor.max_triggers`** (Integer, default `10`, hard max `50`) — maximum number of triggers per monitor.
-- **`plugins.alerting.monitor.doc_level_monitor_shard_fetch_size`** (Integer, default `10000`) — number of documents fetched per shard for document-level monitors.
+- **`plugins.alerting.monitor.doc_level_monitor_shard_fetch_size`** (Integer, default `10000`) — number of documents fetched per shard for document-level monitors. The packaged `opensearch.yml` lowers it to `5000` (see below).
 - **`plugins.alerting.monitor.doc_level_monitor_fan_out_nodes`** (Integer, default `1000`) — maximum number of nodes to fan out document-level monitor queries to.
 - **`plugins.alerting.monitor.doc_level_monitor_fanout_max_duration`** (TimeValue, default `3m`) — maximum duration for fan-out operations in document-level monitors.
 - **`plugins.alerting.monitor.doc_level_monitor_execution_max_duration`** (TimeValue, default `4m`) — maximum total execution duration for document-level monitors.
-- **`plugins.alerting.monitor.percolate_query_max_num_docs_in_memory`** (Integer, default `50000`) — maximum number of documents held in memory for percolate queries.
+- **`plugins.alerting.monitor.percolate_query_max_num_docs_in_memory`** (Integer, default `50000`) — maximum number of documents held in memory for percolate queries. The packaged `opensearch.yml` lowers it to `5000` (see below).
 - **`plugins.alerting.monitor.percolate_query_docs_size_memory_percentage_limit`** (Integer, default `10`) — maximum percentage of JVM heap used for percolate query documents.
 - **`plugins.alerting.monitor.doc_level_monitor_query_field_names_enabled`** (Boolean, default `true`) — enable field name extraction for document-level monitor queries.
+
+The packaged `opensearch.yml` sets `doc_level_monitor_shard_fetch_size` and `percolate_query_max_num_docs_in_memory` to `5000`, lower than the plugin defaults. The same file enables search backpressure in `enforced` mode. While the node is under pressure, it cancels shard searches that allocate more than 4% of the heap and more than twice the average of recent shard searches. A document-level monitor — in practice a [Ruleset Management](../ruleset-management/index.md) detector — reads a cancelled batch again on its next run, so with the plugin defaults a loaded node can cancel the same batches run after run, and the detectors fall behind.
+
+When a node cancels a detector's shard read or percolate search to protect its memory, or a circuit breaker refuses it, that detector's batches on that node are halved, down to 1000 documents, and the next run reads the same events again in smaller searches. Each detector has its own limit, so halving one detector doesn't change the batch sizes of the others. The limit doubles after 15 minutes without another refusal, until it is back to the configured sizes. Every change is logged: a warning when the batches are halved, and an informational message when they grow again. The limits are kept in memory, so a restarted node starts again from the configured sizes.
+
+Smaller batches cost more CPU per event, because every percolate search has a fixed cost. The two values only matter when a detector finds more new events than one batch between two of its runs. With fewer events, changing them makes no difference. On nodes with heap to spare, check `GET _nodes/stats/search_backpressure` at peak load. If the `search_shard_task` cancellation count does not grow, you can raise both values to save CPU. Lower them again if the cancellations grow, or if the Alerting log keeps reporting halved batches for many detectors.
 
 ## Timeout settings
 
