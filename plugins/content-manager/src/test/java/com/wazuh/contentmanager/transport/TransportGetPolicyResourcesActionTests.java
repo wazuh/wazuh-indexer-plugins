@@ -94,6 +94,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         resources.put(Constants.KEY_FILTERS, List.of());
         resources.put(Constants.KEY_KVDBS, List.of());
         resources.put(Constants.KEY_RULES, List.of());
+        resources.put(Constants.KEY_SIGMA_FILTERS, List.of());
         stubResources(resources);
 
         GetPolicyResourcesResponse response = execute("test");
@@ -104,7 +105,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         String json = toJson(response);
         Assert.assertTrue(
                 json.contains("\"normalization\":{\"decoders\":[],\"filters\":[],\"kvdbs\":[]}"));
-        Assert.assertTrue(json.contains("\"detection\":{\"rules\":[]}"));
+        Assert.assertTrue(json.contains("\"detection\":{\"rules\":[],\"sigma_filters\":[]}"));
         Assert.assertTrue(json.contains("\"status\":200"));
     }
 
@@ -134,6 +135,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         resources.put(Constants.KEY_FILTERS, List.of());
         resources.put(Constants.KEY_KVDBS, List.of());
         resources.put(Constants.KEY_RULES, List.of());
+        resources.put(Constants.KEY_SIGMA_FILTERS, List.of("sf-a"));
         stubResources(resources);
 
         GetPolicyResourcesResponse response = execute("custom");
@@ -145,6 +147,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         Assert.assertTrue(json.contains("\"filters\":[]"));
         Assert.assertTrue(json.contains("\"kvdbs\":[]"));
         Assert.assertTrue(json.contains("\"rules\":[]"));
+        Assert.assertTrue(json.contains("\"sigma_filters\":[\"sf-a\"]"));
     }
 
     /**

@@ -1077,7 +1077,9 @@ public class Constants {
                     KEY_DECODERS,
                     INDEX_DECODERS,
                     KEY_FILTERS,
-                    INDEX_FILTERS);
+                    INDEX_FILTERS,
+                    KEY_SIGMA_FILTERS,
+                    INDEX_SIGMA_FILTERS);
 
     // Snapshot constants
     public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";

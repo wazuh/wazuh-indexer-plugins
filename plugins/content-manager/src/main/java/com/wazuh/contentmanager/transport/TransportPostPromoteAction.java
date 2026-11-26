@@ -82,7 +82,8 @@ public class TransportPostPromoteAction
                     Constants.KEY_KVDBS,
                     Constants.KEY_DECODERS,
                     Constants.KEY_FILTERS,
-                    Constants.KEY_RULES);
+                    Constants.KEY_RULES,
+                    Constants.KEY_SIGMA_FILTERS);
 
     /** Resource types that support DELETE operations (policy cannot be deleted). */
     private static final List<String> DELETE_RESOURCE_TYPES =
@@ -91,7 +92,8 @@ public class TransportPostPromoteAction
                     Constants.KEY_KVDBS,
                     Constants.KEY_DECODERS,
                     Constants.KEY_FILTERS,
-                    Constants.KEY_RULES);
+                    Constants.KEY_RULES,
+                    Constants.KEY_SIGMA_FILTERS);
 
     private final SpaceService spaceService;
     private final EngineService engine;
@@ -194,12 +196,14 @@ public class TransportPostPromoteAction
                             Map<String, Map<String, Object>> decodersToApply = new HashMap<>();
                             Map<String, Map<String, Object>> filtersToApply = new HashMap<>();
                             Map<String, Map<String, Object>> rulesToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> sigmaFiltersToApply = new HashMap<>();
 
                             Set<String> integrationsToDelete = new HashSet<>();
                             Set<String> kvdbsToDelete = new HashSet<>();
                             Set<String> decodersToDelete = new HashSet<>();
                             Set<String> filtersToDelete = new HashSet<>();
                             Set<String> rulesToDelete = new HashSet<>();
+                            Set<String> sigmaFiltersToDelete = new HashSet<>();
 
                             List<ResourceChangeEntry> entries =
                                     List.of(
@@ -226,7 +230,12 @@ public class TransportPostPromoteAction
                                                     filtersToApply,
                                                     filtersToDelete),
                                             new ResourceChangeEntry(
-                                                    changes.getRules(), Constants.KEY_RULES, rulesToApply, rulesToDelete));
+                                                    changes.getRules(), Constants.KEY_RULES, rulesToApply, rulesToDelete),
+                                            new ResourceChangeEntry(
+                                                    changes.getSigmaFilters(),
+                                                    Constants.KEY_SIGMA_FILTERS,
+                                                    sigmaFiltersToApply,
+                                                    sigmaFiltersToDelete));
 
                             processAllResourceTypesAsync(
                                     entries,
@@ -244,11 +253,13 @@ public class TransportPostPromoteAction
                                                             decodersToApply,
                                                             filtersToApply,
                                                             rulesToApply,
+                                                            sigmaFiltersToApply,
                                                             integrationsToDelete,
                                                             kvdbsToDelete,
                                                             decodersToDelete,
                                                             filtersToDelete,
                                                             rulesToDelete,
+                                                            sigmaFiltersToDelete,
                                                             spaceDiff,
                                                             listener),
                                             e -> respondWithError(listener, e)));
@@ -265,11 +276,13 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> decodersToApply,
             Map<String, Map<String, Object>> filtersToApply,
             Map<String, Map<String, Object>> rulesToApply,
+            Map<String, Map<String, Object>> sigmaFiltersToApply,
             Set<String> integrationsToDelete,
             Set<String> kvdbsToDelete,
             Set<String> decodersToDelete,
             Set<String> filtersToDelete,
             Set<String> rulesToDelete,
+            Set<String> sigmaFiltersToDelete,
             SpaceDiff spaceDiff,
             ActionListener<MessageStatusResponse> listener) {
         this.spaceService.buildEnginePayload(
@@ -294,11 +307,13 @@ public class TransportPostPromoteAction
                                             decodersToApply,
                                             filtersToApply,
                                             rulesToApply,
+                                            sigmaFiltersToApply,
                                             integrationsToDelete,
                                             kvdbsToDelete,
                                             decodersToDelete,
                                             filtersToDelete,
                                             rulesToDelete,
+                                            sigmaFiltersToDelete,
                                             targetSpace.toString());
 
                             captureAllOldVersionsAsync(
@@ -1437,7 +1452,8 @@ public class TransportPostPromoteAction
                         changes.getKvdbs(),
                         changes.getDecoders(),
                         changes.getFilters(),
-                        changes.getRules())) {
+                        changes.getRules(),
+                        changes.getSigmaFilters())) {
             for (SpaceDiff.OperationItem item : items) {
                 if (item == null
                         || item.getOperation() == null
@@ -1623,11 +1639,13 @@ public class TransportPostPromoteAction
         final Map<String, Map<String, Object>> decodersToApply;
         final Map<String, Map<String, Object>> filtersToApply;
         final Map<String, Map<String, Object>> rulesToApply;
+        final Map<String, Map<String, Object>> sigmaFiltersToApply;
         final Set<String> integrationsToDelete;
         final Set<String> kvdbsToDelete;
         final Set<String> decodersToDelete;
         final Set<String> filtersToDelete;
         final Set<String> rulesToDelete;
+        final Set<String> sigmaFiltersToDelete;
         final String targetSpace;
 
         final Map<String, Map<String, Map<String, Object>>> oldVersions = new HashMap<>();
@@ -1642,11 +1660,13 @@ public class TransportPostPromoteAction
                 Map<String, Map<String, Object>> decodersToApply,
                 Map<String, Map<String, Object>> filtersToApply,
                 Map<String, Map<String, Object>> rulesToApply,
+                Map<String, Map<String, Object>> sigmaFiltersToApply,
                 Set<String> integrationsToDelete,
                 Set<String> kvdbsToDelete,
                 Set<String> decodersToDelete,
                 Set<String> filtersToDelete,
                 Set<String> rulesToDelete,
+                Set<String> sigmaFiltersToDelete,
                 String targetSpace) {
             this.enginePayload = enginePayload;
             this.policyToApply = policyToApply;
@@ -1655,11 +1675,13 @@ public class TransportPostPromoteAction
             this.decodersToApply = decodersToApply;
             this.filtersToApply = filtersToApply;
             this.rulesToApply = rulesToApply;
+            this.sigmaFiltersToApply = sigmaFiltersToApply;
             this.integrationsToDelete = integrationsToDelete;
             this.kvdbsToDelete = kvdbsToDelete;
             this.decodersToDelete = decodersToDelete;
             this.filtersToDelete = filtersToDelete;
             this.rulesToDelete = rulesToDelete;
+            this.sigmaFiltersToDelete = sigmaFiltersToDelete;
             this.targetSpace = targetSpace;
         }
 
@@ -1671,6 +1693,7 @@ public class TransportPostPromoteAction
                 case Constants.KEY_DECODERS -> decodersToApply;
                 case Constants.KEY_FILTERS -> filtersToApply;
                 case Constants.KEY_RULES -> rulesToApply;
+                case Constants.KEY_SIGMA_FILTERS -> sigmaFiltersToApply;
                 default -> Collections.emptyMap();
             };
         }
@@ -1682,6 +1705,7 @@ public class TransportPostPromoteAction
                 case Constants.KEY_DECODERS -> decodersToDelete;
                 case Constants.KEY_FILTERS -> filtersToDelete;
                 case Constants.KEY_RULES -> rulesToDelete;
+                case Constants.KEY_SIGMA_FILTERS -> sigmaFiltersToDelete;
                 default -> Collections.emptySet();
             };
         }

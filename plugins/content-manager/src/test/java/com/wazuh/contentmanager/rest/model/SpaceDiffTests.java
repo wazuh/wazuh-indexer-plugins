@@ -94,6 +94,32 @@ public class SpaceDiffTests extends OpenSearchTestCase {
         assertTrue(spaceDiff.getChanges().getFilters().isEmpty());
     }
 
+    public void testSigmaFiltersAreOptional() throws Exception {
+        String payload =
+                "{\"space\":\"draft\",\"changes\":{\"policy\":[],\"integrations\":[],\"kvdbs\":[],"
+                        + "\"decoders\":[],\"filters\":[],\"rules\":[]}}";
+
+        SpaceDiff spaceDiff = this.objectMapper.readValue(payload, SpaceDiff.class);
+
+        assertNotNull(spaceDiff.getChanges().getSigmaFilters());
+        assertTrue(spaceDiff.getChanges().getSigmaFilters().isEmpty());
+    }
+
+    public void testSigmaFiltersAreParsed() throws Exception {
+        String payload =
+                "{\"space\":\"draft\",\"changes\":{\"policy\":[],\"integrations\":[],\"kvdbs\":[],"
+                        + "\"decoders\":[],\"filters\":[],\"rules\":[],"
+                        + "\"sigma_filters\":[{\"operation\":\"add\",\"id\":\"sf1\"}]}}";
+
+        SpaceDiff spaceDiff = this.objectMapper.readValue(payload, SpaceDiff.class);
+
+        assertEquals(1, spaceDiff.getChanges().getSigmaFilters().size());
+        assertEquals(
+                SpaceDiff.Operation.ADD,
+                spaceDiff.getChanges().getSigmaFilters().getFirst().getOperation());
+        assertEquals("sf1", spaceDiff.getChanges().getSigmaFilters().getFirst().getId());
+    }
+
     public void testSpaceDiffWithTestSpace() throws Exception {
         // spotless:off
         String payload = """

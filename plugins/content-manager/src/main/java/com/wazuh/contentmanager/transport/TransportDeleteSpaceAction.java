@@ -390,8 +390,9 @@ public class TransportDeleteSpaceAction
 
         /**
          * Clears the detection side of a space: removes its rules from Security Analytics and from the
-         * index, removes any integration left empty, and recomputes the space hash. The normalization
-         * side (decoders, kvdbs, filters and the root decoder) is left untouched.
+         * index, deletes its Sigma filters and the policy's references to them, removes any integration
+         * left empty, and recomputes the space hash. The normalization side (decoders, kvdbs, filters
+         * and the root decoder) is left untouched.
          *
          * <p>Best-effort and re-runnable; failures are propagated to {@code listener}, never swallowed.
          * The rule documents are deleted last, after Security Analytics has been cleaned, so a run that
@@ -443,20 +444,36 @@ public class TransportDeleteSpaceAction
                                                                             // 3. Delete the rule documents LAST: they are the
                                                                             // source getSpaceResourceIdsAsync reads, so a failed
                                                                             // run leaves them for the next run to re-find.
+                                                                            // The space's Sigma filters go with its rules.
                                                                             spaceService.deleteSpaceResources(
                                                                                     space,
-                                                                                    List.of(Constants.INDEX_RULES),
+                                                                                    List.of(
+                                                                                            Constants.INDEX_RULES, Constants.INDEX_SIGMA_FILTERS),
                                                                                     ActionListener.wrap(
                                                                                             rulesDeleted -> {
                                                                                                 if (rulesDeleted) {
                                                                                                     touched.set(true);
                                                                                                 }
-                                                                                                // 4. Recompute the hash, unless nothing changed.
-                                                                                                recomputeHashIfChanged(
-                                                                                                        spaceService,
+                                                                                                // 4. Drop the policy's Sigma filter references.
+                                                                                                PolicyDocumentWriter.clearList(
+                                                                                                        client,
                                                                                                         spaceName,
-                                                                                                        touched.get(),
-                                                                                                        listener);
+                                                                                                        Constants.KEY_SIGMA_FILTERS,
+                                                                                                        Constants.E_500_MISSING_DRAFT_POLICY,
+                                                                                                        ActionListener.wrap(
+                                                                                                                sigmaFiltersCleared -> {
+                                                                                                                    if (sigmaFiltersCleared) {
+                                                                                                                        touched.set(true);
+                                                                                                                    }
+                                                                                                                    // 5. Recompute the hash, unless nothing
+                                                                                                                    // changed.
+                                                                                                                    recomputeHashIfChanged(
+                                                                                                                            spaceService,
+                                                                                                                            spaceName,
+                                                                                                                            touched.get(),
+                                                                                                                            listener);
+                                                                                                                },
+                                                                                                                listener::onFailure));
                                                                                             },
                                                                                             listener::onFailure));
                                                                         },

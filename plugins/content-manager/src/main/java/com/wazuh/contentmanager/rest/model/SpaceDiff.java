@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -69,6 +70,10 @@ public class SpaceDiff {
         @JsonProperty(value = Constants.KEY_RULES, required = true)
         private List<OperationItem> rules;
 
+        /** Optional, so the clients that predate Sigma filters keep working. */
+        @JsonProperty(value = Constants.KEY_SIGMA_FILTERS)
+        private List<OperationItem> sigmaFilters = new ArrayList<>();
+
         public List<OperationItem> getRules() {
             return this.rules;
         }
@@ -115,6 +120,19 @@ public class SpaceDiff {
 
         public void setFilters(List<OperationItem> filters) {
             this.filters = filters;
+        }
+
+        /**
+         * Returns the Sigma filter changes, empty when the request omits them.
+         *
+         * @return the Sigma filter changes.
+         */
+        public List<OperationItem> getSigmaFilters() {
+            return this.sigmaFilters == null ? new ArrayList<>() : this.sigmaFilters;
+        }
+
+        public void setSigmaFilters(List<OperationItem> sigmaFilters) {
+            this.sigmaFilters = sigmaFilters;
         }
     }
 
