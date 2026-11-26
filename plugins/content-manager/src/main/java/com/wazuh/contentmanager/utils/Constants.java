@@ -82,6 +82,8 @@ public class Constants {
             "This request would create more than the allowed kvdbs [%d].";
     public static final String E_400_TOO_MANY_FILTERS =
             "This request would create more than the allowed filters [%d].";
+    public static final String E_400_TOO_MANY_SIGMA_FILTERS =
+            "This request would create more than the allowed Sigma filters [%d].";
     public static final String E_413_LOGTEST_EVENT_TOO_LARGE =
             "logtest payload exceeds the maximum allowed size of %d bytes.";
     public static final String E_429_LOGTEST_BUSY =
@@ -134,6 +136,8 @@ public class Constants {
             "Rule [%s] aggregates events, so a filter cannot be applied to it.";
     public static final String E_400_SIGMA_FILTER_IDENTIFIER_TAKEN =
             "Rule [%s] already defines the identifier [%s].";
+    public static final String E_400_SIGMA_FILTER_RULE_NOT_FOUND =
+            "Rule [%s] not found in the standard or the %s space.";
     public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
             "Selector [%s] of rule [%s] would also select the filter's selections.";
 
@@ -184,6 +188,8 @@ public class Constants {
             "This request would create more than the allowed kvdbs [{}].";
     public static final String I_LOG_MAX_FILTERS_REACHED =
             "This request would create more than the allowed filters [{}].";
+    public static final String I_LOG_MAX_SIGMA_FILTERS_REACHED =
+            "This request would create more than the allowed Sigma filters [{}].";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -908,6 +914,8 @@ public class Constants {
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+    // Sigma filters, applied to rules. Not the Engine filters of INDEX_FILTERS.
+    public static final String INDEX_SIGMA_FILTERS = "wazuh-threatintel-sigma-filters";
 
     /**
      * Prefix of the WCS event data streams a threat detector reads. Completed with the integration's
@@ -947,6 +955,7 @@ public class Constants {
     public static final String KEY_IOCS = "iocs";
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
+    public static final String KEY_SIGMA_FILTERS = "sigma_filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
     public static final String KEY_DISABLED_ENRICHMENTS = "disabled_enrichments";
     public static final String KEY_ROOT_DECODER = "root_decoder";
@@ -1019,6 +1028,7 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+    public static final String KEY_SIGMA_FILTER = "sigma_filter";
     public static final String KEY_TRACE_LEVEL = "trace_level";
 
     // Logtest trace level sent to the Engine when the request omits it.

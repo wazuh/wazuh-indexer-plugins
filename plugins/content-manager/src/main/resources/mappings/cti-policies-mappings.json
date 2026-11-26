@@ -65,6 +65,10 @@
         "root_decoder": {
           "ignore_above": 4096,
           "type": "keyword"
+        },
+        "sigma_filters": {
+          "ignore_above": 4096,
+          "type": "keyword"
         }
       }
     },

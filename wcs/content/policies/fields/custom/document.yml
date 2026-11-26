@@ -54,6 +54,10 @@
       level: custom
       type: keyword
       description: "Filters the policy applies."
+    - name: sigma_filters
+      level: custom
+      type: keyword
+      description: "Sigma filters the policy applies to its rules."
     - name: enrichments
       level: custom
       type: keyword

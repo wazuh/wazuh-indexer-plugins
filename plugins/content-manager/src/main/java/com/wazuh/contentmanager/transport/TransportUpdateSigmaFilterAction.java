@@ -1,0 +1,89 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.wazuh.contentmanager.transport;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import org.opensearch.action.support.ActionFilters;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
+
+import java.util.Set;
+
+import com.wazuh.contentmanager.action.UpdateSigmaFilterAction;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
+
+/** Transport action for updating Sigma filter resources, in the Draft space only. */
+public class TransportUpdateSigmaFilterAction extends AbstractTransportUpdateActionSpaces {
+
+    private static final Set<Space> validSpaces = Set.of(Space.DRAFT);
+
+    private final SigmaFilterService sigmaFilterService;
+
+    @Inject
+    public TransportUpdateSigmaFilterAction(
+            TransportService transportService,
+            ActionFilters actionFilters,
+            Client client,
+            EngineService engine) {
+        super(UpdateSigmaFilterAction.NAME, transportService, actionFilters, client, engine);
+        this.sigmaFilterService = new SigmaFilterService(client);
+    }
+
+    @Override
+    protected String getIndexName() {
+        return Constants.INDEX_SIGMA_FILTERS;
+    }
+
+    @Override
+    protected String getResourceType() {
+        return Constants.KEY_SIGMA_FILTER;
+    }
+
+    @Override
+    public Set<Space> getAllowedSpaces() {
+        return validSpaces;
+    }
+
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        return TransportCreateSigmaFilterAction.validateSigmaFilter(
+                root, resource, this.documentValidations);
+    }
+
+    @Override
+    protected void syncExternalServices(
+            String id, JsonNode resource, Space space, ActionListener<RestResponse> listener) {
+        this.sigmaFilterService.checkTargets(
+                resource,
+                space,
+                ActionListener.wrap(
+                        error ->
+                                listener.onResponse(
+                                        error == null
+                                                ? null
+                                                : new RestResponse(error, RestStatus.BAD_REQUEST.getStatus())),
+                        listener::onFailure));
+    }
+}
