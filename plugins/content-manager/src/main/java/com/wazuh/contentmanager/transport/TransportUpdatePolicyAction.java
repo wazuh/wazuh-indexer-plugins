@@ -131,9 +131,25 @@ public class TransportUpdatePolicyAction
             }
             JsonNode resource = jsonContent.get(Constants.KEY_RESOURCE);
             log.debug(Constants.D_LOG_OPERATION, "Updating", Constants.KEY_POLICY, resource);
+            // The Sigma filters list is kept by the Sigma filter endpoints; Policy does not carry it.
+            JsonNode policyFields = resource;
+            if (resource.isObject() && resource.has(Constants.KEY_SIGMA_FILTERS)) {
+                JsonNode sigmaFilters = resource.get(Constants.KEY_SIGMA_FILTERS);
+                if (!sigmaFilters.isNull() && !isListOfStrings(sigmaFilters)) {
+                    listener.onResponse(
+                            new MessageStatusResponse(
+                                    String.format(
+                                            Locale.ROOT,
+                                            Constants.E_400_INVALID_FIELD_FORMAT,
+                                            Constants.KEY_SIGMA_FILTERS),
+                                    RestStatus.BAD_REQUEST));
+                    return;
+                }
+                policyFields = ((ObjectNode) resource).deepCopy().without(Constants.KEY_SIGMA_FILTERS);
+            }
             Policy policy;
             try {
-                policy = mapper.readValue(resource.toString(), Policy.class);
+                policy = mapper.readValue(policyFields.toString(), Policy.class);
             } catch (IOException e) {
                 listener.onResponse(
                         new MessageStatusResponse(
@@ -254,6 +270,25 @@ public class TransportUpdatePolicyAction
 
             keepOmittedLists(resource, incomingPolicy, currentPolicyDoc);
 
+            // The Sigma filters list can be sent back as it is, but not changed here.
+            List<String> currentSigmaFilters =
+                    (List<String>) currentPolicyDoc.get(Constants.KEY_SIGMA_FILTERS);
+            if (resource.hasNonNull(Constants.KEY_SIGMA_FILTERS)) {
+                List<String> sentSigmaFilters = new ArrayList<>();
+                resource.get(Constants.KEY_SIGMA_FILTERS).forEach(id -> sentSigmaFilters.add(id.asText()));
+                RestResponse sigmaFiltersValidationError =
+                        this.payloadValidations.validateListEquality(
+                                currentSigmaFilters != null ? currentSigmaFilters : Collections.emptyList(),
+                                sentSigmaFilters,
+                                Constants.KEY_SIGMA_FILTERS);
+                if (sigmaFiltersValidationError != null) {
+                    listener.onResponse(
+                            new MessageStatusResponse(
+                                    sigmaFiltersValidationError.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
+                }
+            }
+
             // Validate immutable lists
             if (Space.STANDARD.equals(spaceName)) {
                 List<String> currentFilters =
@@ -304,6 +339,10 @@ public class TransportUpdatePolicyAction
             } else {
                 policyNode = mergeDraftPolicy(incomingPolicy, currentPolicyDoc);
                 docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
+            }
+
+            if (currentSigmaFilters != null) {
+                policyNode.set(Constants.KEY_SIGMA_FILTERS, mapper.valueToTree(currentSigmaFilters));
             }
 
             // Build index document
@@ -522,6 +561,18 @@ public class TransportUpdatePolicyAction
         if (!resource.hasNonNull(Constants.KEY_ENRICHMENTS)) {
             incomingPolicy.setEnrichments((List<String>) currentPolicyDoc.get(Constants.KEY_ENRICHMENTS));
         }
+    }
+
+    private static boolean isListOfStrings(JsonNode node) {
+        if (!node.isArray()) {
+            return false;
+        }
+        for (JsonNode item : node) {
+            if (!item.isTextual()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SuppressWarnings("unchecked")
