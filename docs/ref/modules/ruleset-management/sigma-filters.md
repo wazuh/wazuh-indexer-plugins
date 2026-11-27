@@ -38,6 +38,7 @@ Once the filter reaches the Custom space, the rule keeps matching every request 
   | Custom | Yes, for Standard and Custom rules | Yes, with `sigma_filters: custom` (the default for the `standard` and `custom` spaces) |
 
 - **A change reaches the detectors when it is promoted to Custom.** The rules the filter targets are sent to Security Analytics again, and each detector that uses them is rebuilt once. Detectors keep their monitors: no monitor or query index is added.
+- **A filter can be promoted before the rules it targets.** As for the other resources, a promotion does not check that the target rules are in the destination space. Until a target rule reaches the filter's space, the filter changes nothing; once it does, the filter applies to it.
 
 ## Filter format
 
