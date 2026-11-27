@@ -20,5 +20,6 @@
 
 | Issue | Comment |
 |-------|---------|
+| [#1777](https://github.com/wazuh/wazuh-indexer-plugins/issues/1777) | A Draft resource delete answers once the resource is gone, so a promotion requested right after it includes the removal |
 
 ## Prior versions
