@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.Level;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.BytesRef;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.UnavailableShardsException;
@@ -39,6 +40,7 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -51,6 +53,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.SendRequestTransportException;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
@@ -76,6 +79,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -658,6 +662,39 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(101L, result);
         verify(this.client).multiGet(any(MultiGetRequest.class));
         verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /**
+     * A MultiGet item failed by this node stopping keeps its failure as the cause, so the update
+     * running batchUpdate can tell the stop apart from a real failure without relying on having seen
+     * the stop start.
+     */
+    public void testBatchUpdate_FailedMultiGetItemKeepsItsCause() throws Exception {
+        Exception nodeClosed =
+                new SendRequestTransportException(
+                        null,
+                        "indices:data/read/mget[shard][s]",
+                        new NodeClosedException((DiscoveryNode) null));
+        MultiGetResponse mgetResponse =
+                new MultiGetResponse(
+                        new MultiGetItemResponse[] {
+                            new MultiGetItemResponse(
+                                    null, new MultiGetResponse.Failure(INDEX_NAME, "R1", nodeClosed))
+                        });
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "R1", List.of(new Operation("replace", "/document/title", null, "Updated")), 101L));
+
+        IOException e =
+                LuceneTestCase.expectThrows(IOException.class, () -> this.contentIndex.batchUpdate(tasks));
+
+        Assert.assertSame(nodeClosed, e.getCause());
+        Assert.assertTrue(NodeShutdown.isShutdownFailure(e));
+        verify(this.client, never()).bulk(any(BulkRequest.class));
     }
 
     /** Stubs the MultiGet that opens batchUpdate with one stored source per distinct document. */

@@ -21,16 +21,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.junit.annotations.TestLogging;
+import org.opensearch.transport.SendRequestTransportException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +48,10 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -88,6 +98,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
 
         PluginSettings.getInstance(Settings.EMPTY);
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
 
         Map<String, ContentIndex> indices = new HashMap<>();
         indices.put("rule", this.ruleIndex);
@@ -135,6 +146,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
+        // Reset the JVM-wide NodeShutdown.stopping flag so it does not leak to the next test.
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
         super.tearDown();
     }
 
@@ -811,6 +824,154 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertTrue(this.updateService.update(69, 70));
         verify(this.integrationIndex).delete("integration-1");
+    }
+
+    private static final String UPDATE_SERVICE_DEBUG =
+            "com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl:DEBUG";
+
+    /** Two creates: the first is applied, so a failure of the second writes a checkpoint. */
+    private static final String CREATE_THEN_FAIL_CHANGES =
+            """
+            {
+              "data": [
+                {
+                  "offset": 101,
+                  "resource": "rule-ok",
+                  "type": "CREATE",
+                  "payload": { "type": "rule", "id": "rule-ok" }
+                },
+                {
+                  "offset": 102,
+                  "resource": "rule-cut",
+                  "type": "CREATE",
+                  "payload": { "type": "rule", "id": "rule-cut" }
+                }
+              ]
+            }""";
+
+    /** The ERROR and DEBUG lines {@link UpdateServiceImpl} logged during one update. */
+    private record UpdateLogs(List<String> errors, List<String> debugs) {}
+
+    /**
+     * Runs an update whose second change fails with {@code applyFailure} and whose checkpoint write
+     * after it fails with {@code checkpointFailure}, the three failures a node stopping in the middle
+     * of an update logs.
+     *
+     * @return the ERROR and DEBUG lines the update logged.
+     */
+    private UpdateLogs logsOfFailedUpdate(Exception applyFailure, Exception checkpointFailure)
+            throws Exception {
+        this.mockChanges(CREATE_THEN_FAIL_CHANGES);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onFailure(applyFailure);
+                            return null;
+                        })
+                .when(this.ruleIndex)
+                .create(anyString(), any(JsonNode.class), any(), any());
+        doThrow(checkpointFailure).when(this.consumersIndex).setConsumer(any(LocalConsumer.class), eq(true));
+
+        try (CapturingAppender logs = CapturingAppender.attach(UpdateServiceImpl.class)) {
+            Assert.assertThrows(RuntimeException.class, () -> this.updateService.update(100, 200));
+            verify(this.consumersIndex).setConsumer(any(LocalConsumer.class), eq(true));
+            return new UpdateLogs(logs.messages(Level.ERROR), logs.messages(Level.DEBUG));
+        }
+    }
+
+    /** A failure as this node stopping produces it: a transport request cut by the closed node. */
+    private static Exception nodeClosed() {
+        return new SendRequestTransportException(
+                null, "indices:data/write/index", new NodeClosedException((DiscoveryNode) null));
+    }
+
+    /** Asserts that exactly one of {@code messages} starts with each of {@code prefixes}. */
+    private static void assertEachLoggedOnce(List<String> messages, String... prefixes) {
+        for (String prefix : prefixes) {
+            Assert.assertEquals(
+                    "[" + prefix + "] in " + messages,
+                    1,
+                    messages.stream().filter(message -> message.startsWith(prefix)).count());
+        }
+    }
+
+    /**
+     * An update cut by this node stopping logs its three failures at debug: the change being
+     * applied, the checkpoint write after it, and the update itself. The update resumes from its last
+     * checkpoint after the restart. Here the failures carry no {@link NodeClosedException}, so the
+     * stop is told by its start.
+     */
+    @TestLogging(
+            value = UPDATE_SERVICE_DEBUG,
+            reason = "Asserts that the failures of an update cut by the node stopping are DEBUG lines")
+    public void testUpdate_FailuresWhileTheNodeStopsAreLoggedAtDebug() throws Exception {
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        clusterService.stop();
+
+        UpdateLogs logs =
+                this.logsOfFailedUpdate(
+                        new IOException("request cut by the stop"), new IOException("node closed"));
+
+        Assert.assertEquals(List.of(), logs.errors());
+        UpdateServiceImplTests.assertEachLoggedOnce(
+                logs.debugs(),
+                "Failed to apply offset [102]",
+                "Failed to persist failure checkpoint at offset [101]",
+                "Error during content update");
+    }
+
+    /**
+     * A failure that carries a {@link NodeClosedException} is the node stopping even before the stop
+     * was seen to start, so it is logged at debug too.
+     */
+    @TestLogging(
+            value = UPDATE_SERVICE_DEBUG,
+            reason = "Asserts that failures caused by a closed node are DEBUG lines")
+    public void testUpdate_ClosedNodeFailuresAreLoggedAtDebug() throws Exception {
+        UpdateLogs logs =
+                this.logsOfFailedUpdate(
+                        new IOException("MultiGet failed", UpdateServiceImplTests.nodeClosed()),
+                        UpdateServiceImplTests.nodeClosed());
+
+        Assert.assertEquals(List.of(), logs.errors());
+        UpdateServiceImplTests.assertEachLoggedOnce(
+                logs.debugs(),
+                "Failed to apply offset [102]",
+                "Failed to persist failure checkpoint at offset [101]",
+                "Error during content update");
+    }
+
+    /** On a running node, the same failures are real ones and stay at ERROR. */
+    @TestLogging(
+            value = UPDATE_SERVICE_DEBUG,
+            reason = "Asserts that real failures are ERROR lines and are not repeated at DEBUG")
+    public void testUpdate_FailuresOnARunningNodeAreLoggedAtError() throws Exception {
+        UpdateLogs logs =
+                this.logsOfFailedUpdate(
+                        new RuntimeException("Simulated circuit breaker"),
+                        new RuntimeException("Simulated read-only index"));
+
+        Assert.assertEquals(logs.errors().toString(), 3, logs.errors().size());
+        UpdateServiceImplTests.assertEachLoggedOnce(
+                logs.errors(),
+                "Failed to apply offset [102]",
+                "Failed to persist failure checkpoint at offset [101]",
+                "Error during content update");
+        Assert.assertTrue(
+                logs.debugs().toString(),
+                logs.debugs().stream()
+                        .noneMatch(
+                                message ->
+                                        message.startsWith("Failed to")
+                                                || message.startsWith("Error during")));
     }
 
     /** Unwraps the chain update() wraps a failure in, so a test can assert on the original message. */
