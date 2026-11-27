@@ -915,7 +915,8 @@ paths:
       summary: Delete Sigma filter
       description: |
         Deletes a Sigma filter from the draft space and removes it from the draft policy. Promote the
-        removal to take the filter out of the test and custom spaces.
+        removal to take the filter out of the test and custom spaces. A 400 answers the internal id of
+        a test or custom copy; a 404, an id with no filter in the draft space.
       operationId: deleteSigmaFilter
       parameters:
         - $ref: "#/components/parameters/id"
@@ -1018,6 +1019,8 @@ paths:
       description: |
         Updates an existing rule in the draft space and returns its identifier.
         The rule is validated against the Wazuh engine before being stored.
+        A change that a draft Sigma filter targeting the rule would no longer fit, such as a new
+        `logsource`, is rejected with a 400 that names the filter.
       operationId: updateRule
       parameters:
         - $ref: "#/components/parameters/id"
@@ -1078,12 +1081,15 @@ paths:
       summary: Delete Rule
       description: |
         Deletes a rule from the draft space. The rule is also removed from any integrations that reference it.
+        A rule that draft Sigma filters target is not deleted: the 400 names the filters.
       operationId: deleteRule
       parameters:
         - $ref: "#/components/parameters/id"
       responses:
         "200":
           $ref: "#/components/responses/ResourceDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "403":
@@ -1587,7 +1593,9 @@ paths:
         Updates the routing policy in the specified space (`draft` or `standard`).
 
         **Draft space**: All policy fields are accepted. The `integrations` and `filters`
-        arrays allow reordering but do not allow adding or removing entries.
+        arrays allow reordering but do not allow adding or removing entries. The
+        `sigma_filters` array is kept when omitted and may be sent back with the same ids; it
+        changes only through the Sigma filter endpoints.
         Fields `metadata.author`, `metadata.description`, `metadata.documentation`,
         and `metadata.references` are required in addition to the boolean fields.
 

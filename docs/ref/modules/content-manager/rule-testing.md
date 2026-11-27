@@ -260,6 +260,10 @@ The optional `trace_level` field controls how much detail the Engine returns (`N
 - **`ASSET_ONLY`** — output plus the list of decoders that matched (asset traces).
 - **`ALL`** — full trace including every decoder attempted. Use for debugging decoder issues.
 
+### Sigma filters
+
+The optional `sigma_filters` field selects whose [Sigma filters](../ruleset-management/sigma-filters.md) apply to the evaluated rules: `test`, `custom` or `none`. When it is omitted, a run in the `test` space applies the Test filters, and a run in the `standard` or `custom` space the Custom ones, as the detectors do. To try a Test filter on a Standard rule, run the log test in the `standard` space with `"sigma_filters": "test"`; compare with `"sigma_filters": "none"` to see the rule without its filters.
+
 ## Step 6: iterate
 
 If the results aren't what you expect:
@@ -441,6 +445,7 @@ The response contains only the detection result:
 | Update rule | `/_plugins/_content_manager/rules/{id}` | PUT |
 | Preview promotion | `/_plugins/_content_manager/promote?space={space}` | GET |
 | Execute promotion | `/_plugins/_content_manager/promote` | POST |
+| Create Sigma filter | `/_plugins/_content_manager/sigma_filters` | POST |
 | Run logtest (combined) | `/_plugins/_content_manager/logtest` | POST |
 | Normalization only | `/_plugins/_content_manager/logtest/normalization` | POST |
 | Detection only | `/_plugins/_content_manager/logtest/detection` | POST |

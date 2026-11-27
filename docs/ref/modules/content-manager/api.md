@@ -35,7 +35,7 @@ If provided, either value is stored as-is — the plugin does not validate or re
 
 ## YAML content-type support
 
-The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
+The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. The other endpoints, **Sigma filters** included, take JSON only. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
 
 ### Envelope structure
 
@@ -881,7 +881,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
-> **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
+> **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints. The same holds for the `sigma_filters` array, managed through the [Sigma filters](#sigma-filters) endpoints: it can be omitted, which keeps it, or sent back with the same ids.
 
 #### Space-specific behavior
 
@@ -1225,7 +1225,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 #### Status codes
 
 - **200** — rule updated.
-- **400** — invalid request, not in draft space, or validation failure.
+- **400** — invalid request, not in draft space, or validation failure. Also when a draft [Sigma filter](#sigma-filters) targets the rule and would no longer apply to it, for example after a change to its `logsource`; the response names the filter. Change or delete the filter first.
 - **404** — rule not found.
 - **409** — the new title is already used by another rule in the space.
 - **500** — internal error.
@@ -1264,6 +1264,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 #### Status codes
 
 - **200** — rule deleted.
+- **400** — draft [Sigma filters](#sigma-filters) target the rule; the response names them. Remove the rule from those filters, or delete them, first.
 - **404** — rule not found.
 - **500** — internal error.
 
@@ -1708,6 +1709,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 [Sigma filters](../ruleset-management/sigma-filters.md) exclude events from rules without changing the rules. A Sigma filter is created, updated and deleted in the `draft` space, and promoted like any other resource (Draft → Test → Custom, see [Promotion](#promotion)). It is linked to the space policy's `sigma_filters` list.
 
+These endpoints take JSON only (see [YAML content-type support](#yaml-content-type-support)); the YAML in the [Sigma filters](../ruleset-management/sigma-filters.md) page shows the same fields in Sigma's notation. There is no endpoint to read a filter: [List space resources](#list-space-resources) lists the ids of a space's filters under `detection.sigma_filters`, and the filters themselves are in the `wazuh-threatintel-sigma-filters` index (`GET wazuh-threatintel-sigma-filters/_search`), with the filter under `document` and its space under `space.name`.
+
 ### Create Sigma filter
 
 Creates a Sigma filter in the draft space. The filter is checked against every rule it targets: each rule must exist in the standard or draft space, and Security Analytics must accept the rule with the filter applied.
@@ -1726,7 +1729,7 @@ Fields within `resource`:
 
 - **`metadata`** (Object, required) — filter metadata: **`title`** (String, required), **`author`** and **`description`** (String, optional), and **`date`**, **`modified`** (see [Timestamps on create and update](#timestamps-on-create-and-update)).
 - **`logsource`** (Object, required) — `product`, `category` and `service`; each key set must match the target rules.
-- **`filter`** (Object, required) — `rules` (list of target rule ids), one or more named selections and `condition`, a single top-level `not` over those selections. See [Filter format](../ruleset-management/sigma-filters.md#filter-format).
+- **`filter`** (Object, required) — `rules` (list of target rule ids, each listed once), one or more named selections and `condition`, a single `not` over those selections. See [Filter format](../ruleset-management/sigma-filters.md#filter-format).
 - **`enabled`** (Boolean, optional) — whether the filter applies. Defaults to `true`.
 
 #### Example request
@@ -1771,7 +1774,7 @@ The `message` field contains the UUID of the created Sigma filter.
 
 ```json
 {
-  "message": "Filter condition [selection] must be a single top-level negation, such as 'not selection': a filter is applied as (<rule condition>) and (<filter condition>).",
+  "message": "Filter condition [selection] must be a single 'not' over the filter's selections, with no other 'not' inside, such as 'not selection' or 'not (a or b)': a filter is applied as (<rule condition>) and (<filter condition>).",
   "status": 400
 }
 ```
@@ -1880,8 +1883,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 #### Status codes
 
 - **200** — Sigma filter deleted.
-- **400** — the Sigma filter is not in the draft space.
-- **404** — Sigma filter not found.
+- **400** — the id is the internal document id of a test or custom copy of a filter. Delete the filter by its own id in the draft space, then promote the removal.
+- **404** — no Sigma filter with that id in the draft space, including a filter already deleted from draft whose removal is not promoted yet.
 - **500** — internal error.
 
 ---
@@ -2503,7 +2506,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 Resets a user space (`draft`): removes its content and resets the policy's settings to default, while **keeping the space's metadata** (title, author, description, …).
 
 When resetting the `draft` space, this operation will:
-- Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
+- Remove all documents (integrations, rules, decoders, kvdbs, filters, Sigma filters, and the space's policy document) that belong to the given space.
 - Re-generate the policy for the given space with default settings (`enrichments`, `enabled`, the `index_*` flags), **preserving its metadata**.
 
 > **Note**: Only the `draft` space can be reset.
