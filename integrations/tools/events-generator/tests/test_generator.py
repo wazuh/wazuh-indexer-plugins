@@ -223,6 +223,23 @@ def test_custom_stream_copies(samples):
     assert client.indexed[1] == "wazuh-custom-test"
 
 
+def test_custom_stream_of_findings(samples):
+    client = Recorder()
+    run.generate(client, samples, ["security"], 1.0, run.random.Random(1), custom_stream="wazuh-custom-test",
+                 custom_ratio=1.0, custom_kind="findings")
+    assert client.indexed == [client.indexed[0]] and client.indexed[0].startswith("wazuh-events-v5-")
+    (stream, finding_id), (copy_stream, copy_id) = client.created
+    assert stream.startswith("wazuh-findings-v5-") and copy_stream == "wazuh-custom-test"
+    assert copy_id == finding_id, "the copy keeps the id of the finding"
+
+
+def test_custom_ratio_from_the_environment(monkeypatch):
+    monkeypatch.setenv("WAZUH_CUSTOM_RATIO", "1")
+    assert run.parse_args(["--dry-run"]).custom_ratio == 1.0
+    monkeypatch.delenv("WAZUH_CUSTOM_RATIO")
+    assert run.parse_args(["--dry-run"]).custom_ratio == 0.2
+
+
 def test_dry_run_flushes_delayed_findings_at_the_end(capsys):
     run.main(["--dry-run", "--count", "5", "--time", "0", "--findings-ratio", "1", "--findings-delay", "0.05",
               "--categories", "security", "--seed", "3"])

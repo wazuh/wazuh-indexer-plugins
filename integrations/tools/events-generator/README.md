@@ -31,7 +31,7 @@ python run.py -a <wazuh indexer> -u admin -p <password> --ca <root-ca.pem>
 | `-t` | `5` | Seconds between events. |
 | `-f` | `0.3` | Probability of an event producing a finding. |
 | `--findings-delay` | `$WAZUH_GENERATOR_FINDINGS_DELAY` or `0` | Seconds between an event and the indexing of its finding. |
-| `--custom-stream` | `$WAZUH_CUSTOM_STREAM` | Data stream that also gets a share of the events (`--custom-ratio`, default `0.2`). It must exist. |
+| `--custom-stream` | `$WAZUH_CUSTOM_STREAM` | Data stream that also gets a share of the events, or of the findings with `--custom-kind findings` (default `$WAZUH_CUSTOM_KIND` or `events`). The share is `--custom-ratio`, default `$WAZUH_CUSTOM_RATIO` or `0.2`. It must exist. |
 | `--categories` | all | Comma-separated categories to generate events of. |
 | `--seed` | | Seed of the random choices, for repeatable output. |
 | `--dry-run` | | Print the documents instead of indexing them. |
