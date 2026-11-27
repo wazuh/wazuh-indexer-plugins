@@ -115,6 +115,10 @@ public class Constants {
             "The 'logsource' object is missing.";
     public static final String E_400_SIGMA_FILTER_RULES =
             "'filter.rules' must be a non-empty list of rule ids ('any' is not supported).";
+    public static final String E_400_SIGMA_FILTER_RULE_REPEATED =
+            "Rule [%s] is listed more than once in 'filter.rules'.";
+    public static final String E_400_SIGMA_FILTER_TIMEFRAME =
+            "A Sigma filter cannot set 'timeframe': it applies to each event its rules match.";
     public static final String E_400_SIGMA_FILTER_CONDITION_NOT_STRING =
             "'filter.condition' must be a string.";
     public static final String E_400_SIGMA_FILTER_NO_SELECTION = "The filter defines no selection.";
@@ -124,8 +128,9 @@ public class Constants {
     public static final String E_400_SIGMA_FILTER_CONDITION_SYNTAX =
             "Filter condition [%s] is not a valid Sigma condition.";
     public static final String E_400_SIGMA_FILTER_CONDITION_NOT_NEGATION =
-            "Filter condition [%s] must be a single top-level negation, such as 'not selection': a"
-                    + " filter is applied as (<rule condition>) and (<filter condition>).";
+            "Filter condition [%s] must be a single 'not' over the filter's selections, with no other"
+                    + " 'not' inside, such as 'not selection' or 'not (a or b)': a filter is applied as"
+                    + " (<rule condition>) and (<filter condition>).";
     public static final String E_400_SIGMA_FILTER_UNDEFINED_SELECTION =
             "Filter condition [%s] refers to [%s], which matches none of the filter's selections.";
     public static final String E_400_SIGMA_FILTER_LOGSOURCE_MISMATCH =
@@ -140,6 +145,8 @@ public class Constants {
             "Rule [%s] not found in the standard or the %s space.";
     public static final String E_400_SIGMA_FILTER_RULE_INVALID =
             "With the filter applied, rule [%s] is not valid: %s";
+    public static final String E_400_SIGMA_FILTER_RULE_INVALID_ALONE =
+            "Rule [%s] is not valid even without the filter, so no filter can be applied to it: %s";
     public static final String E_400_INVALID_SIGMA_FILTERS =
             "Invalid 'sigma_filters' value [%s]. Must be one of: test, custom, none.";
     public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =

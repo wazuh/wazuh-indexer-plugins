@@ -234,7 +234,7 @@ public class SigmaFilterService {
                 space,
                 ActionListener.wrap(
                         rules -> {
-                            List<Map.Entry<Space, JsonNode>> composed = new ArrayList<>();
+                            List<Target> targets = new ArrayList<>();
                             for (String ruleId : ruleIds) {
                                 JsonNode stored = rules.get(ruleId);
                                 if (stored == null) {
@@ -243,54 +243,90 @@ public class SigmaFilterService {
                                                     Locale.ROOT, Constants.E_400_SIGMA_FILTER_RULE_NOT_FOUND, ruleId, space));
                                     return;
                                 }
+                                JsonNode rule = stored.path(Constants.KEY_DOCUMENT);
                                 try {
-                                    composed.add(
-                                            Map.entry(
+                                    targets.add(
+                                            new Target(
                                                     Space.fromValue(stored.at("/space/name").asText()),
-                                                    SigmaFilterComposer.compose(
-                                                            stored.path(Constants.KEY_DOCUMENT), List.of(filter))));
+                                                    rule,
+                                                    SigmaFilterComposer.compose(rule, List.of(filter))));
                                 } catch (SigmaFilterComposer.ComposeException e) {
                                     listener.onResponse(e.getMessage());
                                     return;
                                 }
                             }
-                            this.validateComposed(composed, 0, listener);
+                            this.validateComposed(targets, 0, listener);
                         },
                         listener::onFailure));
     }
+
+    /** A rule a filter targets: the space it is stored in, the rule, and the rule with the filter. */
+    private record Target(Space space, JsonNode rule, JsonNode composed) {}
 
     /**
      * Has Security Analytics validate each composed rule in turn, as it would compile it, without
      * storing it. Answers {@code null} when every rule is valid, or the first rejection's reason.
      */
-    private void validateComposed(
-            List<Map.Entry<Space, JsonNode>> composed, int idx, ActionListener<String> listener) {
-        if (this.securityAnalytics == null || idx >= composed.size()) {
+    private void validateComposed(List<Target> targets, int idx, ActionListener<String> listener) {
+        if (this.securityAnalytics == null || idx >= targets.size()) {
             listener.onResponse(null);
             return;
         }
-        JsonNode rule = composed.get(idx).getValue();
+        Target target = targets.get(idx);
+        String ruleId = target.rule().path(Constants.KEY_ID).asText();
+        this.validate(
+                target.composed(),
+                target.space(),
+                ActionListener.wrap(
+                        rejection -> {
+                            if (rejection == null) {
+                                this.validateComposed(targets, idx + 1, listener);
+                                return;
+                            }
+                            // Tell a filter that breaks its rule from a rule that was already invalid.
+                            this.validate(
+                                    target.rule(),
+                                    target.space(),
+                                    ActionListener.wrap(
+                                            alone ->
+                                                    listener.onResponse(
+                                                            alone == null
+                                                                    ? String.format(
+                                                                            Locale.ROOT,
+                                                                            Constants.E_400_SIGMA_FILTER_RULE_INVALID,
+                                                                            ruleId,
+                                                                            rejection)
+                                                                    : String.format(
+                                                                            Locale.ROOT,
+                                                                            Constants.E_400_SIGMA_FILTER_RULE_INVALID_ALONE,
+                                                                            ruleId,
+                                                                            alone)),
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Has Security Analytics validate a rule. Answers {@code null} when it is valid, or the reason
+     * Security Analytics refused it.
+     */
+    private void validate(JsonNode rule, Space space, ActionListener<String> listener) {
         this.securityAnalytics.validateRule(
                 rule,
-                composed.get(idx).getKey(),
+                space,
                 ActionListener.wrap(
-                        response -> this.validateComposed(composed, idx + 1, listener),
+                        response -> listener.onResponse(null),
                         e -> {
                             OpenSearchException rejection =
                                     (OpenSearchException) ExceptionsHelper.unwrap(e, OpenSearchException.class);
                             // Only a 400 is Security Analytics refusing the rule. Anything else, a 403 for a
-                            // caller
-                            // without the validate permission included, is answered as it is.
+                            // caller without the validate permission included, is answered as it is.
                             if (rejection == null || rejection.status() != RestStatus.BAD_REQUEST) {
                                 listener.onFailure(e);
                                 return;
                             }
                             listener.onResponse(
-                                    String.format(
-                                            Locale.ROOT,
-                                            Constants.E_400_SIGMA_FILTER_RULE_INVALID,
-                                            rule.path(Constants.KEY_ID).asText(),
-                                            SecurityAnalyticsServiceImpl.extractErrorMessage(rejection.getMessage())));
+                                    SecurityAnalyticsServiceImpl.extractErrorMessage(rejection.getMessage()));
                         }));
     }
 

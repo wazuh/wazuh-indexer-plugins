@@ -230,14 +230,28 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
 
     // ── Validation of the composed rule by Security Analytics ───────────────
 
-    /** A service whose Security Analytics answers validateRule with the given outcome. */
+    /**
+     * A service whose Security Analytics answers validateRule of a composed rule with the given
+     * outcome, and accepts the rule alone.
+     */
     private SigmaFilterService validatingService(Exception failure, List<JsonNode> validated) {
+        return validatingService(failure, validated, false);
+    }
+
+    /**
+     * A service whose Security Analytics answers validateRule of a composed rule with the given
+     * outcome, and of the rule alone with the same outcome if {@code ruleAloneInvalid}.
+     */
+    private SigmaFilterService validatingService(
+            Exception failure, List<JsonNode> validated, boolean ruleAloneInvalid) {
         SecurityAnalyticsService sap = mock(SecurityAnalyticsService.class);
         doAnswer(
                         invocation -> {
-                            validated.add(invocation.getArgument(0));
+                            JsonNode rule = invocation.getArgument(0);
+                            validated.add(rule);
                             ActionListener<ActionResponse> l = invocation.getArgument(2);
-                            if (failure == null) {
+                            boolean composed = rule.at("/detection/condition").asText().contains("_filt_");
+                            if (failure == null || (!composed && !ruleAloneInvalid)) {
                                 l.onResponse(null);
                             } else {
                                 l.onFailure(failure);
@@ -288,6 +302,35 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
                         + "] is not valid: The following fields are not part of the Wazuh Common Schema"
                         + " (WCS): [user.nam]",
                 error.get());
+    }
+
+    public void testCheckTargetsBlamesTheRuleWhenItIsInvalidWithoutTheFilter() throws Exception {
+        stubSearch(rule("standard", "apache-http", "standard"));
+        List<JsonNode> validated = new java.util.ArrayList<>();
+        AtomicReference<String> error = new AtomicReference<>();
+
+        validatingService(
+                        new OpenSearchStatusException(
+                                "{\"error\":\"The rule compiles to a query that does not parse: NOT NOT a\"}",
+                                RestStatus.BAD_REQUEST),
+                        validated,
+                        true)
+                .checkTargets(
+                        filter("apache-http"),
+                        Space.DRAFT,
+                        ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertEquals(2, validated.size());
+        assertEquals("selection", validated.get(1).at("/detection/condition").asText());
+        assertTrue(
+                error.get(),
+                error
+                        .get()
+                        .startsWith(
+                                "Rule ["
+                                        + RULE_ID
+                                        + "] is not valid even without the filter, so no filter can be applied to"
+                                        + " it: "));
     }
 
     public void testCheckTargetsFailsWhenSecurityAnalyticsCannotAnswer() throws Exception {

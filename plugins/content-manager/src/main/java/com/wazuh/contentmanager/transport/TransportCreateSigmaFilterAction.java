@@ -99,7 +99,9 @@ public class TransportCreateSigmaFilterAction extends AbstractTransportCreateAct
             JsonNode root, JsonNode resource, PayloadValidations validations) {
         if (!Space.DRAFT.toString().equals(root.path(Constants.KEY_SPACE).asText(null))) {
             return new RestResponse(
-                    Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
+                    String.format(
+                            Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, Space.DRAFT.toString()),
+                    RestStatus.BAD_REQUEST.getStatus());
         }
         RestResponse metadataValidation =
                 validations.validateMetadataFields(resource, List.of(Constants.KEY_TITLE));

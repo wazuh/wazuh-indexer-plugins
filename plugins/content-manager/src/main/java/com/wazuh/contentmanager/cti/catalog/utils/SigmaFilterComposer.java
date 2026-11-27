@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -132,10 +134,18 @@ public final class SigmaFilterComposer {
         if (!rules.isArray() || rules.isEmpty()) {
             throw new ComposeException(Constants.E_400_SIGMA_FILTER_RULES);
         }
+        Set<String> ruleIds = new HashSet<>();
         for (JsonNode rule : rules) {
             if (!rule.isTextual() || rule.asText().isBlank()) {
                 throw new ComposeException(Constants.E_400_SIGMA_FILTER_RULES);
             }
+            if (!ruleIds.add(rule.asText())) {
+                throw new ComposeException(
+                        String.format(Locale.ROOT, Constants.E_400_SIGMA_FILTER_RULE_REPEATED, rule.asText()));
+            }
+        }
+        if (body.has(KEY_TIMEFRAME)) {
+            throw new ComposeException(Constants.E_400_SIGMA_FILTER_TIMEFRAME);
         }
         JsonNode condition = body.path(KEY_CONDITION);
         if (!condition.isTextual()) {
@@ -362,9 +372,13 @@ public final class SigmaFilterComposer {
     }
 
     /**
-     * Prefixes every selection and selector pattern of a filter condition. {@code them} becomes
-     * {@code <prefix>*}, which selects the filter's own selections only. Each name must refer to the
-     * filter's selections.
+     * Prefixes every selection and selector pattern of a filter condition. Each name must refer to
+     * the filter's selections.
+     *
+     * <p>A selector selects as the Sigma specification prescribes within the filter: {@code them}
+     * skips the selections whose name starts with an underscore, and so does a pattern that does not
+     * start with one. Once prefixed, every pattern starts with an underscore and would select those
+     * too, so a selector that must skip one is written out as the selections it selects.
      */
     private static String renameCondition(
             String condition, List<Token> tokens, List<String> selections, String prefix)
@@ -389,7 +403,13 @@ public final class SigmaFilterComposer {
                 case "selector" -> {
                     String pattern = THEM.equals(token.pattern()) ? "*" : token.pattern();
                     Pattern regex = Pattern.compile(pattern.replace("*", ".*"));
-                    if (selections.stream().noneMatch(s -> regex.matcher(s).matches())) {
+                    List<String> matching =
+                            selections.stream().filter(s -> regex.matcher(s).matches()).toList();
+                    List<String> selected =
+                            pattern.startsWith("_")
+                                    ? matching
+                                    : matching.stream().filter(s -> !s.startsWith("_")).toList();
+                    if (selected.isEmpty()) {
                         throw new ComposeException(
                                 String.format(
                                         Locale.ROOT,
@@ -397,7 +417,15 @@ public final class SigmaFilterComposer {
                                         condition,
                                         token.pattern()));
                     }
-                    out.append(token.quantifier()).append(" of ").append(prefix).append(pattern);
+                    if (selected.size() == matching.size()) {
+                        out.append(token.quantifier()).append(" of ").append(prefix).append(pattern);
+                    } else {
+                        String operator = "all".equals(token.quantifier()) ? " and " : " or ";
+                        out.append(
+                                selected.stream()
+                                        .map(s -> prefix + s)
+                                        .collect(Collectors.joining(operator, "(", ")")));
+                    }
                 }
                 default -> out.append(token.text());
             }

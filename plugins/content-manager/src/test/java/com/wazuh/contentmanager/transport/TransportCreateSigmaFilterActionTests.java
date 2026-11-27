@@ -78,6 +78,8 @@ public class TransportCreateSigmaFilterActionTests extends OpenSearchTestCase {
                                 "draft", filter(TITLE, "'selection':{'user.name':'adm'},'condition':'selection'")));
 
         assertEquals(400, response.getStatus());
-        assertTrue(response.getMessage(), response.getMessage().contains("single top-level negation"));
+        assertTrue(
+                response.getMessage(),
+                response.getMessage().contains("must be a single 'not' over the filter's selections"));
     }
 }

@@ -130,6 +130,47 @@ public class SigmaFilterComposerTests extends OpenSearchTestCase {
                 condition(SigmaFilterComposer.compose(rule, List.of(group))));
     }
 
+    public void testFilterSelectorsSkipUnderscoreSelectionsAsSigmaDoes() throws Exception {
+        JsonNode rule = rule(GIT);
+        JsonNode mixed =
+                filter(
+                        F1,
+                        LS,
+                        "'a':{'user.name':'x'},'_helper':{'host.name':'y'},'b':{'source.ip':'10.0.0.1'},"
+                                + "'condition':'not all of them'");
+        JsonNode anyOfThem =
+                filter(
+                        F1,
+                        LS,
+                        "'a':{'user.name':'x'},'_helper':{'host.name':'y'},'condition':'not 1 of them'");
+        JsonNode underscorePattern =
+                filter(
+                        F1, LS, "'a':{'user.name':'x'},'_helper':{'host.name':'y'},'condition':'not 1 of _h*'");
+
+        // `them` skips `_helper`: the selector is written out as the selections it selects.
+        assertEquals(
+                "(selection) and (not (" + P1 + "a and " + P1 + "b))",
+                condition(SigmaFilterComposer.compose(rule, List.of(mixed))));
+        assertEquals(
+                "(selection) and (not (" + P1 + "a))",
+                condition(SigmaFilterComposer.compose(rule, List.of(anyOfThem))));
+        // A pattern that starts with an underscore selects the underscore selections.
+        assertEquals(
+                "(selection) and (not 1 of " + P1 + "_h*)",
+                condition(SigmaFilterComposer.compose(rule, List.of(underscorePattern))));
+    }
+
+    public void testFilterSelectorOverUnderscoreSelectionsOnlyIsRejected() throws Exception {
+        JsonNode rule = rule(GIT);
+        JsonNode f =
+                filter(F1, LS, "'_sel':{'host.name':'qa1777-h-skip4x'},'condition':'not all of them'");
+
+        ComposeException e =
+                expectThrows(ComposeException.class, () -> SigmaFilterComposer.compose(rule, List.of(f)));
+
+        assertTrue(e.getMessage(), e.getMessage().contains("matches none of the filter's selections"));
+    }
+
     public void testTheRuleSelectorsAreKeptAsTheyAre() throws Exception {
         // Security Analytics skips the composed identifiers in `them`: nothing is expanded.
         JsonNode rule =
@@ -169,6 +210,8 @@ public class SigmaFilterComposerTests extends OpenSearchTestCase {
             {LS, "'selection':{'user.name':'a'},'condition':'NOT selection'"},
             // No selection.
             {LS, "'condition':'not selection'"},
+            // A filter applies to each event: it has no time window.
+            {LS, "'selection':{'user.name':'a'},'timeframe':'5m','condition':'not selection'"},
         };
         for (String[] b : bad) {
             JsonNode f = filter(F1, b[0], b[1]);
@@ -177,7 +220,7 @@ public class SigmaFilterComposerTests extends OpenSearchTestCase {
                     "filter " + b[1],
                     () -> SigmaFilterComposer.compose(rule, List.of(f)));
         }
-        for (String rules : List.of("'any'", "[]", "[1]")) {
+        for (String rules : List.of("'any'", "[]", "[1]", "['" + RULE_ID + "','" + RULE_ID + "']")) {
             JsonNode f =
                     json(
                             "{'id':'"
