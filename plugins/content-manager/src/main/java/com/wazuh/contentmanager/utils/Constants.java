@@ -149,6 +149,12 @@ public class Constants {
             "Rule [%s] is not valid even without the filter, so no filter can be applied to it: %s";
     public static final String E_400_INVALID_SIGMA_FILTERS =
             "Invalid 'sigma_filters' value [%s]. Must be one of: test, custom, none.";
+    public static final String E_400_RULE_HAS_SIGMA_FILTERS =
+            "Cannot delete rule [%s] because the Sigma filters %s target it. Remove the rule from those"
+                    + " filters, or delete them, first.";
+    public static final String E_400_RULE_CHANGE_BREAKS_SIGMA_FILTER =
+            "This change to rule [%s] would stop the Sigma filter [%s] from applying to it: %s Change"
+                    + " the filter first.";
     public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
             "Selector [%s] of rule [%s] would also select the filter's selections.";
 

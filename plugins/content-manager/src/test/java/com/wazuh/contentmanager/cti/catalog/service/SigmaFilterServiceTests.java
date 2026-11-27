@@ -348,6 +348,73 @@ public class SigmaFilterServiceTests extends OpenSearchTestCase {
         assertNotNull(failure.get());
     }
 
+    // ── Rule changes against the filters that target the rule ──────────────
+
+    /** A stored Sigma filter document of the draft space, as the filters index holds it. */
+    private static String storedFilter(String product) throws Exception {
+        return "{\"space\":{\"name\":\"draft\"},\"document\":" + filter(product) + "}";
+    }
+
+    public void testCheckRuleDeleteNamesTheFiltersThatTargetTheRule() throws Exception {
+        stubSearch(storedFilter("apache-http"));
+        AtomicReference<String> error = new AtomicReference<>();
+
+        this.service.checkRuleDelete(
+                RULE_ID, Space.DRAFT, ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertEquals(
+                "Cannot delete rule ["
+                        + RULE_ID
+                        + "] because the Sigma filters ["
+                        + FILTER_ID
+                        + "] target it. Remove the rule from those filters, or delete them, first.",
+                error.get());
+        String query = this.lastSearch.get().source().query().toString();
+        assertTrue(query, query.contains("draft") && query.contains(RULE_ID));
+    }
+
+    public void testCheckRuleDeleteAcceptsARuleNoFilterTargets() {
+        stubSearch();
+        AtomicReference<String> error = new AtomicReference<>("not called");
+
+        this.service.checkRuleDelete(
+                RULE_ID, Space.DRAFT, ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertNull(error.get());
+    }
+
+    public void testCheckRuleChangeRejectsALogsourceAFilterNoLongerFits() throws Exception {
+        stubSearch(storedFilter("apache-http"));
+        JsonNode changed = MAPPER.readTree(rule("draft", "nginx", "moved")).path("document");
+        AtomicReference<String> error = new AtomicReference<>();
+
+        this.service.checkRuleChange(
+                changed, Space.DRAFT, ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertNotNull(error.get());
+        assertTrue(
+                error.get(),
+                error
+                        .get()
+                        .startsWith(
+                                "This change to rule ["
+                                        + RULE_ID
+                                        + "] would stop the Sigma filter ["
+                                        + FILTER_ID
+                                        + "] from applying to it: The filter logsource"));
+    }
+
+    public void testCheckRuleChangeAcceptsAChangeTheFiltersStillFit() throws Exception {
+        stubSearch(storedFilter("apache-http"));
+        JsonNode changed = MAPPER.readTree(rule("draft", "apache-http", "renamed")).path("document");
+        AtomicReference<String> error = new AtomicReference<>("not called");
+
+        this.service.checkRuleChange(
+                changed, Space.DRAFT, ActionListener.wrap(error::set, e -> fail(e.getMessage())));
+
+        assertNull(error.get());
+    }
+
     public void testLogtestFilterSpace() {
         assertEquals(Space.CUSTOM, SigmaFilterService.resolveLogtestFilterSpace(null, Space.STANDARD));
         assertEquals(Space.CUSTOM, SigmaFilterService.resolveLogtestFilterSpace(null, Space.CUSTOM));

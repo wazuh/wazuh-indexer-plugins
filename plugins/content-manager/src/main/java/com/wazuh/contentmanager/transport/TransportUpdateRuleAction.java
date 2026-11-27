@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -34,6 +35,7 @@ import com.wazuh.contentmanager.action.UpdateRuleAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -74,8 +76,16 @@ public class TransportUpdateRuleAction extends AbstractTransportUpdateAction {
         String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
         String id = resource.get(Constants.KEY_ID).asText();
 
-        return this.documentValidations.validateDuplicateTitle(
-                client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, id, Constants.KEY_RULE);
+        RestResponse titleValidation =
+                this.documentValidations.validateDuplicateTitle(
+                        client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, id, Constants.KEY_RULE);
+        if (titleValidation != null) return titleValidation;
+
+        // A Draft Sigma filter that targets the rule must still apply to it, or it would stop silently.
+        PlainActionFuture<String> filterCheck = PlainActionFuture.newFuture();
+        new SigmaFilterService(client).checkRuleChange(resource, Space.DRAFT, filterCheck);
+        String reason = filterCheck.actionGet();
+        return reason == null ? null : new RestResponse(reason, RestStatus.BAD_REQUEST.getStatus());
     }
 
     @Override

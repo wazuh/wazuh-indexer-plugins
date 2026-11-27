@@ -36,6 +36,7 @@ import org.opensearch.transport.client.Client;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -134,6 +135,74 @@ public class SigmaFilterService {
                             log.warn(Constants.W_LOG_SIGMA_FILTERS_READ_FAILED, space, e.getMessage());
                             listener.onResponse(Collections.emptyMap());
                         }));
+    }
+
+    /**
+     * Checks that a rule can be deleted from a space: no Sigma filter of that space targets it.
+     *
+     * @param ruleId the rule id.
+     * @param space the space the rule is deleted from.
+     * @param listener receives {@code null} when no filter targets the rule, or the reason it cannot
+     *     be deleted, which is safe to return to the user.
+     */
+    public void checkRuleDelete(String ruleId, Space space, ActionListener<String> listener) {
+        this.filtersByRule(
+                space,
+                List.of(ruleId),
+                ActionListener.wrap(
+                        byRule -> {
+                            List<JsonNode> filters = byRule.getOrDefault(ruleId, List.of());
+                            listener.onResponse(
+                                    filters.isEmpty()
+                                            ? null
+                                            : String.format(
+                                                    Locale.ROOT,
+                                                    Constants.E_400_RULE_HAS_SIGMA_FILTERS,
+                                                    ruleId,
+                                                    filterIds(filters)));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Checks that a change to a rule keeps every Sigma filter of the space that targets it
+     * applicable: the filter's logsource still fits the rule, and the rule can still take a filter.
+     *
+     * @param rule the rule document as it would be stored.
+     * @param space the space the rule is changed in.
+     * @param listener receives {@code null} when every filter still applies, or the reason the first
+     *     one does not, which is safe to return to the user.
+     */
+    public void checkRuleChange(JsonNode rule, Space space, ActionListener<String> listener) {
+        String ruleId = rule.path(Constants.KEY_ID).asText();
+        this.filtersByRule(
+                space,
+                List.of(ruleId),
+                ActionListener.wrap(
+                        byRule -> {
+                            List<JsonNode> filters = new ArrayList<>(byRule.getOrDefault(ruleId, List.of()));
+                            filters.sort(Comparator.comparing(f -> f.path(Constants.KEY_ID).asText()));
+                            for (JsonNode filter : filters) {
+                                try {
+                                    SigmaFilterComposer.compose(rule, List.of(filter));
+                                } catch (SigmaFilterComposer.ComposeException e) {
+                                    listener.onResponse(
+                                            String.format(
+                                                    Locale.ROOT,
+                                                    Constants.E_400_RULE_CHANGE_BREAKS_SIGMA_FILTER,
+                                                    ruleId,
+                                                    filter.path(Constants.KEY_ID).asText(),
+                                                    e.getMessage()));
+                                    return;
+                                }
+                            }
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
+    }
+
+    private static List<String> filterIds(List<JsonNode> filters) {
+        return filters.stream().map(f -> f.path(Constants.KEY_ID).asText()).sorted().toList();
     }
 
     /**
