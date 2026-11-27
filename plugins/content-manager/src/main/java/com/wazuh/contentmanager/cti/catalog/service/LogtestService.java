@@ -32,6 +32,7 @@ import org.opensearch.transport.client.Client;
 import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.utils.SigmaFilterComposer;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -61,6 +62,7 @@ public class LogtestService {
     private final EngineService engine;
     private final SecurityAnalyticsService securityAnalytics;
     private final Client client;
+    private SigmaFilterService sigmaFilterService;
 
     /**
      * Constructs a new LogtestService.
@@ -74,6 +76,12 @@ public class LogtestService {
         this.engine = engine;
         this.securityAnalytics = securityAnalytics;
         this.client = client;
+        this.sigmaFilterService = new SigmaFilterService(client);
+    }
+
+    /** Injects a {@link SigmaFilterService} instance, used by tests to provide a mock. */
+    void setSigmaFilterService(SigmaFilterService sigmaFilterService) {
+        this.sigmaFilterService = sigmaFilterService;
     }
 
     /**
@@ -89,6 +97,31 @@ public class LogtestService {
     public void executeLogtest(
             String integrationId,
             Space space,
+            ObjectNode enginePayload,
+            ActionListener<RestResponse> listener) {
+        this.executeLogtest(
+                integrationId,
+                space,
+                SigmaFilterService.resolveLogtestFilterSpace(null, space),
+                enginePayload,
+                listener);
+    }
+
+    /**
+     * Same as {@link #executeLogtest(String, Space, ObjectNode, ActionListener)}, with the rules
+     * evaluated with the Sigma filters of {@code filterSpace} applied, as the detectors run them.
+     *
+     * @param integrationId the integration document ID to look up
+     * @param space the space to search in (test or standard)
+     * @param filterSpace the space whose Sigma filters apply, or {@code null} for none
+     * @param enginePayload the request payload to forward to the Engine (without the integration
+     *     field)
+     * @param listener the listener to be notified with the combined engine and SAP results
+     */
+    public void executeLogtest(
+            String integrationId,
+            Space space,
+            Space filterSpace,
             ObjectNode enginePayload,
             ActionListener<RestResponse> listener) {
         if (integrationId == null) {
@@ -148,6 +181,7 @@ public class LogtestService {
                                             integrationId,
                                             ruleIds,
                                             space,
+                                            filterSpace,
                                             ActionListener.wrap(
                                                     ruleBodies ->
                                                             this.evaluateAndRespond(
@@ -202,6 +236,30 @@ public class LogtestService {
             Space space,
             JsonNode inputEvent,
             ActionListener<RestResponse> listener) {
+        this.executeDetectionAsync(
+                integrationId,
+                space,
+                SigmaFilterService.resolveLogtestFilterSpace(null, space),
+                inputEvent,
+                listener);
+    }
+
+    /**
+     * Same as {@link #executeDetectionAsync(String, Space, JsonNode, ActionListener)}, with the rules
+     * evaluated with the Sigma filters of {@code filterSpace} applied, as the detectors run them.
+     *
+     * @param integrationId the integration document ID to look up
+     * @param space the space to search in (test, standard, or custom)
+     * @param filterSpace the space whose Sigma filters apply, or {@code null} for none
+     * @param inputEvent the normalized event JSON object to evaluate
+     * @param listener the listener to be notified with the SAP detection result
+     */
+    public void executeDetectionAsync(
+            String integrationId,
+            Space space,
+            Space filterSpace,
+            JsonNode inputEvent,
+            ActionListener<RestResponse> listener) {
         String eventJson = inputEvent.toString();
 
         this.client
@@ -243,6 +301,7 @@ public class LogtestService {
                                             integrationId,
                                             ruleIds,
                                             space,
+                                            filterSpace,
                                             ActionListener.wrap(
                                                     ruleBodies ->
                                                             this.evaluateDetectionRules(
@@ -493,6 +552,7 @@ public class LogtestService {
             String integrationId,
             List<String> ruleIds,
             Space space,
+            Space filterSpace,
             ActionListener<List<String>> listener) {
         this.client
                 .prepareSearch(Constants.INDEX_RULES)
@@ -519,9 +579,39 @@ public class LogtestService {
                                                             : ruleDocObj.toString());
                                         }
                                     }
-                                    listener.onResponse(ruleBodies);
+                                    this.applySigmaFilters(ruleBodies, ruleIds, filterSpace, listener);
                                 },
                                 listener::onFailure));
+    }
+
+    /**
+     * Applies to the rule bodies the Sigma filters of {@code filterSpace} that target them, as the
+     * detectors do, so the log test predicts the detectors' findings.
+     */
+    private void applySigmaFilters(
+            List<String> ruleBodies,
+            List<String> ruleIds,
+            Space filterSpace,
+            ActionListener<List<String>> listener) {
+        if (filterSpace == null || ruleBodies.isEmpty()) {
+            listener.onResponse(ruleBodies);
+            return;
+        }
+        this.sigmaFilterService.filtersByRule(
+                filterSpace,
+                ruleIds,
+                ActionListener.wrap(
+                        filtersByRule -> {
+                            ObjectMapper mapper = new ObjectMapper();
+                            List<String> filtered = new ArrayList<>(ruleBodies.size());
+                            for (String body : ruleBodies) {
+                                filtered.add(
+                                        SigmaFilterComposer.applyOrKeep(mapper.readTree(body), filtersByRule)
+                                                .toString());
+                            }
+                            listener.onResponse(filtered);
+                        },
+                        listener::onFailure));
     }
 
     @SuppressWarnings("unchecked")

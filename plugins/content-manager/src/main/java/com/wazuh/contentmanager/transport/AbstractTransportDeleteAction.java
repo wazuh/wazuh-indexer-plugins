@@ -255,20 +255,28 @@ public abstract class AbstractTransportDeleteAction
                 id,
                 integrationService,
                 ActionListener.wrap(
-                        v -> {
-                            // 5. Delete from Index
-                            index.delete(id);
-
-                            // 6. Hash Update (async)
-                            spaceService.calculateAndUpdate(
-                                    List.of(Space.DRAFT.toString()),
-                                    ActionListener.wrap(
-                                            changed -> {
-                                                log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
-                                                respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
-                                            },
-                                            e -> respondWithError(listener, id, e)));
-                        },
+                        v ->
+                                // 5. Delete from Index, gone from searches before the response
+                                index.delete(
+                                        id,
+                                        ActionListener.wrap(
+                                                deleted ->
+                                                        // 6. Hash Update (async)
+                                                        spaceService.calculateAndUpdate(
+                                                                List.of(Space.DRAFT.toString()),
+                                                                ActionListener.wrap(
+                                                                        changed -> {
+                                                                            log.info(
+                                                                                    Constants.I_LOG_SUCCESS,
+                                                                                    "Deleted",
+                                                                                    this.getResourceType(),
+                                                                                    id);
+                                                                            respond(
+                                                                                    listener,
+                                                                                    new RestResponse(id, RestStatus.OK.getStatus()));
+                                                                        },
+                                                                        e -> respondWithError(listener, id, e))),
+                                                e -> respondWithError(listener, id, e))),
                         e -> {
                             RestResponse classified = TransportActionHelper.classifyException(e);
                             if (classified != null) {

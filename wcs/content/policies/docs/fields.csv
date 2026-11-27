@@ -17,6 +17,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,document,document.metadata.references,keyword,custom,,,External references for the resource.
 9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
 9.1.0,true,document,document.root_decoder,keyword,custom,,,Decoder the policy uses as the root of the decoder tree.
+9.1.0,true,document,document.sigma_filters,keyword,custom,,,Sigma filters the policy applies to its rules.
 9.1.0,true,hash,hash.sha256,keyword,custom,,,The SHA-256 hash of the resource document.
 9.1.0,true,space,space.hash.sha256,keyword,custom,,,The aggregate SHA-256 hash of the space's content.
 9.1.0,true,space,space.name,keyword,custom,,,Name of the space the resource belongs to.

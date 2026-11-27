@@ -50,6 +50,8 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
 
     private static final String ENRICHMENTS = "wazuh-threatintel-enrichments";
 
+    private static final String SIGMA_FILTERS = "wazuh-threatintel-sigma-filters";
+
     /** Suffix of the concrete index each public alias points at. */
     private static final String SUFFIX_A = "-a";
 
@@ -59,6 +61,7 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
         "wazuh-threatintel-filters",
         "wazuh-threatintel-decoders",
         "wazuh-threatintel-rules",
+        SIGMA_FILTERS,
         "wazuh-threatintel-kvdbs",
         "wazuh-threatintel-integrations",
         "wazuh-threatintel-policies",
@@ -286,6 +289,53 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
         assertThat(body, containsString("\"result\":\"created\""));
         // The write went through the alias, so it must have landed on the concrete index.
         assertThat(body, containsString("\"_index\":\"" + ENRICHMENTS + SUFFIX_A + "\""));
+    }
+
+    /**
+     * Verifies that a Sigma filter document is accepted with selections of any name, which are kept
+     * in {@code _source} without being indexed, and that the filters can be found by the rules they
+     * target.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testSigmaFilterDocumentIsAcceptedAndSearchableByRule()
+            throws IOException, ParseException {
+        Request index = new Request("PUT", "/" + SIGMA_FILTERS + "/_doc/setup-it-sigma-filter");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(
+                """
+                {
+                  "hash": {"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+                  "space": {"name": "draft"},
+                  "document": {
+                    "id": "a1776000-0000-4000-8000-000000000001",
+                    "enabled": true,
+                    "metadata": {"title": "Ignore the internal audit scanner", "author": "Wazuh"},
+                    "logsource": {"product": "apache-http"},
+                    "filter": {
+                      "rules": ["26a8d32e-0838-5589-948c-501b5a301cf5"],
+                      "scanner_agent": {"user_agent.original|startswith": "internal-scanner"},
+                      "condition": "not scanner_agent"
+                    }
+                  }
+                }
+                """);
+        String indexed =
+                EntityUtils.toString(client().performRequest(index).getEntity(), StandardCharsets.UTF_8);
+        logger.info("Sigma filter index response: {}", indexed);
+        assertThat(indexed, containsString("\"_index\":\"" + SIGMA_FILTERS + SUFFIX_A + "\""));
+
+        Request search = new Request("GET", "/" + SIGMA_FILTERS + "/_search");
+        search.setJsonEntity(
+                """
+                {"query": {"term": {"document.filter.rules": "26a8d32e-0838-5589-948c-501b5a301cf5"}}}
+                """);
+        String found =
+                EntityUtils.toString(client().performRequest(search).getEntity(), StandardCharsets.UTF_8);
+        logger.info("Sigma filter search response: {}", found);
+        assertThat(found, containsString("\"_id\":\"setup-it-sigma-filter\""));
+        assertThat(found, containsString("internal-scanner"));
     }
 
     /**

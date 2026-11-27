@@ -46,6 +46,7 @@ public class PluginSettings {
     public static final String POLICY_URI = PLUGINS_BASE_URI + "/policy";
     public static final String POLICY_RESOURCES_URI = POLICY_URI + "/resources";
     public static final String FILTERS_URI = PLUGINS_BASE_URI + "/filters";
+    public static final String SIGMA_FILTERS_URI = PLUGINS_BASE_URI + "/sigma_filters";
     public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
     public static final String VERSION_CHECK_URI = PLUGINS_BASE_URI + "/version/check";
 
@@ -80,6 +81,9 @@ public class PluginSettings {
 
     public static final int DEFAULT_MAX_FILTERS = 100;
     private static final int MINIMUM_MAX_FILTERS = 0;
+
+    public static final int DEFAULT_MAX_SIGMA_FILTERS = 100;
+    private static final int MINIMUM_MAX_SIGMA_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final long DEFAULT_LOGTEST_MAX_BODY_BYTES = (long) 1024 * 1024;
@@ -507,6 +511,18 @@ public class PluginSettings {
                     Setting.Property.Dynamic);
 
     /**
+     * Maximum number of Sigma filters allowed per space. Requests that would exceed this limit are
+     * rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_SIGMA_FILTERS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_sigma_filters",
+                    DEFAULT_MAX_SIGMA_FILTERS,
+                    MINIMUM_MAX_SIGMA_FILTERS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
      * Maximum number of times a bulk operation the cluster shed under load (circuit breaker trip,
      * indexing-pressure rejection, 429/503) is re-submitted before its documents are counted as
      * dropped. Dynamic: pressure that outlasts the default budget is discovered during an incident,
@@ -820,6 +836,7 @@ public class PluginSettings {
     private volatile int maxRules;
     private volatile int maxKvdbs;
     private volatile int maxFilters;
+    private volatile int maxSigmaFilters;
     private volatile int bulkShedMaxRetries;
     private volatile long bulkShedInitialBackoffMillis;
     private volatile long bulkShedMaxBackoffMillis;
@@ -881,6 +898,7 @@ public class PluginSettings {
         this.maxRules = MAX_RULES.get(settings);
         this.maxKvdbs = MAX_KVDBS.get(settings);
         this.maxFilters = MAX_FILTERS.get(settings);
+        this.maxSigmaFilters = MAX_SIGMA_FILTERS.get(settings);
         this.bulkShedMaxRetries = BULK_SHED_MAX_RETRIES.get(settings);
         this.bulkShedInitialBackoffMillis = BULK_SHED_INITIAL_BACKOFF_MILLIS.get(settings);
         this.bulkShedMaxBackoffMillis = BULK_SHED_MAX_BACKOFF_MILLIS.get(settings);
@@ -986,6 +1004,14 @@ public class PluginSettings {
 
     public void setMaxFilters(int maxFilters) {
         this.maxFilters = maxFilters;
+    }
+
+    public int getMaxSigmaFilters() {
+        return this.maxSigmaFilters;
+    }
+
+    public void setMaxSigmaFilters(int maxSigmaFilters) {
+        this.maxSigmaFilters = maxSigmaFilters;
     }
 
     /**

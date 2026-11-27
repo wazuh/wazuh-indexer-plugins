@@ -18,6 +18,7 @@ Each resource exposes `create`, `update` and `delete`, plus a `*` action group t
 - `plugin:content_manager/rule/{create,update,delete}` (and `plugin:content_manager/rule/*`)
 - `plugin:content_manager/kvdb/{create,update,delete}` (and `plugin:content_manager/kvdb/*`)
 - `plugin:content_manager/filter/{create,update,delete}` (and `plugin:content_manager/filter/*`)
+- `plugin:content_manager/sigma_filter/{create,update,delete}` (and `plugin:content_manager/sigma_filter/*`) — manage [Sigma filters](../modules/ruleset-management/sigma-filters.md) (`POST /_plugins/_content_manager/sigma_filters`, `PUT` and `DELETE /_plugins/_content_manager/sigma_filters/{id}`). They resolve to `cluster:admin/content_manager/sigma_filter/{create,update,delete}`. `create` and `update` also grant `cluster:admin/wazuh/securityanalytics/rule/validate`, which checks the target rules with the filter applied. The filter is written with the caller's permissions, so a role that uses these groups also needs the cluster `indices:data/write/bulk` and `read` and `write` on the `wazuh-threatintel-*` indices; `delete` also needs `indices:admin/exists` on them.
 
 Other Content Manager permissions:
 
@@ -28,7 +29,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
 - `plugin:content_manager/subscription/delete` — delete the CTI subscription. Also the permission evaluated by `DELETE /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of deleting.
 - `plugin:content_manager/promote/get` — preview a promotion diff
-- `plugin:content_manager/promote/post` — execute a space promotion
+- `plugin:content_manager/promote/post` — execute a space promotion. When a promotion changes Sigma filters in the Custom space, the rules they target are sent to Ruleset Management again with the caller's permissions, and the detectors that use them are rebuilt once: the group also grants `cluster:admin/wazuh/securityanalytics/rule/write` and `cluster:admin/wazuh/securityanalytics/rule/custom/write` (Standard and custom rules), `cluster:admin/opensearch/securityanalytics/rule/write` (which the custom rule write runs) and `cluster:admin/wazuh/securityanalytics/detectors/refresh`. Without them the promotion still completes, but Ruleset Management and the detectors keep the rules as they were.
 - `plugin:content_manager/promote/*` — groups `promote/get` and `promote/post`
 - `plugin:content_manager/logtest` — run the combined logtest (`POST /_plugins/_content_manager/logtest`). Also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`, which the logtest needs downstream.
 - `plugin:content_manager/logtest/detection`, `plugin:content_manager/logtest/normalization` — run each logtest phase on its own (`POST /_plugins/_content_manager/logtest/detection`, `POST /_plugins/_content_manager/logtest/normalization`). `logtest/detection` also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`; `logtest/normalization` does not need it.
@@ -50,6 +51,8 @@ Wazuh custom actions:
 - `cluster:admin/wazuh/securityanalytics/rule/custom/write`
 - `cluster:admin/wazuh/securityanalytics/rule/custom/delete`
 - `cluster:admin/wazuh/securityanalytics/rules/evaluate`
+- `cluster:admin/wazuh/securityanalytics/rule/validate` — check a rule as it would be compiled, without storing it (used by the Content Manager when a Sigma filter is created or updated)
+- `cluster:admin/wazuh/securityanalytics/detectors/refresh` — rebuild, once each, the detectors that use a set of rules (used by the Content Manager when a promotion changes Sigma filters in the Custom space)
 - `cluster:admin/wazuh/securityanalytics/space/delete`
 
 No default role grants the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`); the full `/*` set is held only by `all_access`.

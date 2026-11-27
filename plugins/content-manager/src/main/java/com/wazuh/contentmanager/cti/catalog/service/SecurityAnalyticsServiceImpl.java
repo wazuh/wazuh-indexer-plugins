@@ -164,6 +164,42 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertRule(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
+        this.upsertRule(doc, space, method, false, listener);
+    }
+
+    @Override
+    public void validateRule(
+            JsonNode doc, Space space, ActionListener<? extends ActionResponse> listener) {
+        String product = ContentIndex.extractProduct(doc);
+        if (product == null) {
+            listener.onFailure(
+                    new IllegalArgumentException(
+                            String.format(
+                                    Locale.ROOT,
+                                    Constants.E_RULE_MISSING_PRODUCT,
+                                    doc.path(Constants.KEY_ID).asText())));
+            return;
+        }
+        this.executeAsync(
+                WValidateRuleAction.INSTANCE,
+                new WValidateRuleRequest(product, doc.toString(), space != Space.STANDARD),
+                listener);
+    }
+
+    @Override
+    public void refreshDetectors(
+            List<String> ruleIds, ActionListener<? extends ActionResponse> listener) {
+        this.executeAsync(
+                WRefreshDetectorsAction.INSTANCE, new WRefreshDetectorsRequest(ruleIds), listener);
+    }
+
+    @Override
+    public void upsertRule(
+            JsonNode doc,
+            Space space,
+            Method method,
+            boolean skipDetectorRebuild,
+            ActionListener<? extends ActionResponse> listener) {
         // Every rejection below must notify the listener. Callers count these requests down against a
         // latch, so returning silently leaves the caller waiting out its whole timeout and reporting
         // that instead of the rule that is malformed.
@@ -211,7 +247,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             body,
                             true,
                             id,
-                            sourceName),
+                            sourceName,
+                            skipDetectorRebuild),
                     listener);
         } else {
             this.executeAsync(
@@ -224,7 +261,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             body,
                             true,
                             id,
-                            sourceName),
+                            sourceName,
+                            skipDetectorRebuild),
                     listener);
         }
     }

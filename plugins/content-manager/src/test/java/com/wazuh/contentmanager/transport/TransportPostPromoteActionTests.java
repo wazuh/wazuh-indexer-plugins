@@ -361,7 +361,11 @@ public class TransportPostPromoteActionTests extends OpenSearchTestCase {
                     changesWith("draft", "policy", "[{\"operation\":\"update\"}]"),
                     changesWith("draft", "integrations", "[null]"),
                     changesWith("draft", "policy", "[null]"),
-                    changesWith("test", "rules", "[null]")
+                    changesWith("test", "rules", "[null]"),
+                    // The optional Sigma filter list is validated like the others when present.
+                    changesWith("draft", "rules", "[]")
+                            .replace("}}", ",\"sigma_filters\":[{\"id\":\"x\"}]}}"),
+                    changesWith("draft", "rules", "[]").replace("}}", ",\"sigma_filters\":[null]}}")
                 }) {
             MessageStatusResponse response = promoteBody(body);
             assertEquals(body, RestStatus.BAD_REQUEST, response.getStatus());

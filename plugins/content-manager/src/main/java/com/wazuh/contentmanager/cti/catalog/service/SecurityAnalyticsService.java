@@ -66,6 +66,42 @@ public interface SecurityAnalyticsService {
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener);
 
     /**
+     * Upserts a rule, optionally without rebuilding the detectors that reference it. A caller that
+     * changes several rules skips the per-rule rebuild and calls {@link #refreshDetectors} once.
+     *
+     * @param doc the rule document.
+     * @param space the rule's space.
+     * @param method POST to create, PUT to update.
+     * @param skipDetectorRebuild whether to skip rebuilding the rule's detectors.
+     * @param listener notified with the result.
+     */
+    void upsertRule(
+            JsonNode doc,
+            Space space,
+            Method method,
+            boolean skipDetectorRebuild,
+            ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * Has Security Analytics validate a rule as it would compile it, without storing it: its fields
+     * must belong to WCS and it must compile to a query that parses.
+     *
+     * @param doc the rule document.
+     * @param space the rule's space, which sets the compiler configuration.
+     * @param listener notified with the result; a rule Security Analytics rejects fails it with a
+     *     400.
+     */
+    void validateRule(JsonNode doc, Space space, ActionListener<? extends ActionResponse> listener);
+
+    /**
+     * Rebuilds, once each, the detectors that reference any of the given rules.
+     *
+     * @param ruleIds the rule ids.
+     * @param listener notified with the result.
+     */
+    void refreshDetectors(List<String> ruleIds, ActionListener<? extends ActionResponse> listener);
+
+    /**
      * Asynchronously deletes a Rule from SAP.
      *
      * @param id The identifier of the rule to delete.

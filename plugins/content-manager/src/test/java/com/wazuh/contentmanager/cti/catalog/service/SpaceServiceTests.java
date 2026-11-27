@@ -25,6 +25,8 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBu
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -35,6 +37,7 @@ import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.index.get.GetResult;
 import org.opensearch.node.NodeClosedException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -55,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.CapturingAppender;
@@ -497,6 +501,61 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                 "The recalculated update should carry an aggregate hash, was: " + updateJson,
                 updateJson.contains("\"sha256\":\""));
         assertEquals(POLICY_IDX, update.index());
+    }
+
+    /**
+     * A policy's Sigma filters are part of its space hash, as its Engine filters and its rules are,
+     * so promoting or changing a Sigma filter changes the space hash.
+     */
+    public void testCalculateAndUpdateHashesThePolicySigmaFilters() {
+        mockPolicySearch(
+                searchResponse(
+                        policyHit(
+                                "{\"space\":{\"name\":\"draft\"},\"hash\":{\"sha256\":\"doc-hash\"},"
+                                        + "\"document\":{\"sigma_filters\":[\"sf1\"]}}")));
+        mockPolicyIndexExists(true);
+        ArgumentCaptor<GetRequest> gets = ArgumentCaptor.forClass(GetRequest.class);
+        doAnswer(
+                        invocation -> {
+                            GetRequest request = invocation.getArgument(0);
+                            invocation
+                                    .<ActionListener<GetResponse>>getArgument(1)
+                                    .onResponse(
+                                            new GetResponse(
+                                                    new GetResult(
+                                                            request.index(),
+                                                            request.id(),
+                                                            1L,
+                                                            1L,
+                                                            1L,
+                                                            true,
+                                                            new BytesArray("{\"hash\":{\"sha256\":\"sf-hash\"}}"),
+                                                            Collections.emptyMap(),
+                                                            Collections.emptyMap())));
+                            return null;
+                        })
+                .when(this.client)
+                .get(gets.capture(), any());
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        BulkResponse bulkResponse = org.mockito.Mockito.mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<BulkResponse>>getArgument(1).onResponse(bulkResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(bulkCaptor.capture(), any());
+
+        this.policyHashService.calculateAndUpdate(
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
+
+        assertEquals(Constants.INDEX_SIGMA_FILTERS, gets.getValue().index());
+        assertEquals("sf1", gets.getValue().id());
+        UpdateRequest update = (UpdateRequest) bulkCaptor.getValue().requests().get(0);
+        String updateJson = update.doc().source().utf8ToString();
+        String expected = Resource.computeSha256("doc-hash" + "sf-hash");
+        assertTrue(updateJson, updateJson.contains("\"sha256\":\"" + expected + "\""));
     }
 
     /**

@@ -96,7 +96,8 @@ public class TransportGetPolicyResourcesAction
                             Constants.KEY_DECODERS,
                             Constants.KEY_FILTERS,
                             Constants.KEY_KVDBS,
-                            Constants.KEY_RULES),
+                            Constants.KEY_RULES,
+                            Constants.KEY_SIGMA_FILTERS),
                     ActionListener.wrap(
                             resources ->
                                     listener.onResponse(
@@ -104,7 +105,8 @@ public class TransportGetPolicyResourcesAction
                                                     resources.get(Constants.KEY_DECODERS),
                                                     resources.get(Constants.KEY_FILTERS),
                                                     resources.get(Constants.KEY_KVDBS),
-                                                    resources.get(Constants.KEY_RULES))),
+                                                    resources.get(Constants.KEY_RULES),
+                                                    resources.get(Constants.KEY_SIGMA_FILTERS))),
                             listener::onFailure));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());

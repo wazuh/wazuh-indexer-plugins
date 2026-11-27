@@ -945,6 +945,34 @@ public class ContentIndex {
     }
 
     /**
+     * Deletes a document and calls the listener once searches no longer find it, so that a request
+     * that answers after this, such as a resource delete, is not followed by a promotion preview that
+     * still lists the document. A failure is logged as in {@link #delete(String)} and the listener is
+     * still called.
+     *
+     * @param id The ID of the document to delete.
+     * @param listener Called once the deletion is done or has failed.
+     */
+    public void delete(String id, ActionListener<Void> listener) {
+        this.client.delete(
+                new DeleteRequest(this.getWriteIndex(), id)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(DeleteResponse response) {
+                        log.debug(Constants.D_LOG_DELETED_FROM_INDEX, id, ContentIndex.this.indexName);
+                        listener.onResponse(null);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(Constants.E_LOG_DELETE_DOCUMENT_FAILED, id, e.getMessage());
+                        listener.onResponse(null);
+                    }
+                });
+    }
+
+    /**
      * Reads the Security Analytics log type a rule belongs to from its {@code logsource.product}.
      *
      * <p>The value is a routing key, not a description: it selects the {@code

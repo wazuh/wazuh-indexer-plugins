@@ -1306,6 +1306,12 @@ public class SpaceService {
                 (document != null && document.containsKey(Constants.KEY_FILTERS))
                         ? (List<String>) document.get(Constants.KEY_FILTERS)
                         : Collections.emptyList();
+        // Sigma filters change what the space's rules match, so they are part of its hash, as rules
+        // are. A space without Sigma filters keeps the hash it had before they existed.
+        List<String> sigmaFilterIds =
+                (document != null && document.containsKey(Constants.KEY_SIGMA_FILTERS))
+                        ? (List<String>) document.get(Constants.KEY_SIGMA_FILTERS)
+                        : Collections.emptyList();
 
         final String finalSpaceName = spaceName;
         collectIntegrationHashesAsync(
@@ -1320,22 +1326,30 @@ public class SpaceService {
                                         Constants.INDEX_FILTERS,
                                         spaceHashes,
                                         ActionListener.wrap(
-                                                v2 -> {
-                                                    finalizeHitHash(
-                                                            hit,
-                                                            source,
-                                                            finalSpaceName,
-                                                            spaceHashes,
-                                                            bulkUpdateRequest,
-                                                            changedSpaces);
-                                                    processHitsAsync(
-                                                            hits,
-                                                            idx + 1,
-                                                            targetSpaces,
-                                                            bulkUpdateRequest,
-                                                            changedSpaces,
-                                                            listener);
-                                                },
+                                                v2 ->
+                                                        collectResourceHashesAsync(
+                                                                sigmaFilterIds,
+                                                                0,
+                                                                Constants.INDEX_SIGMA_FILTERS,
+                                                                spaceHashes,
+                                                                ActionListener.wrap(
+                                                                        v3 -> {
+                                                                            finalizeHitHash(
+                                                                                    hit,
+                                                                                    source,
+                                                                                    finalSpaceName,
+                                                                                    spaceHashes,
+                                                                                    bulkUpdateRequest,
+                                                                                    changedSpaces);
+                                                                            processHitsAsync(
+                                                                                    hits,
+                                                                                    idx + 1,
+                                                                                    targetSpaces,
+                                                                                    bulkUpdateRequest,
+                                                                                    changedSpaces,
+                                                                                    listener);
+                                                                        },
+                                                                        listener::onFailure)),
                                                 listener::onFailure)),
                         listener::onFailure));
     }

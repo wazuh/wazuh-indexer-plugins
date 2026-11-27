@@ -429,9 +429,47 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         ArgumentCaptor<List> indices = ArgumentCaptor.forClass(List.class);
         verify(this.spaceService).deleteSpaceResources(eq(Space.DRAFT), indices.capture(), any());
         List<String> deleted = indices.getValue();
-        assertEquals(List.of(Constants.INDEX_RULES), deleted);
+        assertEquals(List.of(Constants.INDEX_RULES, Constants.INDEX_SIGMA_FILTERS), deleted);
         assertFalse(
                 "decoders are normalization, not touched", deleted.contains(Constants.INDEX_DECODERS));
+        verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.DRAFT.toString())), any());
+    }
+
+    /** clearDetection empties the policy's Sigma filter list, as it deletes the filters. */
+    @SuppressWarnings("unchecked")
+    public void testClearDetection_dropsThePolicySigmaFilterReferences() {
+        this.stubRuleIds(List.of());
+        this.stubList(List.of());
+        doAnswer(
+                        invocation -> {
+                            String source =
+                                    "{\"document\":{\"id\":\"p\",\"sigma_filters\":[\"f1\"]},"
+                                            + "\"hash\":{\"sha256\":\"old\"},\"space\":{\"name\":\"draft\"}}";
+                            invocation
+                                    .<ActionListener<GetResponse>>getArgument(1)
+                                    .onResponse(
+                                            new GetResponse(
+                                                    new GetResult(
+                                                            Constants.INDEX_POLICIES,
+                                                            POLICY_DOC_ID,
+                                                            1L,
+                                                            1L,
+                                                            2L,
+                                                            true,
+                                                            new BytesArray(source),
+                                                            Collections.emptyMap(),
+                                                            Collections.emptyMap())));
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
+        ArgumentCaptor<IndexRequest> writes = ArgumentCaptor.forClass(IndexRequest.class);
+
+        assertNull(this.runClearDetection());
+
+        verify(this.client).index(writes.capture(), any());
+        String written = writes.getValue().source().utf8ToString();
+        assertTrue(written, written.contains("\"sigma_filters\":[]"));
         verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.DRAFT.toString())), any());
     }
 

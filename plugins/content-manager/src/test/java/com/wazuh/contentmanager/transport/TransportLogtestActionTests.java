@@ -265,4 +265,52 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
                 .executeLogtest(any(), any(), captor.capture(), any(ActionListener.class));
         return captor.getValue();
     }
+
+    /** An unknown sigma_filters value is a 400 naming it, and the log test is not run. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_InvalidSigmaFiltersIsRejected() {
+        ActionListener<LogtestResponse> listener = mock(ActionListener.class);
+
+        this.action.doExecute(
+                mock(Task.class),
+                new LogtestRequest("{\"space\":\"test\",\"sigma_filters\":\"draft\"}"),
+                listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertEquals(
+                                            "Invalid 'sigma_filters' value [draft]. Must be one of: test, custom, none.",
+                                            response.getMessage());
+                                    return true;
+                                }));
+        verifyNoInteractions(this.logtestService);
+    }
+
+    /** sigma_filters selects the filter space and is not forwarded to the Engine. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_SigmaFiltersIsNotForwardedToTheEngine() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<RestResponse>>getArgument(4)
+                                    .onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeLogtest(any(), any(), any(), any(ObjectNode.class), any(ActionListener.class));
+
+        this.action.doExecute(
+                mock(Task.class),
+                new LogtestRequest("{\"space\":\"test\",\"sigma_filters\":\"none\"}"),
+                mock(ActionListener.class));
+
+        ArgumentCaptor<ObjectNode> payload = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(this.logtestService)
+                .executeLogtest(
+                        any(), eq(Space.TEST), isNull(), payload.capture(), any(ActionListener.class));
+        Assert.assertFalse(payload.getValue().has(Constants.KEY_SIGMA_FILTERS));
+    }
 }

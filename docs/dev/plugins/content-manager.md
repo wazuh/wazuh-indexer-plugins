@@ -87,7 +87,7 @@ sequenceDiagram
 
 ## System indices
 
-The plugin manages the following indices. The 8 content indices marked "alias-backed" use the **alias-backed blue/green storage** scheme (see [Index alias convention](#index-alias-convention) below); `.wazuh-cti-consumers`, `.wazuh-internal-state`, and `.wazuh-content-manager-jobs` are single physical indices, not blue/green'd.
+The plugin manages the following indices. The 9 content indices marked "alias-backed" use the **alias-backed blue/green storage** scheme (see [Index alias convention](#index-alias-convention) below); `.wazuh-cti-consumers`, `.wazuh-internal-state`, and `.wazuh-content-manager-jobs` are single physical indices, not blue/green'd.
 
 | Alias or index name                  | Purpose                                   | Hidden | Alias-backed |
 | ------------------------------------ | ----------------------------------------- | ------ | ------------ |
@@ -99,6 +99,7 @@ The plugin manages the following indices. The 8 content indices marked "alias-ba
 | `wazuh-threatintel-decoders`         | Decoder definitions                       | no     | yes          |
 | `wazuh-threatintel-kvdbs`            | Key-value databases                       | no     | yes          |
 | `wazuh-threatintel-filters`          | Engine filter rules                       | no     | yes          |
+| `wazuh-threatintel-sigma-filters`    | Sigma filters (user content, never rebuilt by a CTI sync) | no     | yes          |
 | `wazuh-threatintel-enrichments`      | Indicators of Compromise (IoC)            | no     | yes          |
 | `.wazuh-threatintel-vulnerabilities` | CVE vulnerability data                    | yes    | yes          |
 | `.wazuh-content-manager-jobs`        | Job scheduler metadata                    | yes    | no           |

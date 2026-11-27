@@ -33,6 +33,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_rules`** (Integer, default `200`, minimum `0`, no upper bound, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
 - **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
 - **`plugins.content_manager.max_filters`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_sigma_filters`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of [Sigma filters](../ruleset-management/sigma-filters.md) that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
 
 - **`plugins.content_manager.cti.console.timeout`** (Integer, default `5`, range 1–120) — request timeout, in seconds, for CTI Console calls (instance registration, plans, token exchange). The catalog client has its own timeout in `plugins.content_manager.client.timeout`; the Console endpoints resolve against `plugins.content_manager.cti.api`, so moving that setting moves both services.
 - **`plugins.content_manager.bulk.retry.shed.max_retries`** (Integer, default `3`, range 0–10, dynamic) — number of times a bulk operation the cluster shed under load (circuit breaker trip, indexing-pressure rejection, HTTP 429/503) is re-submitted before its documents are counted as dropped.
@@ -336,7 +337,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
       "plugins.content_manager.max_decoders": 100,
       "plugins.content_manager.max_rules": 100,
       "plugins.content_manager.max_kvdbs": 50,
-      "plugins.content_manager.max_filters": 50
+      "plugins.content_manager.max_filters": 50,
+      "plugins.content_manager.max_sigma_filters": 50
     }
   }'
 ```
@@ -345,7 +347,7 @@ Setting a limit to `0` blocks all new creation of that resource type.
 
 ### Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.catalog.update_on_schedule`, `plugins.content_manager.catalog.sync_interval`, `plugins.content_manager.telemetry.enabled`, `plugins.content_manager.logtest.max_body_bytes`, and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.catalog.update_on_schedule`, `plugins.content_manager.catalog.sync_interval`, `plugins.content_manager.telemetry.enabled`, `plugins.content_manager.logtest.max_body_bytes`, and all six resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`, `max_sigma_filters`).
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.catalog.sync_interval` are reconciled with the periodic job on every node start and whenever either setting changes, so a value set in `opensearch.yml` applies to an existing deployment and not only to a fresh install.

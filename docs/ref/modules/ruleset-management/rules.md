@@ -188,6 +188,16 @@ condition: (selection_one or selection_two) and not filter
 | `not`    | Negates the following operand     | `selection and not filter`           |
 | `( )`    | Groups expressions for precedence | `(sel_a or sel_b) and not exclusion` |
 
+#### Selectors
+
+A selector refers to several selections at once: `1 of <pattern>` (any of them) or `all of <pattern>` (every one). `*` in the pattern matches any characters, and `them` stands for every selection.
+
+```yaml
+condition: 1 of sel_* and not filter
+```
+
+A selector skips the selections whose name starts with an underscore (`_`), unless its own pattern starts with one, as the Sigma specification prescribes. `all of them` therefore ignores a selection named `_internal`, and `1 of _*` selects it. [Sigma filters](sigma-filters.md) rely on this: the selections they add to a rule start with an underscore.
+
 
 #### Example: simple condition
 

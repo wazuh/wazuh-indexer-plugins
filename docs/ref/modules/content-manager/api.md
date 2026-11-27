@@ -13,6 +13,7 @@ The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/
 - [Rules](#rules)
 - [Decoders](#decoders)
 - [Filters](#filters)
+- [Sigma filters](#sigma-filters)
 - [Integrations](#integrations)
 - [KVDBs](#kvdbs)
 - [Promotion](#promotion)
@@ -34,7 +35,7 @@ If provided, either value is stored as-is — the plugin does not validate or re
 
 ## YAML content-type support
 
-The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
+The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. The other endpoints, **Sigma filters** included, take JSON only. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
 
 ### Envelope structure
 
@@ -470,6 +471,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 - **`event`** (String, required) — raw log event to test.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
 - **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
+- **`sigma_filters`** (String, optional) — whose [Sigma filters](../ruleset-management/sigma-filters.md) apply to the evaluated rules: `test`, `custom` or `none`. When omitted, a `test` run applies the Test filters and a `standard` or `custom` run the Custom ones, as the detectors do. Any other value is rejected with a 400. The field is not forwarded to the Engine.
 
 #### Example request
 
@@ -638,7 +640,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 #### Status codes
 
 - **200** — logtest executed (check inner status fields).
-- **400** — missing/invalid fields or integration not found.
+- **400** — missing/invalid fields, an invalid `sigma_filters` value, or integration not found.
 - **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **429** — the logtest thread pool is saturated; too many concurrent requests. Retry later. The pool is
   sized by `plugins.content_manager.thread_pool.logtest.size` (default: half the allocated processors, at
@@ -765,6 +767,7 @@ Use this after obtaining a normalized event from the `/logtest/normalization` en
 - **`space`** (String, required) — `"test"`, `"standard"`, or `"custom"`.
 - **`integration`** (String, required) — UUID of the integration whose rules to evaluate.
 - **`input`** (Object, required) — normalized event object to evaluate rules against.
+- **`sigma_filters`** (String, optional) — whose [Sigma filters](../ruleset-management/sigma-filters.md) apply to the evaluated rules: `test`, `custom` or `none`. When omitted, a `test` run applies the Test filters and a `standard` or `custom` run the Custom ones, as the detectors do. Any other value is rejected with a 400. The field is not forwarded to the Engine.
 
 #### Example request
 
@@ -863,7 +866,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 #### Status codes
 
 - **200** — detection executed (check `message.status`).
-- **400** — missing/invalid fields or integration not found.
+- **400** — missing/invalid fields, an invalid `sigma_filters` value, or integration not found.
 - **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **429** — the logtest thread pool is saturated; too many concurrent requests. Retry later. The pool is
   sized by `plugins.content_manager.thread_pool.logtest.size` (default: half the allocated processors, at
@@ -878,7 +881,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
-> **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
+> **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints. The same holds for the `sigma_filters` array, managed through the [Sigma filters](#sigma-filters) endpoints: it can be omitted, which keeps it, or sent back with the same ids.
 
 #### Space-specific behavior
 
@@ -993,7 +996,7 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 ### List space resources
 
-Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of the space's decoders, filters and kvdbs — the resources that make the Engine require a root decoder — and `detection` holds its rules. A resource type with no documents in the space returns an empty array.
+Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of the space's decoders, filters and kvdbs — the resources that make the Engine require a root decoder — and `detection` holds its rules and its [Sigma filters](#sigma-filters). A resource type with no documents in the space returns an empty array.
 
 Use it to find what a space still holds when a promotion fails with `Missing root decoder`: the decoders, kvdbs or filters left in the space must be deleted (or a new root decoder set) before the space can be promoted.
 
@@ -1023,7 +1026,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
     "kvdbs": ["7f3b56e8-9daf-4b2c-a249-a42af2fcf93f"]
   },
   "detection": {
-    "rules": []
+    "rules": [],
+    "sigma_filters": []
   },
   "status": 200
 }
@@ -1221,7 +1225,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 #### Status codes
 
 - **200** — rule updated.
-- **400** — invalid request, not in draft space, or validation failure.
+- **400** — invalid request, not in draft space, or validation failure. Also when a draft [Sigma filter](#sigma-filters) targets the rule and would no longer apply to it, for example after a change to its `logsource`; the response names the filter. Change or delete the filter first.
 - **404** — rule not found.
 - **409** — the new title is already used by another rule in the space.
 - **500** — internal error.
@@ -1260,6 +1264,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 #### Status codes
 
 - **200** — rule deleted.
+- **400** — draft [Sigma filters](#sigma-filters) target the rule; the response names them. Remove the rule from those filters, or delete them, first.
 - **404** — rule not found.
 - **500** — internal error.
 
@@ -1696,6 +1701,190 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — filter deleted.
 - **404** — filter not found.
+- **500** — internal error.
+
+---
+
+## Sigma filters
+
+[Sigma filters](../ruleset-management/sigma-filters.md) exclude events from rules without changing the rules. A Sigma filter is created, updated and deleted in the `draft` space, and promoted like any other resource (Draft → Test → Custom, see [Promotion](#promotion)). It is linked to the space policy's `sigma_filters` list.
+
+These endpoints take JSON only (see [YAML content-type support](#yaml-content-type-support)); the YAML in the [Sigma filters](../ruleset-management/sigma-filters.md) page shows the same fields in Sigma's notation. There is no endpoint to read a filter: [List space resources](#list-space-resources) lists the ids of a space's filters under `detection.sigma_filters`, and the filters themselves are in the `wazuh-threatintel-sigma-filters` index (`GET wazuh-threatintel-sigma-filters/_search`), with the filter under `document` and its space under `space.name`.
+
+### Create Sigma filter
+
+Creates a Sigma filter in the draft space. The filter is checked against every rule it targets: each rule must exist in the standard or draft space, and Security Analytics must accept the rule with the filter applied.
+
+#### Request
+
+- Method: `POST`
+- Path: `/_plugins/_content_manager/sigma_filters`
+
+#### Request body
+
+- **`space`** (String, required) — target space: `draft`.
+- **`resource`** (Object, required) — the Sigma filter.
+
+Fields within `resource`:
+
+- **`metadata`** (Object, required) — filter metadata: **`title`** (String, required), **`author`** and **`description`** (String, optional), and **`date`**, **`modified`** (see [Timestamps on create and update](#timestamps-on-create-and-update)).
+- **`logsource`** (Object, required) — `product`, `category` and `service`; each key set must match the target rules.
+- **`filter`** (Object, required) — `rules` (list of target rule ids, each listed once), one or more named selections and `condition`, a single `not` over those selections. See [Filter format](../ruleset-management/sigma-filters.md#filter-format).
+- **`enabled`** (Boolean, optional) — whether the filter applies. Defaults to `true`.
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/sigma_filters" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "draft",
+    "resource": {
+      "metadata": {
+        "title": "Ignore the internal audit scanner",
+        "author": "Wazuh, Inc."
+      },
+      "logsource": {
+        "product": "apache-http"
+      },
+      "filter": {
+        "rules": ["26a8d32e-0838-5589-948c-501b5a301cf5"],
+        "selection": {
+          "user_agent.original|startswith": "internal-scanner"
+        },
+        "condition": "not selection"
+      }
+    }
+  }'
+```
+
+#### Example response
+
+```json
+{
+  "message": "7b9b369e-6170-468d-b49d-7dec06a0e15e",
+  "status": 201
+}
+```
+
+The `message` field contains the UUID of the created Sigma filter.
+
+#### Example response (rejected filter)
+
+```json
+{
+  "message": "Filter condition [selection] must be a single 'not' over the filter's selections, with no other 'not' inside, such as 'not selection' or 'not (a or b)': a filter is applied as (<rule condition>) and (<filter condition>).",
+  "status": 400
+}
+```
+
+#### Status codes
+
+- **201** — Sigma filter created.
+- **400** — invalid request, a space other than `draft`, a filter that does not apply to one of its target rules (see [Validation](../ruleset-management/sigma-filters.md#validation)), or `plugins.content_manager.max_sigma_filters` limit reached (default: 100).
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
+- **500** — Security Analytics unavailable or internal error.
+
+---
+
+### Update Sigma filter
+
+Updates a Sigma filter in the draft space. The filter is checked against its target rules again, as on create.
+
+#### Request
+
+- Method: `PUT`
+- Path: `/_plugins/_content_manager/sigma_filters/{id}`
+
+#### Parameters
+
+- **`id`** (Path, String/UUID, required) — Sigma filter document ID.
+
+#### Request body
+
+- **`space`** (String, required) — target space: `draft`.
+- **`resource`** (Object, required) — the updated Sigma filter (same fields as create, except `metadata.date`, which is read-only on update).
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
+  "https://127.0.0.1:9200/_plugins/_content_manager/sigma_filters/7b9b369e-6170-468d-b49d-7dec06a0e15e" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "space": "draft",
+    "resource": {
+      "metadata": {
+        "title": "Ignore the internal audit scanners",
+        "author": "Wazuh, Inc."
+      },
+      "logsource": {
+        "product": "apache-http"
+      },
+      "filter": {
+        "rules": ["26a8d32e-0838-5589-948c-501b5a301cf5"],
+        "scanner": {
+          "user_agent.original|startswith": ["internal-scanner", "audit-bot"]
+        },
+        "condition": "not scanner"
+      }
+    }
+  }'
+```
+
+#### Example response
+
+```json
+{
+  "message": "7b9b369e-6170-468d-b49d-7dec06a0e15e",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — Sigma filter updated.
+- **400** — invalid request, a space other than `draft`, or a filter that does not apply to one of its target rules.
+- **404** — Sigma filter not found.
+- **500** — Security Analytics unavailable or internal error.
+
+---
+
+### Delete Sigma filter
+
+Deletes a Sigma filter from the draft space and removes it from the draft policy. Promote the removal to take the filter out of the test and custom spaces.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/sigma_filters/{id}`
+
+#### Parameters
+
+- **`id`** (Path, String/UUID, required) — Sigma filter document ID.
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/sigma_filters/7b9b369e-6170-468d-b49d-7dec06a0e15e"
+```
+
+#### Example response
+
+```json
+{
+  "message": "7b9b369e-6170-468d-b49d-7dec06a0e15e",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — Sigma filter deleted.
+- **400** — the id is the internal document id of a test or custom copy of a filter. Delete the filter by its own id in the draft space, then promote the removal.
+- **404** — no Sigma filter with that id in the draft space, including a filter already deleted from draft whose removal is not promoted yet.
 - **500** — internal error.
 
 ---
@@ -2184,6 +2373,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
     "rules": [],
     "decoders": [],
     "filters": [],
+    "sigma_filters": [],
     "integrations": [
       {
         "operation": "add",
@@ -2229,6 +2419,8 @@ New resources (add operations) use `POST` to create these documents; existing re
 
 This ensures that the same CTI resource can exist in multiple spaces with independent Ruleset Management documents.
 
+A rule promoted to the Custom space is sent with the Custom [Sigma filters](#sigma-filters) that target it applied. When a promotion to Custom adds, updates or removes Sigma filters, every rule they target or targeted is sent again with the filters now in place, and each detector that uses those rules is rebuilt once, so the change reaches the detectors without waiting for a content update.
+
 #### Rollback on failure
 
 If any Content Manager index mutation fails during the consolidation phase, the endpoint automatically performs a **LIFO rollback** to restore the system to its pre-promotion state:
@@ -2249,7 +2441,7 @@ Individual rollback or reconciliation step failures are logged but do not preven
 - **`space`** (String, required) — source space: `draft` or `test`.
 - **`changes`** (Object, required) — changes to promote (from the preview response).
 
-The `changes` object contains arrays for each content type (`policy`, `integrations`, `kvdbs`, `decoders`, `rules`, `filters`), each with `operation` and `id` fields.
+The `changes` object contains arrays for each content type (`policy`, `integrations`, `kvdbs`, `decoders`, `rules`, `filters`), each with `operation` and `id` fields. A `sigma_filters` array, with the same fields, is optional: a request without it promotes no Sigma filter.
 
 The `policy` entry only accepts the `update` operation, and its `id` must be the source space policy's `document.id`, as returned by the preview — any other value is rejected. A space holds exactly one policy, and the promotion updates the target space's policy in place.
 
@@ -2314,7 +2506,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 Resets a user space (`draft`): removes its content and resets the policy's settings to default, while **keeping the space's metadata** (title, author, description, …).
 
 When resetting the `draft` space, this operation will:
-- Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
+- Remove all documents (integrations, rules, decoders, kvdbs, filters, Sigma filters, and the space's policy document) that belong to the given space.
 - Re-generate the policy for the given space with default settings (`enrichments`, `enabled`, the `index_*` flags), **preserving its metadata**.
 
 > **Note**: Only the `draft` space can be reset.
@@ -2397,7 +2589,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 ### Clear space detection resources
 
-Clears only the **detection** resources of the `draft` space: rules, removed from both the index and Security Analytics. The normalization resources (decoders, kvdbs, filters and the root decoder) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
+Clears only the **detection** resources of the `draft` space: rules, removed from both the index and Security Analytics, and [Sigma filters](#sigma-filters), removed with their policy references. The normalization resources (decoders, kvdbs, filters and the root decoder) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
 
 > **Note**: Only the `draft` space can be cleared, and like [Reset space](#reset-space) it is authorized by the `cluster:admin/content_manager/space/delete` action, so it adds no new permission; see the [permissions reference](../../security/permissions.md) for the actions this action group grants.
 >

@@ -697,4 +697,65 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         Assert.assertEquals(List.of("filter-one"), textValues(indexed.path(Constants.KEY_FILTERS)));
         Assert.assertEquals(List.of("geo"), textValues(indexed.path(Constants.KEY_ENRICHMENTS)));
     }
+
+    /** Runs a draft update against a stored policy that lists one Sigma filter. */
+    @SuppressWarnings("unchecked")
+    private ActionListener<MessageStatusResponse> runDraftUpdateWithSigmaFilter(String body) {
+        Map<String, Object> policy = currentDraftPolicy();
+        ((Map<String, Object>) policy.get(Constants.KEY_DOCUMENT))
+                .put(Constants.KEY_SIGMA_FILTERS, List.of("sigma-filter-one"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(1);
+                            l.onResponse(policy);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(any(), any(ActionListener.class));
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new UpdatePolicyRequest("draft", body), listener);
+        return listener;
+    }
+
+    /** An update without the Sigma filters list keeps the one the policy has. */
+    public void testDraftUpdateKeepsTheSigmaFiltersList() throws Exception {
+        ActionListener<MessageStatusResponse> listener =
+                runDraftUpdateWithSigmaFilter(draftUpdateBody(null));
+
+        verify(listener).onResponse(argThat(response -> response.getStatus() == RestStatus.OK));
+        Assert.assertEquals(
+                List.of("sigma-filter-one"),
+                textValues(capturedIndexedDocument().path(Constants.KEY_SIGMA_FILTERS)));
+    }
+
+    /** The Sigma filters list can be sent back unchanged. */
+    public void testDraftUpdateAcceptsTheSameSigmaFiltersList() throws Exception {
+        ActionListener<MessageStatusResponse> listener =
+                runDraftUpdateWithSigmaFilter(
+                        draftUpdateBody(null)
+                                .replace(
+                                        "\"filters\": [],",
+                                        "\"filters\": [], \"sigma_filters\": [\"sigma-filter-one\"],"));
+
+        verify(listener).onResponse(argThat(response -> response.getStatus() == RestStatus.OK));
+        Assert.assertEquals(
+                List.of("sigma-filter-one"),
+                textValues(capturedIndexedDocument().path(Constants.KEY_SIGMA_FILTERS)));
+    }
+
+    /** The Sigma filters list is changed only through the Sigma filter endpoints. */
+    public void testDraftUpdateRejectsAChangedSigmaFiltersList() {
+        ActionListener<MessageStatusResponse> listener =
+                runDraftUpdateWithSigmaFilter(
+                        draftUpdateBody(null)
+                                .replace("\"filters\": [],", "\"filters\": [], \"sigma_filters\": [],"));
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response ->
+                                        response.getStatus() == RestStatus.BAD_REQUEST
+                                                && response.getMessage().contains("'sigma_filters'")));
+        verify(this.client, never()).index(any(IndexRequest.class), any(ActionListener.class));
+    }
 }

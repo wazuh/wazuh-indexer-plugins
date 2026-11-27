@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.transport;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
@@ -26,7 +27,10 @@ import com.wazuh.contentmanager.action.DeleteRuleAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for deleting Rule resources. */
@@ -49,6 +53,25 @@ public class TransportDeleteRuleAction extends AbstractTransportDeleteAction {
     @Override
     protected String getResourceType() {
         return Constants.KEY_RULE;
+    }
+
+    /**
+     * A rule that a Draft Sigma filter targets cannot be deleted: the filter would be left orphaned.
+     */
+    @Override
+    protected void validateDelete(
+            Client client, String id, SpaceService spaceService, ActionListener<RestResponse> listener) {
+        new SigmaFilterService(client)
+                .checkRuleDelete(
+                        id,
+                        Space.DRAFT,
+                        ActionListener.wrap(
+                                reason ->
+                                        listener.onResponse(
+                                                reason == null
+                                                        ? null
+                                                        : new RestResponse(reason, RestStatus.BAD_REQUEST.getStatus())),
+                                listener::onFailure));
     }
 
     @Override

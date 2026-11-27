@@ -31,6 +31,7 @@ import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -39,6 +40,7 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -60,6 +62,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -353,6 +356,53 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         Assert.assertEquals(INDEX_NAME, captor.getValue().index());
         Assert.assertEquals(id, captor.getValue().id());
+    }
+
+    /**
+     * A delete with a listener refreshes the index and calls the listener only once the document is
+     * deleted, so that a promotion preview requested after it no longer finds the document.
+     */
+    public void testDeleteWithListener_WaitsForTheVisibleDeletion() {
+        AtomicReference<ActionListener<DeleteResponse>> pending = new AtomicReference<>();
+        doAnswer(
+                        invocation -> {
+                            pending.set(invocation.getArgument(1));
+                            return null;
+                        })
+                .when(this.client)
+                .delete(any(DeleteRequest.class), any());
+        AtomicInteger calls = new AtomicInteger();
+
+        this.contentIndex.delete(
+                "test-id", ActionListener.wrap(v -> calls.incrementAndGet(), e -> fail(e.getMessage())));
+
+        ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(this.client).delete(captor.capture(), any());
+        Assert.assertEquals(INDEX_NAME, captor.getValue().index());
+        Assert.assertEquals("test-id", captor.getValue().id());
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, captor.getValue().getRefreshPolicy());
+        Assert.assertEquals("not called before the deletion", 0, calls.get());
+
+        pending.get().onResponse(mock(DeleteResponse.class));
+        Assert.assertEquals(1, calls.get());
+    }
+
+    /** A failed delete with a listener is logged, and the listener is still called once. */
+    public void testDeleteWithListener_FailureStillCallsTheListener() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(new IndexNotFoundException(INDEX_NAME));
+                            return null;
+                        })
+                .when(this.client)
+                .delete(any(DeleteRequest.class), any());
+        AtomicInteger calls = new AtomicInteger();
+
+        this.contentIndex.delete(
+                "test-id", ActionListener.wrap(v -> calls.incrementAndGet(), e -> fail(e.getMessage())));
+
+        Assert.assertEquals(1, calls.get());
     }
 
     /** Test exists method when document exists. */

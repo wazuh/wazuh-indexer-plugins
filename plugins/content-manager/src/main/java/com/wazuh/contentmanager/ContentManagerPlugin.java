@@ -312,6 +312,11 @@ public class ContentManagerPlugin extends Plugin
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_SIGMA_FILTERS,
+                        v -> PluginSettings.getInstance().setMaxSigmaFilters(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
                         PluginSettings.LOGTEST_MAX_BODY_BYTES,
                         v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
         // Register cluster settings consumers for bulk operation and resource lock parameters
@@ -561,6 +566,9 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostFilterAction(),
                 new RestPutFilterAction(),
                 new RestDeleteFilterAction(),
+                new RestPostSigmaFilterAction(),
+                new RestPutSigmaFilterAction(),
+                new RestDeleteSigmaFilterAction(),
                 new RestDeleteSpaceAction(),
                 new RestDeleteSpaceNormalizationAction(),
                 new RestDeleteSpaceDetectionAction());
@@ -1179,6 +1187,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
                 PluginSettings.MAX_FILTERS,
+                PluginSettings.MAX_SIGMA_FILTERS,
                 PluginSettings.SETUP_WAIT_MAX_RETRIES,
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,
@@ -1294,7 +1303,14 @@ public class ContentManagerPlugin extends Plugin
                 // Phase 2: CRUD - Filters
                 new ActionHandler<>(CreateFilterAction.INSTANCE, TransportCreateFilterAction.class),
                 new ActionHandler<>(UpdateFilterAction.INSTANCE, TransportUpdateFilterAction.class),
-                new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class));
+                new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class),
+                // Sigma filters
+                new ActionHandler<>(
+                        CreateSigmaFilterAction.INSTANCE, TransportCreateSigmaFilterAction.class),
+                new ActionHandler<>(
+                        UpdateSigmaFilterAction.INSTANCE, TransportUpdateSigmaFilterAction.class),
+                new ActionHandler<>(
+                        DeleteSigmaFilterAction.INSTANCE, TransportDeleteSigmaFilterAction.class));
     }
 
     /**

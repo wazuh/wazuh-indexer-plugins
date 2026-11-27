@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.action.LogtestRequest;
 import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
+import com.wazuh.contentmanager.cti.catalog.service.SigmaFilterService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -128,18 +129,30 @@ public class TransportLogtestAction
                 integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
             }
 
-            // 5. Build engine payload (remove integration field, default trace_level to NONE)
+            // Optional sigma_filters: which space's Sigma filters apply to the evaluated rules.
+            String sigmaFilters =
+                    jsonNode.hasNonNull(Constants.KEY_SIGMA_FILTERS)
+                            ? jsonNode.get(Constants.KEY_SIGMA_FILTERS).asText()
+                            : null;
+            Space filterSpace;
+            try {
+                filterSpace = SigmaFilterService.resolveLogtestFilterSpace(sigmaFilters, spaceEnum);
+            } catch (IllegalArgumentException e) {
+                listener.onResponse(new LogtestResponse(e.getMessage(), RestStatus.BAD_REQUEST));
+                return;
+            }
+
+            // 5. Build engine payload (remove the integration and sigma_filters fields, default
+            // trace_level to NONE)
             ObjectNode enginePayload = jsonNode.deepCopy();
             enginePayload.remove(Constants.KEY_INTEGRATION);
+            enginePayload.remove(Constants.KEY_SIGMA_FILTERS);
             if (!enginePayload.hasNonNull(Constants.KEY_TRACE_LEVEL)) {
                 enginePayload.put(Constants.KEY_TRACE_LEVEL, Constants.TRACE_LEVEL_NONE);
             }
 
             // 6. Delegate execution to Service
-            this.logtestService.executeLogtest(
-                    integrationId,
-                    spaceEnum,
-                    enginePayload,
+            ActionListener<RestResponse> serviceListener =
                     ActionListener.wrap(
                             serviceResponse ->
                                     listener.onResponse(
@@ -152,7 +165,14 @@ public class TransportLogtestAction
                                                     e.getMessage() != null
                                                             ? e.getMessage()
                                                             : "An unexpected error occurred while" + " processing your request.",
-                                                    RestStatus.INTERNAL_SERVER_ERROR))));
+                                                    RestStatus.INTERNAL_SERVER_ERROR)));
+            if (sigmaFilters == null) {
+                this.logtestService.executeLogtest(
+                        integrationId, spaceEnum, enginePayload, serviceListener);
+            } else {
+                this.logtestService.executeLogtest(
+                        integrationId, spaceEnum, filterSpace, enginePayload, serviceListener);
+            }
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

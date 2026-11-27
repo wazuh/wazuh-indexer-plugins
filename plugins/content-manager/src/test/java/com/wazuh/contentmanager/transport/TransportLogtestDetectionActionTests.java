@@ -196,4 +196,50 @@ public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
                                     return true;
                                 }));
     }
+
+    /** An unknown sigma_filters value is a 400, and the log test is not run. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_InvalidSigmaFiltersIsRejected() {
+        String body =
+                "{\"space\":\"test\",\"integration\":\"int-1\",\"input\":{},\"sigma_filters\":\"draft\"}";
+        ActionListener<LogtestResponse> listener = mock(ActionListener.class);
+
+        this.action.doExecute(mock(Task.class), new LogtestDetectionRequest(body), listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    return true;
+                                }));
+        verifyNoInteractions(this.logtestService);
+    }
+
+    /** sigma_filters picks the space whose Sigma filters apply. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_SigmaFiltersSelectsTheFilterSpace() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<RestResponse>>getArgument(4)
+                                    .onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeDetectionAsync(any(), any(), any(), any(JsonNode.class), any(ActionListener.class));
+        String body =
+                "{\"space\":\"standard\",\"integration\":\"int-1\",\"input\":{},\"sigma_filters\":\"test\"}";
+
+        this.action.doExecute(
+                mock(Task.class), new LogtestDetectionRequest(body), mock(ActionListener.class));
+
+        verify(this.logtestService)
+                .executeDetectionAsync(
+                        eq("int-1"),
+                        eq(Space.STANDARD),
+                        eq(Space.TEST),
+                        any(JsonNode.class),
+                        any(ActionListener.class));
+    }
 }

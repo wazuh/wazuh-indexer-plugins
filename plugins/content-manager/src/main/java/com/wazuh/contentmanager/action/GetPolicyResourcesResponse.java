@@ -42,6 +42,7 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
     private final List<String> filters;
     private final List<String> kvdbs;
     private final List<String> rules;
+    private final List<String> sigmaFilters;
 
     /**
      * Error / simple-message constructor.
@@ -57,6 +58,7 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
         this.filters = null;
         this.kvdbs = null;
         this.rules = null;
+        this.sigmaFilters = null;
     }
 
     /**
@@ -66,9 +68,14 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
      * @param filters The filter ids.
      * @param kvdbs The kvdb ids.
      * @param rules The rule ids.
+     * @param sigmaFilters The Sigma filter ids.
      */
     public GetPolicyResourcesResponse(
-            List<String> decoders, List<String> filters, List<String> kvdbs, List<String> rules) {
+            List<String> decoders,
+            List<String> filters,
+            List<String> kvdbs,
+            List<String> rules,
+            List<String> sigmaFilters) {
         super();
         this.message = null;
         this.status = RestStatus.OK;
@@ -76,6 +83,7 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
         this.filters = filters;
         this.kvdbs = kvdbs;
         this.rules = rules;
+        this.sigmaFilters = sigmaFilters;
     }
 
     /**
@@ -93,11 +101,13 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
             this.filters = sin.readStringList();
             this.kvdbs = sin.readStringList();
             this.rules = sin.readStringList();
+            this.sigmaFilters = sin.readStringList();
         } else {
             this.decoders = null;
             this.filters = null;
             this.kvdbs = null;
             this.rules = null;
+            this.sigmaFilters = null;
         }
     }
 
@@ -111,6 +121,7 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
             out.writeStringCollection(filters);
             out.writeStringCollection(kvdbs);
             out.writeStringCollection(rules);
+            out.writeStringCollection(sigmaFilters);
         } else {
             out.writeBoolean(false);
         }
@@ -127,6 +138,7 @@ public class GetPolicyResourcesResponse extends ActionResponse implements ToXCon
             builder.endObject();
             builder.startObject(Constants.KEY_DETECTION);
             builder.field(Constants.KEY_RULES, rules);
+            builder.field(Constants.KEY_SIGMA_FILTERS, sigmaFilters);
             builder.endObject();
         } else {
             builder.field(Constants.KEY_MESSAGE, message);

@@ -82,6 +82,8 @@ public class Constants {
             "This request would create more than the allowed kvdbs [%d].";
     public static final String E_400_TOO_MANY_FILTERS =
             "This request would create more than the allowed filters [%d].";
+    public static final String E_400_TOO_MANY_SIGMA_FILTERS =
+            "This request would create more than the allowed Sigma filters [%d].";
     public static final String E_413_LOGTEST_EVENT_TOO_LARGE =
             "logtest payload exceeds the maximum allowed size of %d bytes.";
     public static final String E_429_LOGTEST_BUSY =
@@ -106,6 +108,55 @@ public class Constants {
     public static final String E_400_PROMOTION_EMPTIES_DETECTORS =
             "This promotion would leave %d detectors without enabled rules: %s. "
                     + "Disable or delete them, or keep one of their rules enabled.";
+
+    // Sigma filters: why a filter cannot be applied to a rule (SigmaFilterComposer).
+    public static final String E_400_SIGMA_FILTER_MISSING_FILTER = "The 'filter' object is missing.";
+    public static final String E_400_SIGMA_FILTER_MISSING_LOGSOURCE =
+            "The 'logsource' object is missing.";
+    public static final String E_400_SIGMA_FILTER_RULES =
+            "'filter.rules' must be a non-empty list of rule ids ('any' is not supported).";
+    public static final String E_400_SIGMA_FILTER_RULE_REPEATED =
+            "Rule [%s] is listed more than once in 'filter.rules'.";
+    public static final String E_400_SIGMA_FILTER_TIMEFRAME =
+            "A Sigma filter cannot set 'timeframe': it applies to each event its rules match.";
+    public static final String E_400_SIGMA_FILTER_CONDITION_NOT_STRING =
+            "'filter.condition' must be a string.";
+    public static final String E_400_SIGMA_FILTER_NO_SELECTION = "The filter defines no selection.";
+    public static final String E_400_SIGMA_FILTER_SELECTION_NAME =
+            "Selection name [%s] is not a valid identifier: use letters, digits and underscores, not"
+                    + " starting with a digit.";
+    public static final String E_400_SIGMA_FILTER_CONDITION_SYNTAX =
+            "Filter condition [%s] is not a valid Sigma condition.";
+    public static final String E_400_SIGMA_FILTER_CONDITION_NOT_NEGATION =
+            "Filter condition [%s] must be a single 'not' over the filter's selections, with no other"
+                    + " 'not' inside, such as 'not selection' or 'not (a or b)': a filter is applied as"
+                    + " (<rule condition>) and (<filter condition>).";
+    public static final String E_400_SIGMA_FILTER_UNDEFINED_SELECTION =
+            "Filter condition [%s] refers to [%s], which matches none of the filter's selections.";
+    public static final String E_400_SIGMA_FILTER_LOGSOURCE_MISMATCH =
+            "The filter logsource %s does not match the logsource %s of rule [%s].";
+    public static final String E_400_SIGMA_FILTER_RULE_CONDITION =
+            "Rule [%s] has no single condition string, so a filter cannot be applied to it.";
+    public static final String E_400_SIGMA_FILTER_RULE_AGGREGATES =
+            "Rule [%s] aggregates events, so a filter cannot be applied to it.";
+    public static final String E_400_SIGMA_FILTER_IDENTIFIER_TAKEN =
+            "Rule [%s] already defines the identifier [%s].";
+    public static final String E_400_SIGMA_FILTER_RULE_NOT_FOUND =
+            "Rule [%s] not found in the standard or the %s space.";
+    public static final String E_400_SIGMA_FILTER_RULE_INVALID =
+            "With the filter applied, rule [%s] is not valid: %s";
+    public static final String E_400_SIGMA_FILTER_RULE_INVALID_ALONE =
+            "Rule [%s] is not valid even without the filter, so no filter can be applied to it: %s";
+    public static final String E_400_INVALID_SIGMA_FILTERS =
+            "Invalid 'sigma_filters' value [%s]. Must be one of: test, custom, none.";
+    public static final String E_400_RULE_HAS_SIGMA_FILTERS =
+            "Cannot delete rule [%s] because the Sigma filters %s target it. Remove the rule from those"
+                    + " filters, or delete them, first.";
+    public static final String E_400_RULE_CHANGE_BREAKS_SIGMA_FILTER =
+            "This change to rule [%s] would stop the Sigma filter [%s] from applying to it: %s Change"
+                    + " the filter first.";
+    public static final String E_400_SIGMA_FILTER_RULE_SELECTOR =
+            "Selector [%s] of rule [%s] would also select the filter's selections.";
 
     public static final String E_400_NO_OFFLINE_SNAPSHOTS =
             "No snapshot file to load in [%s] on node [%s]. Place the new snapshot files in that"
@@ -154,6 +205,8 @@ public class Constants {
             "This request would create more than the allowed kvdbs [{}].";
     public static final String I_LOG_MAX_FILTERS_REACHED =
             "This request would create more than the allowed filters [{}].";
+    public static final String I_LOG_MAX_SIGMA_FILTERS_REACHED =
+            "This request would create more than the allowed Sigma filters [{}].";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -381,6 +434,10 @@ public class Constants {
             "Partial failures deleting Security Analytics resources for space [{}]: {}";
     public static final String I_LOG_SAP_SPACE_DELETED =
             "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]";
+    public static final String W_LOG_SIGMA_FILTER_NOT_APPLIED =
+            "Sigma filter [{}] not applied to rule [{}], skipped: {}";
+    public static final String W_LOG_SIGMA_FILTERS_READ_FAILED =
+            "Could not read the Sigma filters of the [{}] space, its rules are sent without them: {}";
     // Space-parameterized Engine load logs (space name is the first {}). The "standard" rendering of
     // I_LOG_ENGINE_SPACE_LOADED is intentionally byte-identical to the original standard-only message
     // so existing log-based validation keeps matching.
@@ -876,6 +933,8 @@ public class Constants {
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+    // Sigma filters, applied to rules. Not the Engine filters of INDEX_FILTERS.
+    public static final String INDEX_SIGMA_FILTERS = "wazuh-threatintel-sigma-filters";
 
     /**
      * Prefix of the WCS event data streams a threat detector reads. Completed with the integration's
@@ -915,6 +974,7 @@ public class Constants {
     public static final String KEY_IOCS = "iocs";
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
+    public static final String KEY_SIGMA_FILTERS = "sigma_filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
     public static final String KEY_DISABLED_ENRICHMENTS = "disabled_enrichments";
     public static final String KEY_ROOT_DECODER = "root_decoder";
@@ -987,7 +1047,10 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+    public static final String KEY_SIGMA_FILTER = "sigma_filter";
     public static final String KEY_TRACE_LEVEL = "trace_level";
+    // Logtest: the "sigma_filters" value that applies no Sigma filter.
+    public static final String SIGMA_FILTERS_NONE = "none";
 
     // Logtest trace level sent to the Engine when the request omits it.
     public static final String TRACE_LEVEL_NONE = "NONE";
@@ -1035,7 +1098,9 @@ public class Constants {
                     KEY_DECODERS,
                     INDEX_DECODERS,
                     KEY_FILTERS,
-                    INDEX_FILTERS);
+                    INDEX_FILTERS,
+                    KEY_SIGMA_FILTERS,
+                    INDEX_SIGMA_FILTERS);
 
     // Snapshot constants
     public static final String PLUGIN_DIR_NAME = "wazuh-indexer-content-manager";
@@ -1060,6 +1125,7 @@ public class Constants {
     public static final String Q_DOCUMENT_TYPE = "document.type";
     public static final String Q_SPACE_NAME = "space.name";
     public static final String Q_DOCUMENT_ID = "document.id";
+    public static final String Q_SIGMA_FILTER_RULES = "document.filter.rules";
     public static final String Q_DOCUMENT_ENABLED = "document.enabled";
     public static final String Q_DOCUMENT_TITLE = "document.metadata.title";
     public static final String Q_HASH = "hash.sha256";
