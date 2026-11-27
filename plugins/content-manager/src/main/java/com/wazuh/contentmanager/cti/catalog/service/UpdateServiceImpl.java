@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
@@ -44,6 +45,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
@@ -98,7 +100,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * survives failures.
      *
      * <p>On failure the exception propagates to the caller without resetting the consumer offset,
-     * allowing the next sync cycle to resume from the last checkpoint.
+     * allowing the next sync cycle to resume from the last checkpoint. A failure caused by this node
+     * shutting down is logged at debug ({@link NodeShutdown}): the update resumes from that
+     * checkpoint after the restart.
      */
     @Override
     public boolean update(long fromOffset, long toOffset) {
@@ -236,7 +240,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, this.consumerType, lastAppliedOffset);
             return true;
         } catch (Exception e) {
-            log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
+            log.log(NodeShutdown.levelFor(e, Level.ERROR), Constants.E_LOG_UPDATE_FAILED, e.getMessage());
             throw new RuntimeException("Update failed for consumer [" + this.consumerType + "]", e);
         }
     }
@@ -402,7 +406,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     /**
      * Logs a change that could not be applied. Updates are applied in batches, so the change being
      * processed when a batch fails is not necessarily the one that failed: a patch failure names its
-     * own change, and any other failure is reported against the change being processed.
+     * own change, and any other failure is reported against the change being processed. A failure
+     * caused by this node shutting down is logged at debug.
      *
      * @param e The failure.
      * @param offset The offset of the change being processed.
@@ -410,16 +415,24 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param resource The resource of the change being processed.
      */
     private void logApplyFailure(Exception e, long offset, Offset.Type type, String resource) {
+        Level level = NodeShutdown.levelFor(e, Level.ERROR);
         if (e instanceof ContentIndex.PatchException patchException
                 && patchException.getOffset() != null) {
-            log.error(
+            log.log(
+                    level,
                     Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
                     patchException.getOffset(),
                     Offset.Type.UPDATE,
                     patchException.getId(),
                     e.getMessage());
         } else {
-            log.error(Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED, offset, type, resource, e.getMessage());
+            log.log(
+                    level,
+                    Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
+                    offset,
+                    type,
+                    resource,
+                    e.getMessage());
         }
     }
 
@@ -450,7 +463,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 .withUpdatedAt(effectiveUpdatedAt),
                         true);
             } catch (Exception ce) {
-                log.error(
+                // Attempted even while the node stops. If it fails, the next update resumes from
+                // the checkpoint of the last complete batch instead.
+                log.log(
+                        NodeShutdown.levelFor(ce, Level.ERROR),
                         "Failed to persist failure checkpoint at offset [{}]: {}",
                         lastAppliedOffset,
                         ce.getMessage());

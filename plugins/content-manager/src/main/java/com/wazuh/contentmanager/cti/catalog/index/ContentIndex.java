@@ -753,8 +753,11 @@ public class ContentIndex {
             String id = ids.get(i);
             MultiGetItemResponse item = responses[i];
             if (item.isFailed()) {
+                // Keep the item's failure as the cause: a node that stops fails it with a
+                // NodeClosedException, which tells the caller to log it at debug.
                 throw new IOException(
-                        "MultiGet failed for document [" + id + "]: " + item.getFailure().getMessage());
+                        "MultiGet failed for document [" + id + "]: " + item.getFailure().getMessage(),
+                        item.getFailure().getFailure());
             }
             GetResponse getResp = item.getResponse();
             if (!getResp.isExists()) {
